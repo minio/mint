@@ -18,8 +18,8 @@ Collection of tests to detect resource leaks, gauge performance problems and ove
   ```sh
 - Build and Run.
   
-  $ docker build -t mint:alpha
-  $ docker run  -e ENDPOINT=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA43P2F  -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG -e ENABLE_HTTPS=1  mint:alpha
+  $ docker build -t minio/mint:alpha
+  $ docker run -e ENDPOINT=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA43P2F  -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG -e ENABLE_HTTPS=1  mint:alpha
   ```
 
 # Options.
