@@ -20,7 +20,7 @@ $ docker build -t minio/mint:alpha .
 
 Options are provided as environment variables to the docker container. Supported envs:
 
- - `ENDPOINT`     - <IP/URL>:<PORT> of the Minio server on which the tests has to be run.
+ - `S3_ADDRESS`     - <IP/URL>:<PORT> of the Minio server on which the tests has to be run.
  - `ACCESS_KEY`   - Access Key of the server.
  - `SECRET_KEY`   - Secret Key of the server.
  - `ENABLE_HTTPS` - Optional value when set to 1 sends HTTPS requests on SSL enabled deployment.
@@ -29,5 +29,5 @@ Options are provided as environment variables to the docker container. Supported
 ### Run
 
 ```sh
-$ docker run -e ENDPOINT=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA43P2F  -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG -e ENABLE_HTTPS=1  minio/mint:alpha
+$ docker run -e S3_ADDRESS=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA43P2F  -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG -e ENABLE_HTTPS=1  minio/mint:alpha
 ```
