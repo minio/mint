@@ -946,17 +946,24 @@ func newTestSignedRequestV4(method, urlStr string, contentLength int64, body io.
 var endPoint, accessKey, secretKey string
 var signer signerType
 
-// TestMain - Test execution starts here
+// TestMain - Test execution starts here.
 func TestMain(m *testing.M) {
 	// Get the endpoint to be tested from the environment.
-	// Should have set `export S3_POINT=<IP>:<PORT>`.
-	endPoint = os.Getenv("S3_ENDPOINT")
+	// Should have set `export S3_ADDRESS=<IP>:<PORT>`.
+	endPoint = os.Getenv("S3_ADDRESS")
 
 	accessKey = os.Getenv("ACCESS_KEY")
 	secretKey = os.Getenv("SECRET_KEY")
 
 	signer = signerV4
-
+	// check if HTTPS is enabled.
+	isSSL := os.Getenv("ENABLE_HTTPS")
+	if isSSL != "" {
+		// set the endPoint to HTTPS if its enabled.
+		endPoint = "https://" + endPoint
+	} else {
+		endPoint = "http://" + endPoint
+	}
 	// pasrse the env variables.
 	// Run all the tests and exit.
 	os.Exit(m.Run())
