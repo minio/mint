@@ -5,7 +5,7 @@ COPY . /home
 WORKDIR /home
 
 RUN \
-       apk add --no-cache bash git openssh && \
+       apk add --no-cache bash git openssh mailcap && \
        go get -u github.com/minio/minio-go && \
        go test -c /home/minio-functional-test/server_test.go && \
        go test -c /home/minio-go-functional-test/api_functional_v4_test.go 
