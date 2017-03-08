@@ -1,9 +1,11 @@
-# SDK Tests
-Collection of tests derived from S3 Compatible client libraries.
+# Functional tests. 
+Collection of tests with handcrafted http requests.
+ 
 
 # Current tests
-- Minio-go functional test.
-
+- Minio functional test. 
+  Derived and modified from the functional tests in Minio server.
+  Contains rich set of tests for wide variety of functionalities.
 
 # Adding tests.
 - Add the test in separate folder.
