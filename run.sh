@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Fail if any of the commands exit with a non zero status.
+# Halt the further execution of the script if any of the programs fail.
+set -e
 # run.sh controls the builds and run of entire test.
 # Since conditional setting of env is not possible in Dockerfile, such checks are done here.
 # This gives us fine grained control on running the tests and setting more options.
@@ -10,7 +13,7 @@
 #  Note: https://play.minio.io hosts publicly available Minio server.
 if [ -z "$S3_ADDRESS" ]; then
 	    echo "env  S3_ADDRESS not set, running the tests on play.minio.io"
-	    export S3_ADDRESS="play.minio.io"
+	    export S3_ADDRESS="play.minio.io:9000"
 	    export ACCESS_KEY="Q3AM3UQ867SPQQA43P2F"
 	    export SECRET_KEY="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
 	    export ENABLE_HTTPS=1
@@ -28,6 +31,9 @@ chmod +x build.sh
 
 
 # Build and Execute sdk-tests
+chmod +x sdk-tests/build.sh
+chmod +x sdk-tests/run.sh
+
 sdk-tests/build.sh
-sdk-test/run.sh
+sdk-tests/run.sh
 

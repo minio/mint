@@ -10,7 +10,7 @@ func main() {
 	// obtain endpoint from env.
 	// it is set using `-e` when starting the container
 	// check README.md for instructions.
-	endpoint := os.Getenv("S3_ENDPOINT")
+	endpoint := os.Getenv("S3_ADDRESS")
 	accessKeyID := os.Getenv("ACCESS_KEY")
 	secretAccessKey := os.Getenv("SECRET_KEY")
 	useSSL := false
