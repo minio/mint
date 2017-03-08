@@ -31,4 +31,6 @@ func main() {
 		// Print() followed by a call to os.Exit(1).
 		log.Fatalln(err)
 	}
+	// log the success message.
+	log.Info("Minio server is reacable and credentials right. Starting the tests...")
 }
