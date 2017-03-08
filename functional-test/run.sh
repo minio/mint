@@ -4,4 +4,4 @@
 # The Build instructions should be added to build.sh
 
 # Run Minio functional test.
-/home/cmd.test -test.v 
+./cmd.test -test.v 

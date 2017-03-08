@@ -37,3 +37,10 @@ chmod +x sdk-tests/run.sh
 sdk-tests/build.sh
 sdk-tests/run.sh
 
+# Build and Execute functional test 
+chmod +x functional-test/build.sh
+chmod +x functional-test/run.sh
+
+functional-test/build.sh
+functional-test/run.sh
+
