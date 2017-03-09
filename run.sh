@@ -22,6 +22,9 @@ if [ -z "$S3_ADDRESS" ]; then
 # Execute the top level build.
 # build.sh builds main.go
 chmod +x build.sh
+# This is to avoid https://github.com/docker/docker/issues/9547
+sync
+# run build 
 ./build.sh    
 # runs the `main` program which performs the intial checks.
 # Further builds are not done and the test halts if 
@@ -41,6 +44,9 @@ sdk-tests/run.sh
 chmod +x functional-test/build.sh
 chmod +x functional-test/run.sh
 
+# This is to avoid https://github.com/docker/docker/issues/9547
+sync
+# build and run the functional test.
 functional-test/build.sh
 functional-test/run.sh
 
