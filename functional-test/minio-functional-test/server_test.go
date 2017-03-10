@@ -990,7 +990,7 @@ func TestBucketSQSNotification(t *testing.T) {
 
 	// assert the http response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	request, err = newTestSignedRequest("PUT", getPutNotificationURL(endPoint, bucketName),
@@ -1035,7 +1035,7 @@ func TestBucketPolicy(t *testing.T) {
 	}
 	// assert the http response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	/// Put a new bucket policy.
@@ -1052,7 +1052,7 @@ func TestBucketPolicy(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusNoContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusNoContent, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNoContent, response.StatusCode)
 	}
 
 	// Fetch the uploaded policy.
@@ -1068,7 +1068,7 @@ func TestBucketPolicy(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	bucketPolicyReadBuf, err := ioutil.ReadAll(response.Body)
@@ -1093,7 +1093,7 @@ func TestBucketPolicy(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusNoContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusNoContent, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNoContent, response.StatusCode)
 	}
 	// Verify if the policy was indeed deleted.
 	request, err = newTestSignedRequest("GET", getGetPolicyURL(endPoint, bucketName),
@@ -1130,7 +1130,7 @@ func TestDeleteBucket(t *testing.T) {
 	}
 	// assert the response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// construct request to delete the bucket.
@@ -1147,7 +1147,7 @@ func TestDeleteBucket(t *testing.T) {
 	}
 	// Assert the response status code.
 	if response.StatusCode != http.StatusNoContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusNoContent, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNoContent, response.StatusCode)
 	}
 }
 
@@ -1171,7 +1171,7 @@ func TestDeleteBucketNotEmpty(t *testing.T) {
 	}
 	// assert the response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// generate http request for an object upload.
@@ -1191,7 +1191,7 @@ func TestDeleteBucketNotEmpty(t *testing.T) {
 	}
 	// assert the status code of the response.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// constructing http request to delete the bucket.
@@ -1209,7 +1209,7 @@ func TestDeleteBucketNotEmpty(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusConflict {
-		t.Errorf("Expected response status %s, got %s", http.StatusConflict, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusConflict, response.StatusCode)
 	}
 
 }
@@ -1232,7 +1232,7 @@ func TestListenBucketNotificationHandler(t *testing.T) {
 	}
 	// assert the http response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	invalidBucket := "Invalid\\Bucket"
@@ -1319,7 +1319,7 @@ func TestListenBucketNotificationHandler(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// FIXME: uncomment this in future when we have a code to read notifications from.
 	// go func() {
@@ -1356,7 +1356,7 @@ func TestDeleteMultipleObjects(t *testing.T) {
 	}
 	// assert the http response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "prefix/myobject"
@@ -1381,7 +1381,7 @@ func TestDeleteMultipleObjects(t *testing.T) {
 		}
 		// assert the status of http response.
 		if response.StatusCode != http.StatusOK {
-			t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+			t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 		}
 		// Append all objects.
 		delObjReq.Objects = append(delObjReq.Objects, ObjectIdentifier{
@@ -1406,7 +1406,7 @@ func TestDeleteMultipleObjects(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	var deleteResp = DeleteObjectsResponse{}
@@ -1441,7 +1441,7 @@ func TestDeleteMultipleObjects(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	deleteResp = DeleteObjectsResponse{}
@@ -1482,7 +1482,7 @@ func TestDeleteObject(t *testing.T) {
 	}
 	// assert the http response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "prefix/myobject"
@@ -1502,7 +1502,7 @@ func TestDeleteObject(t *testing.T) {
 	}
 	// assert the status of http response.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// object name was "prefix/myobject", an attempt to delelte "prefix"
@@ -1518,7 +1518,7 @@ func TestDeleteObject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusNoContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusNoContent, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNoContent, response.StatusCode)
 	}
 	// create http request to HEAD on the object.
 	// this helps to validate the existence of the bucket.
@@ -1535,7 +1535,7 @@ func TestDeleteObject(t *testing.T) {
 	}
 	// Assert the HTTP response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// create HTTP request to delete the object.
@@ -1552,7 +1552,7 @@ func TestDeleteObject(t *testing.T) {
 	}
 	// assert the http response status code.
 	if response.StatusCode != http.StatusNoContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusNoContent, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNoContent, response.StatusCode)
 	}
 	// Delete of non-existent data should return success.
 	request, err = newTestSignedRequest("DELETE", getDeleteObjectURL(endPoint, bucketName, "prefix/myobject1"),
@@ -1568,7 +1568,7 @@ func TestDeleteObject(t *testing.T) {
 	}
 	// assert the http response status.
 	if response.StatusCode != http.StatusNoContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusNoContent, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNoContent, response.StatusCode)
 	}
 }
 
@@ -1593,7 +1593,7 @@ func TestNonExistentBucket(t *testing.T) {
 	// Assert the response.
 	// assert the http response status code.
 	if response.StatusCode != http.StatusNotFound {
-		t.Errorf("Expected response status %s, got %s", http.StatusNotFound, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNotFound, response.StatusCode)
 	}
 }
 
@@ -1616,7 +1616,7 @@ func TestEmptyObject(t *testing.T) {
 	}
 	// assert the http response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "test-object"
@@ -1635,7 +1635,7 @@ func TestEmptyObject(t *testing.T) {
 	}
 	// assert the http response.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// make HTTP request to fetch the object.
@@ -1653,7 +1653,7 @@ func TestEmptyObject(t *testing.T) {
 	}
 	// assert the http response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	var buffer bytes.Buffer
@@ -1684,7 +1684,7 @@ func TestBucket(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	request, err = newTestSignedRequest("HEAD", getMakeBucketURL(endPoint, bucketName),
@@ -1699,7 +1699,7 @@ func TestBucket(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 }
 
@@ -1723,7 +1723,7 @@ func TestObjectGetAnonymous(t *testing.T) {
 	}
 	// assert the response http status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "testObject"
@@ -1742,7 +1742,7 @@ func TestObjectGetAnonymous(t *testing.T) {
 	}
 	// assert the HTTP response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// initiate anonymous HTTP request to fetch the object which does not exist. We need to return AccessDenied.
@@ -1782,7 +1782,7 @@ func TestObjectGet(t *testing.T) {
 	}
 	// assert the response http status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "testObject"
@@ -1801,7 +1801,7 @@ func TestObjectGet(t *testing.T) {
 	}
 	// assert the HTTP response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// concurrently reading the object, safety check for races.
 	var wg sync.WaitGroup
@@ -1862,7 +1862,7 @@ func TestMultipleObjects(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// constructing HTTP request to fetch a non-existent object.
@@ -1901,7 +1901,7 @@ func TestMultipleObjects(t *testing.T) {
 	}
 	// assert the returned values.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// create HTTP request to fetch the object which was uploaded above.
@@ -1919,7 +1919,7 @@ func TestMultipleObjects(t *testing.T) {
 	}
 	// assert whether 200 OK response status is obtained.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// extract the response body.
@@ -1949,7 +1949,7 @@ func TestMultipleObjects(t *testing.T) {
 	}
 	// assert the response status code for expected value 200 OK.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// fetch the object which was uploaded above.
 	request, err = newTestSignedRequest("GET", getGetObjectURL(endPoint, bucketName, objectName),
@@ -1966,7 +1966,7 @@ func TestMultipleObjects(t *testing.T) {
 	}
 	// assert the response status code for expected value 200 OK.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// verify response data
@@ -1995,7 +1995,7 @@ func TestMultipleObjects(t *testing.T) {
 	}
 	// verify the response code with the expected value of 200 OK.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// fetch the object which was uploaded above.
@@ -2011,7 +2011,7 @@ func TestMultipleObjects(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// verify object.
@@ -2040,7 +2040,7 @@ func TestNotImplemented(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusNotImplemented {
-		t.Errorf("Expected response status %s, got %s", http.StatusNotImplemented, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNotImplemented, response.StatusCode)
 	}
 }
 
@@ -2108,7 +2108,7 @@ func TestPutBucket(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	response.Body.Close()
 }
@@ -2136,7 +2136,7 @@ func TestCopyObject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// content for the object to be created.
@@ -2161,7 +2161,7 @@ func TestCopyObject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName2 := "testObject2"
@@ -2188,7 +2188,7 @@ func TestCopyObject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// creating HTTP request to fetch the previously uploaded object.
@@ -2204,7 +2204,7 @@ func TestCopyObject(t *testing.T) {
 	}
 	// validating the response status code.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// reading the response body.
 	// response body is expected to have the copied content of the first uploaded object.
@@ -2237,7 +2237,7 @@ func TestPutObject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// content for new object upload.
@@ -2255,7 +2255,7 @@ func TestPutObject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// fetch the object back and verify its contents.
@@ -2270,10 +2270,10 @@ func TestPutObject(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	if response.ContentLength != int64(len([]byte("hello world"))) {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	var buffer2 bytes.Buffer
 	// retrive the contents of response body.
@@ -2308,7 +2308,7 @@ func TestListBuckets(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	var results ListBucketsResponse
@@ -2339,7 +2339,7 @@ func TestValidateSignature(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objName := "test-object"
@@ -2377,7 +2377,7 @@ func TestSHA256Mismatch(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objName := "test-object"
@@ -2396,6 +2396,7 @@ func TestSHA256Mismatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+	request.ContentLength = int64(len([]byte("Hello, World")))
 	// execute the HTTP request.
 	response, err = client.Do(request)
 	if err != nil {
@@ -2425,7 +2426,7 @@ func TestPutObjectLongName(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// Content for the object to be uploaded.
 	buffer := bytes.NewReader([]byte("hello world"))
@@ -2443,7 +2444,7 @@ func TestPutObjectLongName(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// make long object name.
 	longObjName = fmt.Sprintf("%0256d", 1)
@@ -2510,7 +2511,7 @@ func TestHeadOnObjectLastModified(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// preparing for object upload.
@@ -2530,7 +2531,7 @@ func TestHeadOnObjectLastModified(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// make HTTP request to obtain object info.
 	request, err = newTestSignedRequest("HEAD", getHeadObjectURL(endPoint, bucketName, objectName),
@@ -2545,7 +2546,7 @@ func TestHeadOnObjectLastModified(t *testing.T) {
 	}
 	// verify the status of the HTTP response.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// retrive the info of last modification time of the object from the response header.
@@ -2572,7 +2573,7 @@ func TestHeadOnObjectLastModified(t *testing.T) {
 	// Since the "If-Modified-Since" header was ahead in time compared to the actual
 	// modified time of the object expecting the response status to be http.StatusNotModified.
 	if response.StatusCode != http.StatusNotModified {
-		t.Errorf("Expected response status %s, got %s", http.StatusNotModified, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNotModified, response.StatusCode)
 	}
 
 	// Again, obtain the object info.
@@ -2589,7 +2590,7 @@ func TestHeadOnObjectLastModified(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusPreconditionFailed {
-		t.Errorf("Expected response status %s, got %s", http.StatusPreconditionFailed, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusPreconditionFailed, response.StatusCode)
 	}
 }
 
@@ -2612,7 +2613,7 @@ func TestHeadOnBucket(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// make HEAD request on the bucket.
 	request, err = newTestSignedRequest("HEAD", getHEADBucketURL(endPoint, bucketName),
@@ -2627,7 +2628,7 @@ func TestHeadOnBucket(t *testing.T) {
 	}
 	// Asserting the response status for expected value of http.StatusOK.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 }
 
@@ -2650,7 +2651,7 @@ func TestContentTypePersists(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// Uploading a new object with Content-Type "image/png".
@@ -2678,7 +2679,7 @@ func TestContentTypePersists(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// Fetching the object info using HEAD request for the object which was uploaded above.
@@ -2715,7 +2716,7 @@ func TestContentTypePersists(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// Verify if the Content-Type header is set during the object persists.
 	if respContentType != expectedContentType {
@@ -2745,7 +2746,7 @@ func TestContentTypePersists(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// Obtain the info of the object which was uploaded above using HEAD request.
@@ -2805,7 +2806,7 @@ func TestPartialContent(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	buffer1 := bytes.NewReader([]byte("Hello World"))
@@ -2821,7 +2822,7 @@ func TestPartialContent(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// Prepare request
@@ -2838,7 +2839,7 @@ func TestPartialContent(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusPartialContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusPartialContent, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusPartialContent, response.StatusCode)
 	}
 	partialObject, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -2869,7 +2870,7 @@ func TestListObjectsHandler(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	buffer1 := bytes.NewReader([]byte("Hello World"))
@@ -2885,7 +2886,7 @@ func TestListObjectsHandler(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// create listObjectsV1 request with valid parameters
@@ -2901,7 +2902,7 @@ func TestListObjectsHandler(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	getContent, err := ioutil.ReadAll(response.Body)
@@ -2925,7 +2926,7 @@ func TestListObjectsHandler(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	getContent, err = ioutil.ReadAll(response.Body)
@@ -2954,7 +2955,7 @@ func TestListObjectsHandler(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	getContent, err = ioutil.ReadAll(response.Body)
@@ -2990,7 +2991,7 @@ func TestListObjectsHandlerErrors(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// create listObjectsV1 request with invalid value of max-keys parameter. max-keys is set to -2.
@@ -3059,7 +3060,7 @@ func TestPutBucketErrors(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// make HTTP request to create the same bucket again.
 	// expected to fail with error message "BucketAlreadyOwnedByYou".
@@ -3108,7 +3109,7 @@ func TestGetObjectLarge10MiB(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	var buffer bytes.Buffer
@@ -3145,7 +3146,7 @@ func TestGetObjectLarge10MiB(t *testing.T) {
 	}
 	// Assert the status code to verify successful upload.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// prepare HTTP requests to download the object.
@@ -3162,7 +3163,7 @@ func TestGetObjectLarge10MiB(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// extract the content from response body.
 	getContent, err := ioutil.ReadAll(response.Body)
@@ -3194,7 +3195,7 @@ func TestGetObjectLarge11MiB(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	var buffer bytes.Buffer
@@ -3231,7 +3232,7 @@ func TestGetObjectLarge11MiB(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// create HTTP request to download the object.
@@ -3248,7 +3249,7 @@ func TestGetObjectLarge11MiB(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// fetch the content from response body.
 	getContent, err := ioutil.ReadAll(response.Body)
@@ -3285,7 +3286,7 @@ func TestGetPartialObjectMisAligned(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	var buffer bytes.Buffer
@@ -3323,7 +3324,7 @@ func TestGetPartialObjectMisAligned(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// test Cases containing data to make partial range requests.
@@ -3363,7 +3364,7 @@ func TestGetPartialObjectMisAligned(t *testing.T) {
 		// Since only part of the object is requested, expecting response status to be http.StatusPartialContent .
 		// Assert the status code to verify successful upload.
 		if response.StatusCode != http.StatusPartialContent {
-			t.Errorf("Expected response status %s, got %s", http.StatusPartialContent, response.StatusCode)
+			t.Errorf("Expected response status %d, got %d", http.StatusPartialContent, response.StatusCode)
 		}
 		// parse the HTTP response body.
 		getContent, err := ioutil.ReadAll(response.Body)
@@ -3396,7 +3397,7 @@ func TestGetPartialObjectLarge11MiB(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	var buffer bytes.Buffer
@@ -3434,7 +3435,7 @@ func TestGetPartialObjectLarge11MiB(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// HTTP request to download the object.
@@ -3454,7 +3455,7 @@ func TestGetPartialObjectLarge11MiB(t *testing.T) {
 	}
 	// Since only part of the object is requested, expecting response status to be http.StatusPartialContent .
 	if response.StatusCode != http.StatusPartialContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusPartialContent, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusPartialContent, response.StatusCode)
 	}
 	// read the downloaded content from the response body.
 	getContent, err := ioutil.ReadAll(response.Body)
@@ -3488,7 +3489,7 @@ func TestGetPartialObjectLarge10MiB(t *testing.T) {
 	}
 	// expecting the HTTP response status code to 200 OK.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	var buffer bytes.Buffer
@@ -3526,7 +3527,7 @@ func TestGetPartialObjectLarge10MiB(t *testing.T) {
 	}
 	// verify whether upload was successful.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// HTTP request to download the object.
@@ -3547,7 +3548,7 @@ func TestGetPartialObjectLarge10MiB(t *testing.T) {
 	// Since only part of the object is requested, expecting response status to be http.StatusPartialContent .
 	// verify whether upload was successful.
 	if response.StatusCode != http.StatusPartialContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusPartialContent, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusPartialContent, response.StatusCode)
 	}
 
 	// read the downloaded content from the response body.
@@ -3581,7 +3582,7 @@ func TestGetObjectErrors(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "test-non-exitent-object"
@@ -3634,7 +3635,7 @@ func TestGetObjectRangeErrors(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// content for the object to be uploaded.
@@ -3656,7 +3657,7 @@ func TestGetObjectRangeErrors(t *testing.T) {
 	}
 	// verify whether upload was successful.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// HTTP request to download the object.
@@ -3696,7 +3697,7 @@ func TestObjectMultipartAbort(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "test-multipart-object"
@@ -3721,7 +3722,7 @@ func TestObjectMultipartAbort(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// parse the response body and obtain the new upload ID.
@@ -3748,7 +3749,7 @@ func TestObjectMultipartAbort(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// parse the response body and obtain the new upload ID.
@@ -3779,7 +3780,7 @@ func TestObjectMultipartAbort(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response1.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response1.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response1.StatusCode)
 	}
 	// content for the second part to be uploaded.
 	buffer2 := bytes.NewReader([]byte("hello world"))
@@ -3795,7 +3796,7 @@ func TestObjectMultipartAbort(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response2.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response2.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response2.StatusCode)
 	}
 	// HTTP request for aborting the multipart upload.
 	request, err = newTestSignedRequest("DELETE", getAbortMultipartUploadURL(endPoint, bucketName, objectName, uploadID),
@@ -3811,7 +3812,7 @@ func TestObjectMultipartAbort(t *testing.T) {
 	// expecting the response status code to be http.StatusNoContent.
 	// The assertion validates the success of Abort Multipart operation.
 	if response3.StatusCode != http.StatusNoContent {
-		t.Errorf("Expected response status %s, got %s", http.StatusNoContent, response3.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusNoContent, response3.StatusCode)
 	}
 }
 
@@ -3833,7 +3834,7 @@ func TestBucketMultipartList(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "test-multipart-object"
@@ -3850,7 +3851,7 @@ func TestBucketMultipartList(t *testing.T) {
 	}
 	// expecting the response status code to be http.StatusOK(200 OK) .
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// parse the response body and obtain the new upload ID.
@@ -3881,7 +3882,7 @@ func TestBucketMultipartList(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response1.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response1.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response1.StatusCode)
 	}
 
 	// content for the second part to be uploaded.
@@ -3898,7 +3899,7 @@ func TestBucketMultipartList(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response2.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response2.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response2.StatusCode)
 	}
 
 	// HTTP request to ListMultipart Uploads.
@@ -3913,7 +3914,7 @@ func TestBucketMultipartList(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response3.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response3.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response3.StatusCode)
 	}
 
 	// The reason to duplicate this structure here is to verify if the
@@ -3986,7 +3987,7 @@ func TestValidateObjectMultipartUploadID(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "directory1/directory2/object"
@@ -4002,7 +4003,7 @@ func TestValidateObjectMultipartUploadID(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	// parse the response body and obtain the new upload ID.
@@ -4038,7 +4039,7 @@ func TestObjectMultipartListError(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "test-multipart-object"
@@ -4054,7 +4055,7 @@ func TestObjectMultipartListError(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// parse the response body and obtain the new upload ID.
 	decoder := xml.NewDecoder(response.Body)
@@ -4084,7 +4085,7 @@ func TestObjectMultipartListError(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response1.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response1.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response1.StatusCode)
 	}
 
 	// content for the second part to be uploaded.
@@ -4102,7 +4103,7 @@ func TestObjectMultipartListError(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response2.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response2.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response2.StatusCode)
 	}
 
 	// HTTP request to ListMultipart Uploads.
@@ -4118,7 +4119,7 @@ func TestObjectMultipartListError(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response3.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response3.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response3.StatusCode)
 	}
 
 	// HTTP request to ListMultipart Uploads.
@@ -4157,7 +4158,7 @@ func TestObjectValidMD5(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// Create a byte array of 5MB.
 	// content for the object to be uploaded.
@@ -4184,7 +4185,7 @@ func TestObjectValidMD5(t *testing.T) {
 	}
 	// expecting a successful upload.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	objectName = "test-2-object"
 	buffer1 = bytes.NewReader(data)
@@ -4225,7 +4226,7 @@ func TestObjectMultipart(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 	objectName := "test-multipart-object"
@@ -4244,7 +4245,7 @@ func TestObjectMultipart(t *testing.T) {
 	}
 	// expecting the response status code to be http.StatusOK(200 OK).
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 	// parse the response body and obtain the new upload ID.
 	decoder := xml.NewDecoder(response.Body)
@@ -4284,7 +4285,7 @@ func TestObjectMultipart(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response1.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response1.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response1.StatusCode)
 	}
 
 	// content for the second part to be uploaded.
@@ -4313,7 +4314,7 @@ func TestObjectMultipart(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 	if response2.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response2.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response2.StatusCode)
 	}
 
 	// Complete multipart upload
@@ -4347,7 +4348,7 @@ func TestObjectMultipart(t *testing.T) {
 	}
 	// verify whether complete multipart was successful.
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("Expected response status %s, got %s", http.StatusOK, response.StatusCode)
+		t.Errorf("Expected response status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 
 }
