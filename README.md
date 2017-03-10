@@ -31,3 +31,21 @@ Options are provided as environment variables to the docker container. Supported
 ```sh
 $ docker run -e S3_ADDRESS=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA43P2F  -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG -e ENABLE_HTTPS=1  minio/mint:alpha
 ```
+
+Note: With no env variables provided the tests are run on play.minio.io by default
+
+### Current tests
+- SDK Tests (Contains tests using S3 compatible client libraries)
+  - Minio-go functional tests.
+
+- Functional tests (Tests with handcrafted HTTP requests for various functionalities)
+  - Minio server functional test.
+ 
+### Adding tests. 
+- See if the new tests fit into the existing category of tests (ex: sdk-tests).
+- If yes follow the instructions in the README.md inside the test category folder.
+- If not, create a folder for the new test category and add your tests there.
+- Add build.sh and run.sh to build and run the test, and README.md with info in the test category folder (see sdk-tests).
+- Set permissions and execute build.sh and run.sh of the new tests from `run.sh` in the project root.
+ 
+
