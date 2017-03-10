@@ -1,6 +1,5 @@
 # Functional tests. 
 Collection of tests with handcrafted http requests.
- 
 
 # Current tests
 - Minio functional test. 

@@ -4,7 +4,6 @@ Collection of tests derived from S3 Compatible client libraries.
 # Current tests
 - Minio-go functional test.
 
-
 # Adding tests.
 - Add the test in separate folder.
 - Add the test to the list of Current tests above.
