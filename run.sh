@@ -19,34 +19,52 @@ if [ -z "$S3_ADDRESS" ]; then
 	    export ENABLE_HTTPS=1
     fi
 
-# Execute the top level build.
-# build.sh builds main.go
-chmod +x build.sh
-# This is to avoid https://github.com/docker/docker/issues/9547
-sync
-# run build 
-./build.sh    
-# runs the `main` program which performs the intial checks.
-# Further builds are not done and the test halts if 
-# a. Server is not reachable.
-# b. Credentials are wrong.
-./main
+# function which performs the initial checks.
+initCheck() {    
+  # Execute the top level build.
+  # build.sh builds main.go
+  chmod +x build.sh
+  # This is to avoid https://github.com/docker/docker/issues/9547
+  sync
+  # run build 
+  ./build.sh    
+  # runs the `main` program which performs the intial checks.
+  # Further builds are not done and the test halts if 
+  # a. Server is not reachable.
+  # b. Credentials are wrong.
+  ./main
+}
 
 
 # Build and Execute sdk-tests
-chmod +x sdk-tests/build.sh
-chmod +x sdk-tests/run.sh
+sdkTests() {
+  chmod +x sdk-tests/build.sh
+  chmod +x sdk-tests/run.sh
 
-sdk-tests/build.sh
-sdk-tests/run.sh
+  # This is to avoid https://github.com/docker/docker/issues/9547
+  sync
+
+  sdk-tests/build.sh
+  sdk-tests/run.sh
+}
 
 # Build and Execute functional test 
-chmod +x functional-test/build.sh
-chmod +x functional-test/run.sh
+functionalTests() {
+  chmod +x functional-test/build.sh
+  chmod +x functional-test/run.sh
 
-# This is to avoid https://github.com/docker/docker/issues/9547
-sync
-# build and run the functional test.
-functional-test/build.sh
-functional-test/run.sh
+  # This is to avoid https://github.com/docker/docker/issues/9547
+  sync
+  # build and run the functional test.
+  functional-test/build.sh
+  functional-test/run.sh
+}
 
+# call the initCheck function.
+initCheck
+
+# call the sdkTests function.
+sdkTests
+
+# call the functionalTests.
+functionalTests

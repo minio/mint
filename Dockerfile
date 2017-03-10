@@ -12,6 +12,6 @@ RUN \
        go get -u github.com/minio/minio-go && \
        chmod +x run.sh
 
-CMD run.sh
+CMD ./run.sh
    
     
