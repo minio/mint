@@ -1,20 +1,19 @@
 #!/bin/sh
-
-/*
- * Minio Cloud Storage, (C) 2017 Minio, Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+#
+#  Minio Cloud Storage, (C) 2017 Minio, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
 
 # Fail if any of the commands exit with a non zero status.
 # Halt the further execution of the script if any of the programs fail.
@@ -37,16 +36,16 @@ if [ -z "$S3_ADDRESS" ]; then
     fi
 
 # function which performs the initial checks.
-initCheck() {    
+initCheck() {
   # Execute the top level build.
   # build.sh builds main.go
   chmod +x build.sh
   # This is to avoid https://github.com/docker/docker/issues/9547
   sync
-  # run build 
-  ./build.sh    
+  # run build
+  ./build.sh
   # runs the `main` program which performs the intial checks.
-  # Further builds are not done and the test halts if 
+  # Further builds are not done and the test halts if
   # a. Server is not reachable.
   # b. Credentials are wrong.
   ./main
@@ -65,7 +64,7 @@ sdkTests() {
   sdk-tests/run.sh
 }
 
-# Build and Execute functional test 
+# Build and Execute functional test
 functionalTests() {
   chmod +x functional-test/build.sh
   chmod +x functional-test/run.sh
