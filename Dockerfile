@@ -5,7 +5,7 @@ COPY . /home
 WORKDIR /home
 
 # Install commonly used dependencies here.
-# Any unique depencies can be installed in respective build.sh files 
+# Any unique dependencies can be installed in respective build.sh files 
 
 RUN \
        apk add --no-cache bash git openssh mailcap && \

@@ -43,9 +43,9 @@ Note: With no env variables provided the tests are run on play.minio.io by defau
  
 ### Adding tests. 
 - See if the new tests fit into the existing category of tests (ex: sdk-tests).
-- If yes following the instructions in the README.md inside the test category folder.
+- If yes follow the instructions in the README.md inside the test category folder.
 - If not, create a folder for the new test category and add your tests there.
 - Add build.sh and run.sh to build and run the test, and README.md with info in the test category folder (see sdk-tests).
-- Set permissions and execute build.sh and run.sh of the new tests from `run.sh` in the projects root.
+- Set permissions and execute build.sh and run.sh of the new tests from `run.sh` in the project root.
  
 
