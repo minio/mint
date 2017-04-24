@@ -1014,12 +1014,12 @@ func TestBucketSQSNotification(t *testing.T) {
 func TestBucketPolicy(t *testing.T) {
 
 	// Sample bucket policy.
-	bucketPolicyBuf := `{"Version":"2012-10-17","Statement":[{"Action":["s3:GetBucketLocation","s3:ListBucket"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s"],"Sid":""},{"Action":["s3:GetObject"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s/this*"],"Sid":""}]}`
+	bucketPolicyBuf := `{"Version":"2012-10-17","Statement":[{"Action":["s3:GetBucketLocation"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s"],"Sid":""},{"Action":["s3:ListBucket"],"Condition":{"StringEquals":{"s3:prefix":["this"]}},"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s"],"Sid":""},{"Action":["s3:GetObject"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s/this*"],"Sid":""}]}`
 
 	// generate a random bucket Name.
 	bucketName := getRandomBucketName()
 	// create the policy statement string with the randomly generated bucket name.
-	bucketPolicyStr := fmt.Sprintf(bucketPolicyBuf, bucketName, bucketName)
+	bucketPolicyStr := fmt.Sprintf(bucketPolicyBuf, bucketName, bucketName, bucketName)
 	// HTTP request to create the bucket.
 	request, err := newTestSignedRequest("PUT", getMakeBucketURL(endPoint, bucketName),
 		0, nil, accessKey, secretKey, signerV4)
