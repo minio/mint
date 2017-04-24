@@ -2083,6 +2083,9 @@ func TestFunctional(t *testing.T) {
 	if err != nil {
 		t.Fatal("Error: ", err)
 	}
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("Expected: %d, got: %d", http.StatusOK, resp.StatusCode)
+	}
 
 	newReader, err = c.GetObject(bucketName, objectName+"-presigned")
 	if err != nil {
