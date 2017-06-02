@@ -1,1 +1,6 @@
 *.test
+src/*
+temp
+__pycache__/
+log/*
+
