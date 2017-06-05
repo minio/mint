@@ -46,7 +46,7 @@ runTests() {
   			then mkdir $log_dir
 		fi
 		currTest "$sdk" -s  2>&1  >| $log_dir/"$sdk"_log.txt
-		if [ $? -ne 0 ] 
+		if [ -s "$log_dir/error.log" ] 
  		 then 
      		echo "$sdk tests failed to complete" 
      		let "errorCounter = errorCounter + 1" 

@@ -13,19 +13,18 @@ def log_decorate(logger):
             func_name=inspect.stack()[1][4][0]
             file_name=inspect.stack()[1][1]
             line_no = inspect.stack()[1][2]
-            print(file_name, ":", line_no, ":", func_name)
-            logger.info("Entering " + func_name)
             try:
+                print(func_name + "ENTRY")
                 rc = func(*args, **kwargs)
-                logger.info("Exiting " + func_name)
+                print(func_name + "EXIT")
                 return rc
-            except:
+            except Exception as e:
                 # log the exception
-                err = "There was an exception in  "
-                err += func.__name__
-                logger.exception(err)
- 
-            # re-raise the exception
-            raise
+                err = "There was an error in  "
+                err += func_name
+                err += " at line no:" + str(line_no)
+                err += " of :" + file_name + " message: " + e
+                logger.info(err)
+
         return wrapper
     return decorator

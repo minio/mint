@@ -10,7 +10,7 @@ def create_logger(logFile):
     # create the logging file handler
     fh = logging.FileHandler(logFile,mode="w")
  
-    fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    fmt = '%(levelname)s: - %(message)s at LineNo:%(lineno)d of:%(funcName)s in:%(module)s'
     formatter = logging.Formatter(fmt)
     fh.setFormatter(formatter)
  
