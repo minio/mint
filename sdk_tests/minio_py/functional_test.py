@@ -51,12 +51,14 @@ def make_bucket_test(client, bucket_name):
                 pass
             except Exception as err:
                 logger.error(err)
+                raise
+
         else:
             client.make_bucket(bucket_name)
             found = client.bucket_exists(bucket_name)
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def make_bucket_test2(client, bucket_name):
@@ -75,14 +77,16 @@ def make_bucket_test2(client, bucket_name):
                 pass
             except Exception as err:
                 logger.error(err)
+                raise
+
         else:
             client.make_bucket(bucket_name)
             found = client.bucket_exists(bucket_name)
-        logger.info("OK")
     except InvalidBucketError as err:
             pass
     except Exception as err:
         logger.error(err)
+        raise
 
 
 @log_decorate(logger)
@@ -92,9 +96,9 @@ def list_buckets_test(client):
         buckets = client.list_buckets()
         for bucket in buckets:
             _, _ = bucket.name, bucket.creation_date
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def remove_bucket_test(client,bucket_name):
@@ -104,9 +108,9 @@ def remove_bucket_test(client,bucket_name):
         client.remove_bucket(bucket_name)
         found = client.bucket_exists(bucket_name)
         assert found == False
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def put_small_object_from_stream_test(client,bucket_name, object_name):
@@ -128,10 +132,9 @@ def put_small_object_from_stream_test(client,bucket_name, object_name):
         os.remove(testfile)
         stat = client.stat_object(bucket_name,object_name)
         assert stat.size == file_stat.st_size
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
-
+        raise
 @log_decorate(logger)
 def put_large_object_from_stream_test(client,bucket_name, object_name):
     try:
@@ -152,10 +155,9 @@ def put_large_object_from_stream_test(client,bucket_name, object_name):
         os.remove(largefile)
         stat = client.stat_object(bucket_name,object_name)
         assert stat.size == file_stat.st_size
-        logger.info("OK")
-
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def put_object(client, bucket_name, object_name):
@@ -177,10 +179,9 @@ def put_object(client, bucket_name, object_name):
         os.remove(testfile)
         stat = client.stat_object(bucket_name,object_name)
         assert stat.size == file_stat.st_size
-        logger.info("OK")
-
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def remove_object(client, bucket_name, object_name):
@@ -188,9 +189,9 @@ def remove_object(client, bucket_name, object_name):
         found = client.bucket_exists(bucket_name)
         assert found == True
         client.remove_object(bucket_name, object_name)
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def put_small_object_from_file_test(client,bucket_name,object_name):
@@ -211,9 +212,9 @@ def put_small_object_from_file_test(client,bucket_name,object_name):
         os.remove(testfile)
         stat = client.stat_object(bucket_name,object_name)
         assert stat.size == file_stat.st_size
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def put_large_object_from_file_test(client,bucket_name, object_name):
@@ -236,9 +237,9 @@ def put_large_object_from_file_test(client,bucket_name, object_name):
         os.remove(largefile)
         stat = client.stat_object(bucket_name,object_name)
         assert stat.size == file_stat.st_size
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def copy_object_test(client,bucket_name,dest_object_name, src_object_name):
@@ -259,9 +260,9 @@ def copy_object_test(client,bucket_name,dest_object_name, src_object_name):
                        '/'+bucket_name+'/'+src_object_name)
         copy_stat = client.stat_object(bucket_name,dest_object_name)
         assert copy_stat.size == stat.size
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def copy_object_with_conditions_test(client,bucket_name, dest_object_name, src_object_name):
@@ -292,8 +293,10 @@ def copy_object_with_conditions_test(client,bucket_name, dest_object_name, src_o
                 logger.error(err)
         except Exception as err:
             logger.error(err)
+            raise
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def stat_object_test(client,bucket_name, object_name):
@@ -309,9 +312,9 @@ def stat_object_test(client,bucket_name, object_name):
         file_stat = os.stat(testfile)
         stat = client.stat_object(bucket_name,object_name)
         assert stat.size == file_stat.st_size
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def get_object_test(client, bucket_name, object_name): 
@@ -330,9 +333,9 @@ def get_object_test(client, bucket_name, object_name):
         stat = client.stat_object(bucket_name,object_name)
         assert stat.size == file_stat.st_size
         os.remove("newfile")
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def get_partial_object_test(client, bucket_name, object_name): 
@@ -350,10 +353,10 @@ def get_partial_object_test(client, bucket_name, object_name):
 
         assert file_stat.st_size == 10
         os.remove("my-testfile")
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
- 
+        raise
+
 @log_decorate(logger)
 def get_fobject_test(client, bucket_name, object_name): 
     try:
@@ -366,9 +369,9 @@ def get_fobject_test(client, bucket_name, object_name):
         stat = client.stat_object(bucket_name,object_name)
         assert stat.size == file_stat.st_size
         os.remove("newfile_f")
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def list_objects_test(client, bucket_name): 
@@ -382,9 +385,9 @@ def list_objects_test(client, bucket_name):
                                obj.last_modified, \
                                obj.etag, obj.size, \
                                obj.content_type
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def list_objects_v2_test(client, bucket_name): 
@@ -398,10 +401,9 @@ def list_objects_v2_test(client, bucket_name):
                                obj.last_modified, \
                                obj.etag, obj.size, \
                                obj.content_type
-        logger.info("OK")
-
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def remove_objects_test(client, bucket_name): 
@@ -412,10 +414,9 @@ def remove_objects_test(client, bucket_name):
         for del_err in client.remove_objects(bucket_name, ["newobject" + str(i) for i in range(10)]):
             logger.error("Deletion Error: {}".format(del_err))
         client.remove_bucket(bucket_name)
-        logger.info("OK")
-
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def presigned_get_object_url_test(client,bucket_name, object_name):
@@ -427,9 +428,9 @@ def presigned_get_object_url_test(client,bucket_name, object_name):
                                 'GET',
                                 bucket_name,
                                 object_name).get_exception()
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def presigned_put_object_url_test(client,bucket_name, object_name):
@@ -446,10 +447,9 @@ def presigned_put_object_url_test(client,bucket_name, object_name):
         object_data = client.get_object(bucket_name, object_name)
         if object_data.read() != value:
             logger.error('Bytes not equal')
-        logger.info("OK")
-
     except Exception as err:
         logger.error(err)
+        raise
 
 @log_decorate(logger)
 def presigned_post_policy_test(client, bucket_name):
@@ -462,9 +462,9 @@ def presigned_post_policy_test(client, bucket_name):
         expires_date = datetime.utcnow()+timedelta(days=10)
         policy.set_expires(expires_date)
         client.presigned_post_policy(policy)
-        logger.info("OK")
     except Exception as err:
         logger.error(err)
+        raise
 
 def init_client():
     client = Minio(S3_ADDRESS,
@@ -515,7 +515,7 @@ def run_tests(client):
         teardown(client,bucket_name, object_name, suffixes)
     except Exception as err:
         logger.error("failing tests", err)
-        pass
+        raise
     finally:
         pass
 

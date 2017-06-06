@@ -14,7 +14,6 @@ setup() {
 	# see README.md for info on options.
 	#  Note: https://play.minio.io hosts publicly available Minio server.
 	if [ -z "$S3_ADDRESS" ]; then
-	    echo "env  S3_ADDRESS not set, running the tests on play.minio.io"
 	    export S3_ADDRESS="play.minio.io:9000"
 	    export ACCESS_KEY="Q3AM3UQ867SPQQA43P2F"
 	    export SECRET_KEY="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
@@ -40,49 +39,25 @@ runTests() {
        # echo "sending:"  $MINIO_ROOT_DIR "src:" $SRC_DIR "test:" $TEST_DIR  "::f=" $(basename $f)
         sdk="$(basename $f)"
         log_dir=$ROOT_DIR/log/$sdk/
-        echo $log_dir
-        echo $ROOT_DIR/log/"$sdk"_log.txt 
         if [ ! -d $log_dir ]
   			then mkdir $log_dir
 		fi
 		currTest "$sdk" -s  2>&1  >| $log_dir/"$sdk"_log.txt
 		if [ -s "$log_dir/error.log" ] 
  		 then 
-     		echo "$sdk tests failed to complete" 
+     		#echo "$sdk tests failed to complete" 
      		let "errorCounter = errorCounter + 1" 
-     	 else
-     	 	echo "$sdk tests run successfully"
+     	 #else
+     	 	#echo "$sdk tests run successfully"
 		 fi
     fi
 	done
 }
 
-summary() {
-	# --------------
-	# Exit
-	# --------------
-	dateTest=`date`
-	if [ $errorCounter -ne 0 ]
-	then
-	 echo ""
-	 echo "*** $errorCounter ERRORS found during ***"
-	 echo "*** the execution of sdk tests  ***"
-	 terminate
-	else
-	 echo ""
-	 echo "*** No errors were found during ***"
-	 echo "*** the execution of sdk tests. ***"
-	fi
-	echo ""
-	echo " Functional Tests complete."
-	echo ""
-	dateTest=`date`
-	echo "End of testing at: $dateTest"
-	echo ""
- 
-}
 setup
 runTests
-summary
+if [ $errorCounter -ne 0 ]; then 
+	exit 1
+fi
 
 exit 0
