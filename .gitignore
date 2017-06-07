@@ -3,4 +3,5 @@ src/*
 temp
 __pycache__/
 log/*
-
+minio.test
+exe/*
