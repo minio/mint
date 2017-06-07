@@ -1,5 +1,6 @@
 import functools
 import inspect
+
 def log_decorate(logger):
     """
     A decorator that wraps the passed in function and logs 

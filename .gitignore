@@ -4,4 +4,8 @@ temp
 __pycache__/
 log/*
 minio.test
-exe/*
+bin/*
+
+# exception to the rule
+!log/.gitkeep
+!bin/.gitkeep 

@@ -28,6 +28,7 @@ fake = Factory.create()
 S3_ADDRESS = os.getenv('S3_ADDRESS')
 ACCESS_KEY = os.getenv('ACCESS_KEY')
 SECRET_KEY = os.getenv('SECRET_KEY') 
+S3_SECURE  = os.getenv('S3_SECURE')
 is_s3 = S3_ADDRESS.startswith("s3.amazonaws")
 _http = None
 
@@ -469,7 +470,8 @@ def presigned_post_policy_test(client, bucket_name):
 def init_client():
     client = Minio(S3_ADDRESS,
                    ACCESS_KEY,
-                   SECRET_KEY)
+                   SECRET_KEY,
+                   secure=S3_SECURE)
     global _http
     _http = urllib3.PoolManager(
         cert_reqs='CERT_REQUIRED',
