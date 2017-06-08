@@ -1,0 +1,4 @@
+Apps:
+  - minio_py
+  - minio_go
+mode: "quick"

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ROOT_DIR="$PWD"
-TEST_DIR="sdk_tests"
+TEST_DIR="Apps"
 
 let "errorCounter = 0"
 
@@ -20,7 +20,6 @@ setup() {
 	    export SECRET_KEY="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
 	    export S3_SECURE=1
 	fi
-	
 }
 
 # Run the current SDK Test
@@ -30,33 +29,33 @@ currTest() {
 
 # Cycle through the sdk directories and run sdk tests
 runTests() {
+	for i in $(yq  -r '.Apps[]' $ROOT_DIR/config.yaml ); 
+		do 
+			f=$ROOT_DIR/Apps/$i
+			if [ -d ${f} ]; then
+		        # Will not run if no directories are available
+		        sdk="$(basename $f)"
 
-	for f in sdk_tests/*; do
-	    if [ -d ${f} ]; then
-	        # Will not run if no directories are available
-	        sdk="$(basename $f)"
+		        # Clear log directories before run.
+		        LOG_DIR=$ROOT_DIR/log/$sdk/
+		        if [ ! -d $LOG_DIR ]
+			  		then
+			  			 mkdir $LOG_DIR
+			  		else 
+			  			rm -rf $LOG_DIR/*
+				fi
 
-	        # Clear log directories before run.
-	        LOG_DIR=$ROOT_DIR/log/$sdk/
-	        if [ ! -d $LOG_DIR ]
-		  		then
-		  			 mkdir $LOG_DIR
-		  		else 
-		  			rm -rf $LOG_DIR/*
+				# Run test
+				currTest "$sdk" -s  2>&1  >| $LOG_DIR/"$sdk"_log.txt
+
+				# Count failed runs
+				if [ -s "$LOG_DIR/error.log" ] 
+		 		 then 
+		     		let "errorCounter = errorCounter + 1" 
+				 fi
 			fi
-
-			# Run test
-			currTest "$sdk" -s  2>&1  >| $LOG_DIR/"$sdk"_log.txt
-
-			# Count failed runs
-			if [ -s "$LOG_DIR/error.log" ] 
-	 		 then 
-	     		let "errorCounter = errorCounter + 1" 
-			 fi
-	    fi
-	done
+		done
 }
-
 
 setup
 runTests
