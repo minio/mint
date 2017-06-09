@@ -19,11 +19,13 @@ setup() {
 	    export ACCESS_KEY="Q3AM3UQ867SPQQA43P2F"
 	    export SECRET_KEY="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
 	    export S3_SECURE=1
+	    export S3_REGION="us-east1"  # needed for minio-java
 	fi
 }
 
 # Run the current SDK Test
 currTest() {
+	chmod +x ./$TEST_DIR/$1/run.sh
 	./$TEST_DIR/$1/run.sh  $ROOT_DIR  $TEST_DIR $(basename $1)
 }
 

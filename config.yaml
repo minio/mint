@@ -1,4 +1,6 @@
 Apps:
-  - minio_py
-  - minio_go
+  - minio-py
+  - minio-go
+  - minio-java
+  - minio-js
 mode: "quick"
