@@ -1,4 +1,6 @@
 Apps:
+  - init
+  - mc
   - minio-py
   - minio-go
   - minio-java
