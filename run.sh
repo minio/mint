@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -49,6 +49,7 @@ runTests() {
 	for i in $(yq  -r '.Apps[]' $ROOT_DIR/config.yaml ); 
 		do 
 			f=$ROOT_DIR/Apps/$i
+			echo "running .... $f"
 			if [ -d ${f} ]; then
 		        # Will not run if no directories are available
 		        sdk="$(basename $f)"
@@ -63,8 +64,8 @@ runTests() {
 				fi
 
 				# Run test
-				currTest "$sdk" -s  2>&1  >| $LOG_DIR/"$sdk"_log.txt
-
+				currTest "$sdk" -s  2>&1  >| $LOG_DIR/"$sdk"_log.txt  
+				cat $LOG_DIR/"$sdk"_log.txt
 				# Count failed runs
 				if [ -s "$LOG_DIR/error.log" ] 
 		 		 then 

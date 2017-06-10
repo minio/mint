@@ -24,7 +24,7 @@ def log_decorate(logger):
                 err = "There was an error in  "
                 err += func_name
                 err += " at line no:" + str(line_no)
-                err += " of :" + file_name + " message: " + e
+                err += " of :" + file_name + " message: " + e.message
                 logger.info(err)
 
         return wrapper

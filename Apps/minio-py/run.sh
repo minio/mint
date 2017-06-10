@@ -19,11 +19,11 @@ build() {
 
 # Run the test
 run() {
-	python3 $CURRENT_DIR/functional_test.py "$LOG_DIR"
+	python3 $CURRENT_DIR/functional_test.py "$LOG_DIR" 
 }
 
-#build -s  2>&1  >| $LOG_DIR/build.log
-run   -s  2>&1  >| $LOG_DIR/temp.log
+build -s  2>&1  >| $LOG_DIR/build.log
+run   -s  2>&1  >| $LOG_DIR/temp.log  
 cat $LOG_DIR/temp.log $LOG_DIR/output.log  | grep 'ERROR' > $LOG_DIR/error.log
 rm $LOG_DIR/temp.log
 exit 0

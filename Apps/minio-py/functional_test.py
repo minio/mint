@@ -133,6 +133,7 @@ def put_small_object_from_stream_test(client,bucket_name, object_name):
         os.remove(testfile)
         stat = client.stat_object(bucket_name,object_name)
         assert stat.size == file_stat.st_size
+        logger.info("OK")
     except Exception as err:
         logger.error(err)
         raise
@@ -190,7 +191,9 @@ def remove_object(client, bucket_name, object_name):
         found = client.bucket_exists(bucket_name)
         assert found == True
         client.remove_object(bucket_name, object_name)
+        logger.info("??? OK " + bucket_name + " : " + object_name)
     except Exception as err:
+        logger.info("removing object ::: " + bucket_name + " : " + object_name)
         logger.error(err)
         raise
 
@@ -483,13 +486,17 @@ def init_client():
     return client
 
 def setup(client): 
+    logger.info("setting up py client.....")
     bucket_name = generate_random_string().lower()
     object_name = uuid.uuid4().__str__().lower()
     make_bucket_test(client, bucket_name)
     put_object(client, bucket_name, object_name)
+
     return (bucket_name, object_name)
 def run_tests(client):
     try:
+        logger.info("running py client.....")
+
         suffixes = ["","-small", "-large", "-fsmall", "-flarge", "-copy", "-copycond"]
         bucket_name, object_name = setup(client)
         make_bucket_test2(client, generate_random_string(65))
@@ -514,6 +521,7 @@ def run_tests(client):
         list_objects_v2_test(client,bucket_name)
         
         remove_objects_test(client,bucket_name + "rmv")
+        logger.info("end of test " + bucket_name + object_name + ":".join(suffixes))
         teardown(client,bucket_name, object_name, suffixes)
     except Exception as err:
         logger.error("failing tests", err)
@@ -522,6 +530,7 @@ def run_tests(client):
         pass
 
 def teardown(client,bucket_name, object_name, suffixes):
+
     for suffix in suffixes: 
         client.remove_object(bucket_name, object_name + suffix)
     client.remove_bucket(bucket_name)
@@ -531,3 +540,4 @@ def teardown(client,bucket_name, object_name, suffixes):
 if __name__ == '__main__':
     client = init_client()
     run_tests(client)
+   
