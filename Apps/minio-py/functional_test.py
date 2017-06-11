@@ -28,7 +28,7 @@ fake = Factory.create()
 S3_ADDRESS = os.getenv('S3_ADDRESS')
 ACCESS_KEY = os.getenv('ACCESS_KEY')
 SECRET_KEY = os.getenv('SECRET_KEY') 
-S3_SECURE  = os.getenv('S3_SECURE')
+S3_SECURE  = os.getenv('S3_SECURE') 
 is_s3 = S3_ADDRESS.startswith("s3.amazonaws")
 _http = None
 
@@ -491,12 +491,10 @@ def setup(client):
     object_name = uuid.uuid4().__str__().lower()
     make_bucket_test(client, bucket_name)
     put_object(client, bucket_name, object_name)
-
     return (bucket_name, object_name)
+
 def run_tests(client):
     try:
-        logger.info("running py client.....")
-
         suffixes = ["","-small", "-large", "-fsmall", "-flarge", "-copy", "-copycond"]
         bucket_name, object_name = setup(client)
         make_bucket_test2(client, generate_random_string(65))
@@ -521,7 +519,6 @@ def run_tests(client):
         list_objects_v2_test(client,bucket_name)
         
         remove_objects_test(client,bucket_name + "rmv")
-        logger.info("end of test " + bucket_name + object_name + ":".join(suffixes))
         teardown(client,bucket_name, object_name, suffixes)
     except Exception as err:
         logger.error("failing tests", err)

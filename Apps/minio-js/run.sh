@@ -17,6 +17,8 @@ build() {
 	npm install
 	cd $CURRENT_DIR
 	npm link 
+
+	export FUNCTIONAL_TEST_TRACE=$LOG_DIR/error.log
 }
 
 run() {
@@ -26,5 +28,5 @@ run() {
 
 build -s  2>&1  >| $LOG_DIR/build.log
 run   -s  2>&1  >| $LOG_DIR/output.log
-cat $LOG_DIR/output.log   | grep -E "Error:|FAIL" > $LOG_DIR/error.log
+cat $LOG_DIR/output.log   | grep -E "Error:|FAIL" >> $LOG_DIR/error.log
 exit 0

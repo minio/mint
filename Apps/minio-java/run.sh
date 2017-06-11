@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env bash
+#!/usr/bin/expect -f
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -36,12 +37,11 @@ build() {
 }
 
 run() {
-	echo $S3_ADDRESS, $S3_SECURE $ACCESS_KEY $SECRET_KEY $S3_REGION
 	if [ -n $MINIO_JAR_NAME ]; then
-		[[ "$S3_SECURE" == "1" ]] && scheme="https" || scheme="http" 
+		[[ "$S3_SECURE" == "1" ]] && scheme="https" || scheme="http"  
 		cd $CURRENT_DIR
 		ENDPOINT_URL=$scheme://"${S3_ADDRESS}"
-		java -cp $MINIO_JAR_NAME":."  FunctionalTest  "$ENDPOINT_URL" "${ACCESS_KEY}" "${SECRET_KEY}" "$S3_REGION"
+		java -cp $MINIO_JAR_NAME":."  FunctionalTest  "$ENDPOINT_URL" "${ACCESS_KEY}" "${SECRET_KEY}" "${S3_REGION}"
 	fi
 }
 

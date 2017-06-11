@@ -29,19 +29,15 @@ const url = require('url');
 const chai = require('chai');
 const superagent = require('superagent');
 
-console.log("inside script")
-console.log(__dirname)
 require('source-map-support').install()
 
 describe('functional tests', function() {
   this.timeout(30*60*1000)
-  var playConfig = {
-    endPoint: 'play.minio.io',
-    accessKey: 'Q3AM3UQ867SPQQA43P2F',
-    secretKey: 'zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG',
-  }
-  if (process.env['S3_ENDPOINT']) {
-    playConfig.endPoint = process.env['S3_ENDPOINT']
+  var playConfig = {}
+  if (process.env['S3_ADDRESS']) {
+    var res = process.env['S3_ADDRESS'].split(":")
+    playConfig.endPoint = res[0]
+    playConfig.port = parseInt(res[1])
   }
   if (process.env['ACCESS_KEY']) {
     playConfig.accessKey = process.env['ACCESS_KEY']
@@ -49,10 +45,6 @@ describe('functional tests', function() {
   if (process.env['SECRET_KEY']) {
     playConfig.secretKey = process.env['SECRET_KEY']
   }
-  if (playConfig.endPoint === 'play.minio.io') {
-      playConfig.port = 9000
-  }
-
   var client = new minio.Client(playConfig)
   var usEastConfig = playConfig
   usEastConfig.region = 'us-east-1'
@@ -501,7 +493,7 @@ describe('functional tests', function() {
       })
     })
 
-    it('should upload using presinged POST', done => {
+    it('should upload using presigned POST', done => {
       var policy = client.newPostPolicy()
       policy.setKey(_1byteObjectName)
       policy.setBucket(bucketName)

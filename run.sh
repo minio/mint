@@ -34,7 +34,7 @@ setup() {
 	    export ACCESS_KEY="Q3AM3UQ867SPQQA43P2F"
 	    export SECRET_KEY="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
 	    export S3_SECURE=1
-	    export S3_REGION="us-east1"  # needed for minio-java
+	    export S3_REGION="us-east-1"  # needed for minio-java
 	fi
 }
 
