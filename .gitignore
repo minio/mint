@@ -1,4 +1,5 @@
 *.test
+*.jar
 src/*
 temp
 __pycache__/

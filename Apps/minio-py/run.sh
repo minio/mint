@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #!/usr/bin/expect -f
 
+<<<<<<< HEAD
 # settings / change this to your config
 
 ROOT_DIR=$1
@@ -27,3 +28,30 @@ run   -s  2>&1  >| $LOG_DIR/temp.log
 cat $LOG_DIR/temp.log $LOG_DIR/output.log  | grep 'ERROR' > $LOG_DIR/error.log
 rm $LOG_DIR/temp.log
 exit 0
+=======
+build() {
+	pip3 install --user -r requirements.txt
+	pip3 install minio
+}
+
+run() {
+	python3 ./functional_test.py $1 
+}
+
+main () {
+
+    # Build test file binary
+    build -s  2>&1  >| $1
+
+    # run the tests
+    run -s  2>&1  >| $1
+
+    grep -q 'ERROR' $1 > $2
+
+    return 0
+}
+
+# invoke the script
+main "$@"
+
+>>>>>>> e271a38... Cleanup run.sh scripts

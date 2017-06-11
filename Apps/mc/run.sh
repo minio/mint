@@ -47,6 +47,10 @@ cleanUP(){
 downloadMC() {
     # Download latest MC release
     curl -s -o mc https://dl.minio.io/client/mc/release/linux-amd64/mc
+<<<<<<< HEAD
+=======
+    
+>>>>>>> e271a38... Cleanup run.sh scripts
     res=$?
     if test "$res" != "0"; then
         echo "curl command to download mc failed with: $res" >> $MC_ERROR_LOG_FILE

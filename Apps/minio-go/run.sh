@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #!/usr/bin/expect -f
 
+<<<<<<< HEAD
 # settings / change this to your config
 ROOT_DIR=$1
 SDK_DIR=$2
@@ -23,3 +24,28 @@ build -s  2>&1  >| $LOG_DIR/build.log
 run   -s  2>&1  >| $LOG_DIR/output.log
 cat $LOG_DIR/output.log   | grep -E "Error:|FAIL" > $LOG_DIR/error.log
 exit 0
+=======
+build() {
+	go test -c api_functional_v4_test.go -o minio.test
+}
+
+run() {
+	chmod +x ./minio.test
+	./minio.test -test.short
+}
+
+main() {
+    # Build test file binary
+    build -s  2>&1  >| $1
+
+    # run the tests
+    run -s  2>&1  >| $1
+
+    grep -q 'Error:|FAIL' $1 > $2
+
+    return 0
+}
+
+# invoke the script
+main "$@"
+>>>>>>> e271a38... Cleanup run.sh scripts

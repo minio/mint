@@ -15,13 +15,15 @@
 #  limitations under the License.
 #
 
-ROOT_DIR="$PWD"
-TEST_DIR="Apps"
 
-let "errorCounter = 0"
+root_dir="$PWD"
+test_dir="apps"
+log_dir="log"
+error_file_name="error.log"
+log_file_name="output.log"
 
 # Setup environment variables for the run.
-setup() {
+_init() {
 	set -e
 
 	# If S3_ADDRESS is not set the tests are run on play.minio.io by default.
@@ -36,50 +38,52 @@ setup() {
 	    export S3_SECURE=1
 	    export S3_REGION="us-east-1"  # needed for minio-java
 	fi
+
+	# other env vars
+	export S3_REGION="us-east-1"  # needed for minio-java
+	
 }
 
 # Run the current SDK Test
-currTest() {
-	chmod +x ./$TEST_DIR/$1/run.sh
-	./$TEST_DIR/$1/run.sh  $ROOT_DIR  $TEST_DIR $(basename $1)
+runTest() {
+
+	# Clear log directories before run.
+	local sdk_log_dir=$root_dir/$log_dir/$1
+	
+	# make and clean SDK specific log directories.
+	if [ ! -d $sdk_log_dir ]
+		then
+			mkdir $sdk_log_dir
+		else 
+			rm -rf $sdk_log_dir/*
+	fi
+	cd $test_dir/$1
+	
+	chmod +x ./run.sh
+
+	./run.sh "$sdk_log_dir/$log_file_name" "$sdk_log_dir/$error_file_name" "$1"
+	
+	cd ../..
 }
 
 # Cycle through the sdk directories and run sdk tests
-runTests() {
-	for i in $(yq  -r '.Apps[]' $ROOT_DIR/config.yaml ); 
+main() {
+	for i in $(yq  -r '.apps[]' $root_dir/config.yaml ); 
 		do 
-			f=$ROOT_DIR/Apps/$i
-			echo "running .... $f"
+			f=$root_dir/$test_dir/$i
 			if [ -d ${f} ]; then
+				echo "running .... $f"
+
 		        # Will not run if no directories are available
 		        sdk="$(basename $f)"
 
-		        # Clear log directories before run.
-		        LOG_DIR=$ROOT_DIR/log/$sdk/
-		        if [ ! -d $LOG_DIR ]
-			  		then
-			  			 mkdir $LOG_DIR
-			  		else 
-			  			rm -rf $LOG_DIR/*
-				fi
-
-				# Run test
-				currTest "$sdk" -s  2>&1  >| $LOG_DIR/"$sdk"_log.txt  
-				cat $LOG_DIR/"$sdk"_log.txt
-				# Count failed runs
-				if [ -s "$LOG_DIR/error.log" ] 
-		 		 then 
-		     		let "errorCounter = errorCounter + 1" 
-				 fi
+		        # Run test
+				runTest "$sdk"	
+		
 			fi
 		done
 }
 
-setup
-runTests
 
-if [ $errorCounter -ne 0 ]; then 
-	exit 1
-fi
-
-exit 0
+_init  
+main

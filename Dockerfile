@@ -18,29 +18,15 @@ RUN apt-get update && apt-get install -y \
   apt-get install -y \
   jq && \ 
   openssl && \
-  go get -u github.com/minio/minio-go && \
-  go get -u github.com/minio/minio-go && \
-  chmod +x run.sh 
 
- RUN curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -
- RUN sudo apt-get install -y nodejs 
-
- RUN  pip3 install -r /tmp/requirements.txt
- RUN  pip3 install yq
- RUN  pip3 install minio
- RUN  rm /tmp/requirements.txt 
-
- RUN sudo apt-get install -y  maven
-
-ENV MAVEN_HOME /opt/maven
-
-RUN sudo apt-get install -y default-jre default-jdk
-# remove download archive files
-RUN apt-get clean
-
-
-# configure symbolic links for the java and javac executables
-RUN update-alternatives --config java && update-alternatives --config javac
+  pip3 install yq && \
+  curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash - && \
+  sudo apt-get install -y nodejs && \
+  sudo apt-get install -y  maven && \
+  sudo apt-get install -y default-jre default-jdk && \
+  apt-get clean && \ 
+  update-alternatives --config java && update-alternatives --config javac && \
+  chmod +x ./run.sh
 
 CMD ./run.sh
    

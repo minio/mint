@@ -16,36 +16,43 @@
 #  limitations under the License.
 #
 
-# settings / change this to your config
-ROOT_DIR=$1
-SDK_DIR=$2
-SDK_NAME=$3
-
-CURRENT_DIR="$ROOT_DIR/$SDK_DIR/$SDK_NAME"
-LOG_DIR="$ROOT_DIR/log/$SDK_NAME"
-
-declare MINIO_JAR_NAME
-declare OK_HTTP_JAR_NAME
+declare MINIO_JAR=minio.jar
+declare OK_HTTP_JAR=okhttp.jar
 
 build() {
+<<<<<<< HEAD
 	MINIO_JAR_NAME=`find $ROOT_DIR/bin -maxdepth 1 -mindepth 1  -name 'minio*.jar'`
 	OK_HTTP_JAR_NAME=`find $ROOT_DIR/bin -maxdepth 1 -mindepth 1  -name 'okhttp*.jar'`
+=======
+	# Download Minio.jar / okhttp
+	curl -s -o $MINIO_JAR http://repo1.maven.org/maven2/io/minio/minio/3.0.4/minio-3.0.4-all.jar
+	curl -s -o $OK_HTTP_JAR http://central.maven.org/maven2/com/squareup/okhttp3/okhttp/3.7.0/okhttp-3.7.0.jar
+>>>>>>> e271a38... Cleanup run.sh scripts
 
-	if [ -n $MINIO_JAR_NAME ]; then 
-		javac -cp $MINIO_JAR_NAME $CURRENT_DIR/FunctionalTest.java $CURRENT_DIR/PutObjectRunnable.java
+	if [ -n $MINIO_JAR ]; then 
+		javac -cp $MINIO_JAR FunctionalTest.java PutObjectRunnable.java
 	fi
 }
 
 run() {
-	if [ -n $MINIO_JAR_NAME ]; then
-		[[ "$S3_SECURE" == "1" ]] && scheme="https" || scheme="http"  
-		cd $CURRENT_DIR
-		ENDPOINT_URL=$scheme://"${S3_ADDRESS}"
-		java -cp $MINIO_JAR_NAME":."  FunctionalTest  "$ENDPOINT_URL" "${ACCESS_KEY}" "${SECRET_KEY}" "${S3_REGION}"
+	if [ -n $MINIO_JAR ]; then
+		[[ "$ENABLE_HTTPS" == "1" ]] && scheme="https" || scheme="http"  
+		ENDPOINT_URL=$scheme://"${SERVER_ENDPOINT}"
+		java -cp $MINIO_JAR":."  FunctionalTest  "$ENDPOINT_URL" "${ACCESS_KEY}" "${SECRET_KEY}" "${S3_REGION}"
 	fi
 }
 
-build -s  2>&1  >| $LOG_DIR/build.log
-run   -s  2>&1  >| $LOG_DIR/output.log
-cat $LOG_DIR/output.log   | grep -E "Error:|FAIL" > $LOG_DIR/error.log
-exit 0
+main() {
+	# Build test file binary
+    build -s  2>&1  >| $1
+
+    # run the tests
+    run -s  2>&1  >| $1
+
+    grep -q 'Error:|FAIL' $1 > $2
+
+    return 0
+}
+
+# invoke the script
+main "$@"
