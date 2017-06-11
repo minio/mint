@@ -44,8 +44,8 @@ main () {
     build -s  2>&1  >| $1
 
     # run the tests
-    run -s  2>&1  >| $1
-
+    run $1 2>&1  >| $1
+    
     grep -q 'ERROR' $1 > $2
 
     return 0

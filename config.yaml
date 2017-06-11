@@ -1,18 +1,8 @@
-<<<<<<< HEAD
-Apps:
-  #- init
-  #- mc
-  - minio-java
-  - minio-py
-  - minio-go
-  - minio-js
-=======
 apps:
   # - init
   # - mc
-    - minio-java
     - minio-py
+    - minio-java
     - minio-go
     - minio-js
->>>>>>> e271a38... Cleanup run.sh scripts
 mode: "quick"

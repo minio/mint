@@ -20,9 +20,7 @@ from minio.error import (ResponseError, PreconditionFailed,
 import logger as logger
 from decorator import log_decorate
 
-
-LOG_FILE = "output.log"
-logger = logger.create_logger(sys.argv[1] + "/" + LOG_FILE)
+logger = logger.create_logger(sys.argv[1])
 fake = Factory.create()
 # Generate unique string
 S3_ADDRESS = os.getenv('S3_ADDRESS')
