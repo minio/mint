@@ -82,7 +82,7 @@ func TestMakeBucketError(t *testing.T) {
 		mustParseBool(os.Getenv("S3_SECURE")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		t.Fatalf("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.

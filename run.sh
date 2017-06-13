@@ -61,27 +61,28 @@ runTest() {
 	
 	chmod +x ./run.sh
 
-	./run.sh "$sdk_log_dir/$log_file_name" "$sdk_log_dir/$error_file_name"
-	
+	./run.sh "$sdk_log_dir/$log_file_name" "$sdk_log_dir/$error_file_name" && \
 	cd ../..
 }
-
+printMsg() {
+	echo ""
+	echo 'Use "docker ps -a" to find CONTAINER ID'
+	echo 'Export run logs from the container using "docker cp CONTAINER-ID:/log  /tmp/all"'
+}
 # Cycle through the sdk directories and run sdk tests
 main() {
 	for i in $(yq  -r '.apps[]' $root_dir/config.yaml ); 
 		do 
 			f=$root_dir/$test_dir/$i
 			if [ -d ${f} ]; then
-				echo "running .... $f"
-
 		        # Will not run if no directories are available
 		        sdk="$(basename $f)"
-
+		        
 		        # Run test
-				runTest "$sdk"	
-		
+				runTest "$sdk"	|| { printMsg; exit 2; }
 			fi
 		done
+		echo "Mint ran all sdk tests successfully. To view logs, use 'docker cp container-id:/log  /tmp/all'"
 }
 
 _init && main 

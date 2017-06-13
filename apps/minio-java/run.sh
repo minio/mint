@@ -20,18 +20,21 @@ declare MINIO_JAR=minio.jar
 declare OK_HTTP_JAR=okhttp.jar
 
 build() {
-<<<<<<< HEAD
-	MINIO_JAR_NAME=`find $ROOT_DIR/bin -maxdepth 1 -mindepth 1  -name 'minio*.jar'`
-	OK_HTTP_JAR_NAME=`find $ROOT_DIR/bin -maxdepth 1 -mindepth 1  -name 'okhttp*.jar'`
-=======
 	# Download Minio.jar / okhttp
 	curl -s -o $MINIO_JAR http://repo1.maven.org/maven2/io/minio/minio/3.0.4/minio-3.0.4-all.jar
 	curl -s -o $OK_HTTP_JAR http://central.maven.org/maven2/com/squareup/okhttp3/okhttp/3.7.0/okhttp-3.7.0.jar
->>>>>>> e271a38... Cleanup run.sh scripts
+}
+cleanUp(){
+    # remove binary 
+    rm ./minio.jar && \
+    rm ./okhttp.jar
+}
 
-	if [ -n $MINIO_JAR ]; then 
-		javac -cp $MINIO_JAR FunctionalTest.java PutObjectRunnable.java
-	fi
+build() {
+	# Download Minio.jar / okhttp and compile test files.
+	curl -s -o $MINIO_JAR http://repo1.maven.org/maven2/io/minio/minio/3.0.4/minio-3.0.4-all.jar && \
+	curl -s -o $OK_HTTP_JAR http://central.maven.org/maven2/com/squareup/okhttp3/okhttp/3.7.0/okhttp-3.7.0.jar && \ 
+	javac -cp $MINIO_JAR FunctionalTest.java PutObjectRunnable.java
 }
 
 run() {
@@ -43,15 +46,16 @@ run() {
 }
 
 main() {
-	# Build test file binary
-    build -s  2>&1  >| $1
-
+    logfile=$1
+    errfile=$2
+    
+    # Build test file binary
+    build >>$logfile  2>&1 || { echo "minio-java build failed."; exit 1;}
+ 
     # run the tests
-    run -s  2>&1  >| $1
-
-    grep -q 'Error:|FAIL' $1 > $2
-
-    return 0
+    rc=0
+    run 2>>$errfile 1>>$logfile && cleanUp || { echo "minio-java run failed."; rc=1; }
+    return $rc
 }
 
 # invoke the script

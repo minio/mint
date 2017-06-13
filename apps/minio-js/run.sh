@@ -7,10 +7,11 @@ build() {
 	npm-check-updates -u
 	npm install
 	cd $CURRENT_DIR
-	npm link 
-
-	# TODO: set this var in top level config.yaml
-    # export FUNCTIONAL_TEST_TRACE=$LOG_DIR/error.log
+	npm link
+	npm i -g npm-check-updates && \
+	npm-check-updates -u   && \
+	npm install   && \
+	npm link  
 }
 
 run() {
@@ -18,16 +19,17 @@ run() {
 }
 
 main () {
-
+    
+    logfile=$1
+    errfile=$2
+    
     # Build test file binary
-    build -s  2>&1  >| $1
+    build >>$logfile  2>&1 || { echo "minio-js build failed."; exit 1;}
 
     # run the tests
-    run -s  2>&1  >| $1
-
-    grep -q 'Error:|FAIL' $1 > $2
-
-    return 0
+    rc=0
+    run 2>>$errfile 1>>$logfile || { echo "minio-js run failed.";rc=1;}
+    return $rc
 }
 
 # invoke the script

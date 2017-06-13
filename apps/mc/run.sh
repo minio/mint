@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -50,25 +50,21 @@ build() {
 
 # Execute test.sh 
 run() {
-    chmod +x ./test.sh
+    chmod +x ./test.sh && \
     ./test.sh
 }
 
 main() {
     # Build test file binary
-    build -s  2>&1  >| $1
+    build >>$1  2>&1 || { echo " mc build failed."; exit 1; }
+    
+    rc=0
+    # run the tests, then cleanup binary.
+    run >>$1  2>&1   && cleanUp || { echo "mc run failed.";rc=1; }
 
-    # run the tests
-    run -s  2>&1  >| $1
-
-    # remove the executable
-    cleanUp
-
-    grep -q 'Error:|FAIL' $1 > $2
-
-    return 0
+    grep -e '<ERROR>' $1 > $2
+    return $rc
 }
 
 # invoke the script
 main "$@"
-

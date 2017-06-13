@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -31,17 +31,10 @@ run() {
 
 main() {
     # Build test file binary
-    build -s  2>&1  >| $1
-
+    build >>$1  2>&1 || { echo 'initCheck build failed' ; exit 1; }
+    
     # run the tests
-    run -s  2>&1  >| $1
-
-    # remove the executable
-    cleanUp
-
-    grep -q 'Error:|FAIL' $1 > $2
-
-    return 0
+    run >>$1  2>&1 && cleanUp || { echo 'Server not reachable. Exiting...'; exit 1;}
 }
 
 # invoke the script

@@ -1,36 +1,23 @@
 #!/usr/bin/env bash
 #!/usr/bin/expect -f
+#
+#  Minio Cloud Storage, (C) 2017 Minio, Inc.
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
 
-<<<<<<< HEAD
-# settings / change this to your config
-
-ROOT_DIR=$1
-SDK_DIR=$2
-SDK_NAME=$3
-
-CURRENT_DIR="$ROOT_DIR/$SDK_DIR/$SDK_NAME"
-LOG_DIR="$ROOT_DIR/log/$SDK_NAME"
-
-# This will be factored out when build environment is readied
 build() {
-	echo $CURRENT_DIR/requirements.txt
-	pip3 install --user  -r  $CURRENT_DIR/requirements.txt
-	pip3 install minio
-}
-
-# Run the test
-run() {
-	python3 $CURRENT_DIR/functional_test.py "$LOG_DIR" 
-}
-
-build -s  2>&1  >| $LOG_DIR/build.log
-run   -s  2>&1  >| $LOG_DIR/temp.log  
-cat $LOG_DIR/temp.log $LOG_DIR/output.log  | grep 'ERROR' > $LOG_DIR/error.log
-rm $LOG_DIR/temp.log
-exit 0
-=======
-build() {
-	pip3 install --user -r requirements.txt
+	pip3 install --user -r requirements.txt && \
 	pip3 install minio
 }
 
@@ -39,19 +26,16 @@ run() {
 }
 
 main () {
-
+    logfile=$1
+    errfile=$2
     # Build test file binary
-    build -s  2>&1  >| $1
+    build >>$logfile  2>&1 || { echo "minio-py build failed."; exit 1;}
 
     # run the tests
-    run $1 2>&1  >| $1
-    
-    grep -q 'ERROR' $1 > $2
-
-    return 0
+    rc=0
+    run $logfile 2>>$errfile 1>>$logfile || { echo "minio-py run failed."; exit 1;}
 }
 
 # invoke the script
-main "$@"
 
->>>>>>> e271a38... Cleanup run.sh scripts
+main "$@"
