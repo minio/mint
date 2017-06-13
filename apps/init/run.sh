@@ -15,25 +15,6 @@
 #  limitations under the License.
 #
 
-
-# setLogEnv() {
-#     export INIT_LOG_DIR=$(echo ../../$LOG_DIR/${PWD##*/})
-#     export INIT_ERROR_LOG_FILE=$(echo $INIT_LOG_DIR/"error.log")
-#     export INIT_LOG_FILE=$(echo $INIT_LOG_DIR/"output.log")
-# }
-
-# prepareLogDir() {
-#     # clear old logs 
-#     rm -r echo $INIT_LOG_DIR 2> /dev/null
-
-#     # create log directory
-#     mkdir $INIT_LOG_DIR 2> /dev/null
-
-#     # create log files
-#     touch $INIT_ERROR_LOG_FILE
-#     touch $INIT_LOG_FILE
-# }
-
 cleanUp() {
     # remove executable 
     rm initCheck 2> /dev/null
@@ -43,11 +24,25 @@ build() {
     go build -o initCheck ./initCheck.go
 }
 
-# Set log folders
-setLogEnv
+run() {
+	chmod +x initCheck
+    ./initCheck
+}
 
-# Create log folders
-prepareLogDir
+main() {
+    # Build test file binary
+    build -s  2>&1  >| $1
 
-# Run the init tests
-initCheck
+    # run the tests
+    run -s  2>&1  >| $1
+
+    # remove the executable
+    cleanUp
+
+    grep -q 'Error:|FAIL' $1 > $2
+
+    return 0
+}
+
+# invoke the script
+main "$@"

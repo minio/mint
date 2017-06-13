@@ -35,43 +35,17 @@ func main() {
 
 	madmClnt, err := madmin.New(endpoint, accessKeyID, secretAccessKey, useSSL)
 	if err != nil {
-		addErrorLog(err.Error())
-		os.Exit(1)
+		// Print() followed by a call to os.Exit(1).
+		log.Fatalln(err)
 	}
 
 	// check the status of the Minio server.
 	_, err = madmClnt.ServiceStatus()
 	if err != nil {
-		addErrorLog(err.Error())
-		os.Exit(1)
+		// Print() followed by a call to os.Exit(1).
+		log.Fatalln(err)
 	}
 
 	// log the success message.
-	addRunLog("Target server: " + endpoint + " is reachable. Starting the tests...")
-}
-
-func addErrorLog(message string) {
-	errorLogFile := os.Getenv("INIT_ERROR_LOG_FILE")
-	file, err := os.OpenFile(errorLogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666) // For read access.
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	// write the log to file
-	log.SetOutput(file)
-	log.Println(message)
-}
-
-func addRunLog(message string) {
-	logFile := os.Getenv("INIT_LOG_FILE")
-	file, err := os.OpenFile(logFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666) // For read access.
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
-
-	// write the log to file
-	log.SetOutput(file)
-	log.Println(message)
+	log.Println("Target server: " + endpoint + " is reachable. Starting the tests...")
 }

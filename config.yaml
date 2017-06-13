@@ -1,8 +1,8 @@
 apps:
-  # - init
-  # - mc
-    - minio-py
-    - minio-java
-    - minio-go
-    - minio-js
+  - init
+  - mc
+  - minio-java
+  - minio-py
+  - minio-go
+  - minio-js
 mode: "quick"
