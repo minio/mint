@@ -26,13 +26,13 @@ log_file_name="output.log"
 _init() {
 	set -e
 
-	# If S3_ADDRESS is not set the tests are run on play.minio.io by default.
+	# If SERVER_ENDPOINT is not set the tests are run on play.minio.io by default.
 
-	# S3_ADDRESS is passed on as env variables while starting the docker container.
+	# SERVER_ENDPOINT is passed on as env variables while starting the docker container.
 	# see README.md for info on options.
 	#  Note: https://play.minio.io hosts publicly available Minio server.
-	if [ -z "$S3_ADDRESS" ]; then
-	    export S3_ADDRESS="play.minio.io:9000"
+	if [ -z "$SERVER_ENDPOINT" ]; then
+	    export SERVER_ENDPOINT="play.minio.io:9000"
 	    export ACCESS_KEY="Q3AM3UQ867SPQQA43P2F"
 	    export SECRET_KEY="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
 	    export S3_SECURE=1

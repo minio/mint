@@ -24,7 +24,7 @@ import (
 )
 
 func main() {
-	endpoint := os.Getenv("S3_ADDRESS")
+	endpoint := os.Getenv("SERVER_ENDPOINT")
 	accessKeyID := os.Getenv("ACCESS_KEY")
 	secretAccessKey := os.Getenv("SECRET_KEY")
 	useSSL := false

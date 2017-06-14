@@ -35,8 +35,8 @@ require('source-map-support').install()
 describe('functional tests', function() {
   this.timeout(30*60*1000)
   var playConfig = {}
-  if (process.env['S3_ADDRESS']) {
-    var res = process.env['S3_ADDRESS'].split(":")
+  if (process.env['SERVER_ENDPOINT']) {
+    var res = process.env['SERVER_ENDPOINT'].split(":")
     playConfig.endPoint = res[0]
     playConfig.port = parseInt(res[1])
   }

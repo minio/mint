@@ -20,11 +20,11 @@ from minio.error import (ResponseError, PreconditionFailed,
 
 fake = Factory.create()
 # Generate unique string
-S3_ADDRESS = os.getenv('S3_ADDRESS')
+SERVER_ENDPOINT = os.getenv('SERVER_ENDPOINT')
 ACCESS_KEY = os.getenv('ACCESS_KEY')
 SECRET_KEY = os.getenv('SECRET_KEY') 
 S3_SECURE  = os.getenv('S3_SECURE') 
-is_s3 = S3_ADDRESS.startswith("s3.amazonaws")
+is_s3 = SERVER_ENDPOINT.startswith("s3.amazonaws")
 _http = None
 
 def generate_random_string(length=20):
@@ -347,7 +347,7 @@ def presigned_post_policy_test(client, bucket_name):
     client.presigned_post_policy(policy)
 
 def init_client():
-    client = Minio(S3_ADDRESS,
+    client = Minio(SERVER_ENDPOINT,
                    ACCESS_KEY,
                    SECRET_KEY,
                    secure=S3_SECURE)
