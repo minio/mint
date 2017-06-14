@@ -21,6 +21,7 @@ cleanUp(){
 }
 
 build() {
+    go get -u github.com/minio/minio-go
 	go test -c api_functional_v4_test.go -o minio.test
 }
 

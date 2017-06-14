@@ -21,6 +21,7 @@ cleanUp() {
 }
 
 build() {
+    go get -u github.com/minio/minio/pkg/madmin
     go build -o initCheck ./initCheck.go
 }
 
