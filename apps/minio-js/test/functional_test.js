@@ -333,6 +333,7 @@ describe('functional tests', function() {
   })
 
   describe('bucket policy', () => {
+    "use strict;"
     let policies = [Policy.READONLY, Policy.WRITEONLY, Policy.READWRITE]
 
     // Iterate through the basic policies ensuring it can set and check each of them.

@@ -27,7 +27,7 @@ build() {
 
 run() {
 	chmod +x ./minio.test && \
-	./minio.test -test.v 
+	./minio.test -test.v -timeout 20m
 }
 
 main() {

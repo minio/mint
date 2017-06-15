@@ -8,12 +8,13 @@ RUN apt-get update && apt-get install -yq \
   default-jdk \
   git \
   jq \
-  nodejs \ 
-  npm \
   python3 \
   openssl \
+  sudo \
   python3-pip && \
   pip3 install yq && \
+  curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash - && \
+  sudo apt-get install -y nodejs && \ 
   curl -O https://storage.googleapis.com/golang/go1.7.4.linux-amd64.tar.gz && \
   tar -xf go1.7.4.linux-amd64.tar.gz && \
   mv go /usr/local && \
