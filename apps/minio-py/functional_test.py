@@ -23,17 +23,19 @@ fake = Factory.create()
 SERVER_ENDPOINT = os.getenv('SERVER_ENDPOINT')
 ACCESS_KEY = os.getenv('ACCESS_KEY')
 SECRET_KEY = os.getenv('SECRET_KEY') 
-S3_SECURE  = os.getenv('S3_SECURE') 
+ENABLE_HTTPS  = os.getenv('ENABLE_HTTPS') 
 is_s3 = SERVER_ENDPOINT.startswith("s3.amazonaws")
 _http = None
 
 def generate_random_string(length=20):
     return ''.join(choice(ascii_uppercase) for i in range(length)).lower()
 
+def _log_test():
+    print('Test: {0}'.format(inspect.stack()[1][3]))
 
 def make_bucket_test(client, bucket_name):
     # Make a new bucket.
-
+    _log_test()
     is_s3 = client._endpoint_url.startswith("s3.amazonaws")
     if is_s3:
         try:
@@ -49,6 +51,7 @@ def make_bucket_test(client, bucket_name):
         found = client.bucket_exists(bucket_name)
 
 def make_bucket_test2(client, bucket_name):
+    _log_test()
 
     # Make a new bucket.
     try:
@@ -69,12 +72,14 @@ def make_bucket_test2(client, bucket_name):
             pass
 
 def list_buckets_test(client):
+    _log_test()
     # List all buckets.
     buckets = client.list_buckets()
     for bucket in buckets:
         _, _ = bucket.name, bucket.creation_date
 
 def remove_bucket_test(client,bucket_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     client.remove_bucket(bucket_name)
@@ -82,6 +87,7 @@ def remove_bucket_test(client,bucket_name):
     assert found == False
 
 def put_small_object_from_stream_test(client,bucket_name, object_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     testfile = 'testfile'
@@ -101,6 +107,7 @@ def put_small_object_from_stream_test(client,bucket_name, object_name):
     assert stat.size == file_stat.st_size
 
 def put_large_object_from_stream_test(client,bucket_name, object_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
 
@@ -120,6 +127,7 @@ def put_large_object_from_stream_test(client,bucket_name, object_name):
     assert stat.size == file_stat.st_size
 
 def put_object(client, bucket_name, object_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     testfile = 'testfile'
@@ -139,11 +147,13 @@ def put_object(client, bucket_name, object_name):
     assert stat.size == file_stat.st_size
 
 def remove_object(client, bucket_name, object_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     client.remove_object(bucket_name, object_name)
 
 def put_small_object_from_file_test(client,bucket_name,object_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     testfile = 'testfile'
@@ -162,6 +172,7 @@ def put_small_object_from_file_test(client,bucket_name,object_name):
     assert stat.size == file_stat.st_size
 
 def put_large_object_from_file_test(client,bucket_name, object_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True, logger.error(bucket_name + " missing on server")
     largefile = 'largefile'
@@ -182,6 +193,7 @@ def put_large_object_from_file_test(client,bucket_name, object_name):
     assert stat.size == file_stat.st_size
 
 def copy_object_test(client,bucket_name,dest_object_name, src_object_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     testfile = 'testfile'
@@ -200,6 +212,7 @@ def copy_object_test(client,bucket_name,dest_object_name, src_object_name):
     assert copy_stat.size == stat.size
 
 def copy_object_with_conditions_test(client,bucket_name, dest_object_name, src_object_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     testfile = 'testfile'
@@ -229,6 +242,7 @@ def copy_object_with_conditions_test(client,bucket_name, dest_object_name, src_o
         raise
 
 def stat_object_test(client,bucket_name, object_name):
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     testfile = 'testfile'
@@ -242,6 +256,7 @@ def stat_object_test(client,bucket_name, object_name):
     assert stat.size == file_stat.st_size
 
 def get_object_test(client, bucket_name, object_name): 
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     # Get a full object
@@ -258,6 +273,7 @@ def get_object_test(client, bucket_name, object_name):
     os.remove("newfile")
 
 def get_partial_object_test(client, bucket_name, object_name): 
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     # Get a partial object
@@ -273,6 +289,7 @@ def get_partial_object_test(client, bucket_name, object_name):
     os.remove("my-testfile")
 
 def get_fobject_test(client, bucket_name, object_name): 
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
      # Get a full object locally.
@@ -284,6 +301,7 @@ def get_fobject_test(client, bucket_name, object_name):
     os.remove("newfile_f")
 
 def list_objects_test(client, bucket_name): 
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     # List all object paths in bucket.
@@ -295,6 +313,7 @@ def list_objects_test(client, bucket_name):
                            obj.content_type
 
 def list_objects_v2_test(client, bucket_name): 
+    _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
     # List all object paths in bucket.
@@ -306,6 +325,7 @@ def list_objects_v2_test(client, bucket_name):
                            obj.content_type
 
 def remove_objects_test(client, bucket_name): 
+    _log_test()
     client.make_bucket(bucket_name)
     for i in range(10):
         put_small_object_from_file_test(client,bucket_name,"newobject" + str(i))
@@ -314,6 +334,7 @@ def remove_objects_test(client, bucket_name):
     client.remove_bucket(bucket_name)
 
 def presigned_get_object_url_test(client,bucket_name, object_name):
+    _log_test()
     presigned_get_object_url = client.presigned_get_object(bucket_name, object_name)
     response = _http.urlopen('GET', presigned_get_object_url)
     if response.status != 200:
@@ -323,6 +344,7 @@ def presigned_get_object_url_test(client,bucket_name, object_name):
                             object_name).get_exception()
 
 def presigned_put_object_url_test(client,bucket_name, object_name):
+    _log_test()
     presigned_put_object_url = client.presigned_put_object(bucket_name, object_name)
     value = fake.text().encode('utf-8')
     data = io.BytesIO(value).getvalue()
@@ -337,6 +359,7 @@ def presigned_put_object_url_test(client,bucket_name, object_name):
         logger.error('Bytes not equal')
 
 def presigned_post_policy_test(client, bucket_name):
+    _log_test()
     # Post policy.
     policy = PostPolicy()
     policy.set_bucket_name(bucket_name)
@@ -350,7 +373,7 @@ def init_client():
     client = Minio(SERVER_ENDPOINT,
                    ACCESS_KEY,
                    SECRET_KEY,
-                   secure=S3_SECURE)
+                   secure=ENABLE_HTTPS)
     global _http
     _http = urllib3.PoolManager(
         cert_reqs='CERT_REQUIRED',
@@ -372,7 +395,6 @@ def run_tests(client):
     suffixes = ["","-small", "-large", "-fsmall", "-flarge", "-copy", "-copycond"]
     bucket_name, object_name = setup(client)
     make_bucket_test2(client, generate_random_string(65))
-
     list_buckets_test(client)
     put_small_object_from_stream_test(client, bucket_name, object_name + suffixes[1])
     put_large_object_from_stream_test(client, bucket_name, object_name + suffixes[2])

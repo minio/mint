@@ -35,13 +35,15 @@ _init() {
 	    export SERVER_ENDPOINT="play.minio.io:9000"
 	    export ACCESS_KEY="Q3AM3UQ867SPQQA43P2F"
 	    export SECRET_KEY="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
-	    export S3_SECURE=1
-	    export S3_REGION="us-east-1"  # needed for minio-java
+	    export ENABLE_HTTPS=1
 	fi
-
 	# other env vars
 	export S3_REGION="us-east-1"  # needed for minio-java
-	
+
+	# Init log directory
+	if [ ! -d $log_dir ]; then 
+		mkdir $log_dir
+	fi
 }
 
 # Run the current SDK Test
@@ -67,8 +69,9 @@ runTest() {
 printMsg() {
 	echo ""
 	echo 'Use "docker ps -a" to find CONTAINER ID'
-	echo 'Export run logs from the container using "docker cp CONTAINER-ID:/log  /tmp/all"'
+	echo 'Export run logs from the container using "docker cp CONTAINER-ID:/mint/log  /tmp/all"'
 }
+
 # Cycle through the sdk directories and run sdk tests
 main() {
 	for i in $(yq  -r '.apps[]' $root_dir/config.yaml ); 
@@ -77,7 +80,7 @@ main() {
 			if [ -d ${f} ]; then
 		        # Will not run if no directories are available
 		        sdk="$(basename $f)"
-		        
+		        echo "Running $sdk tests ..."
 		        # Run test
 				runTest "$sdk"	|| { printMsg; exit 2; }
 			fi

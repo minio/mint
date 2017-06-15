@@ -79,7 +79,7 @@ func TestMakeBucketError(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatalf("Error:", err)
@@ -128,7 +128,7 @@ func TestMakeBucketRegions(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -179,7 +179,7 @@ func TestPutObjectReadAt(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -269,7 +269,7 @@ func TestPutObjectWithMetadata(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -361,7 +361,7 @@ func TestPutObjectStreaming(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -425,7 +425,7 @@ func TestListPartiallyUploaded(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -501,7 +501,7 @@ func TestGetOjectSeekEnd(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -596,7 +596,7 @@ func TestGetObjectClosedTwice(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -676,7 +676,7 @@ func TestRemoveMultipleObjects(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 
 	if err != nil {
@@ -751,7 +751,7 @@ func TestRemovePartiallyUploaded(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -821,7 +821,7 @@ func TestResumablePutObject(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -936,7 +936,7 @@ func TestResumableFPutObject(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -1023,7 +1023,7 @@ func TestFPutObjectMultipart(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -1124,7 +1124,7 @@ func TestFPutObject(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -1280,7 +1280,7 @@ func TestGetObjectReadSeekFunctional(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -1434,7 +1434,7 @@ func TestGetObjectReadAtFunctional(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -1583,7 +1583,7 @@ func TestPresignedPostPolicy(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -1678,7 +1678,7 @@ func TestCopyObject(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -1846,7 +1846,7 @@ func TestEncryptionPutGet(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -2013,7 +2013,7 @@ func TestBucketNotification(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -2089,7 +2089,7 @@ func TestFunctional(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -2417,7 +2417,7 @@ func TestGetObjectObjectModified(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -2491,7 +2491,7 @@ func TestPutObjectUploadSeekedObject(t *testing.T) {
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("S3_SECURE")),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
 		t.Fatal("Error:", err)

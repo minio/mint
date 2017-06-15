@@ -3,11 +3,6 @@
 
 
 build() {
-	npm i -g npm-check-updates
-	npm-check-updates -u
-	npm install
-	cd $CURRENT_DIR
-	npm link
 	npm i -g npm-check-updates && \
 	npm-check-updates -u   && \
 	npm install   && \

@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-#!/usr/bin/expect -f
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -19,11 +18,6 @@
 declare MINIO_JAR=minio.jar
 declare OK_HTTP_JAR=okhttp.jar
 
-build() {
-	# Download Minio.jar / okhttp
-	curl -s -o $MINIO_JAR http://repo1.maven.org/maven2/io/minio/minio/3.0.4/minio-3.0.4-all.jar
-	curl -s -o $OK_HTTP_JAR http://central.maven.org/maven2/com/squareup/okhttp3/okhttp/3.7.0/okhttp-3.7.0.jar
-}
 cleanUp(){
     # remove binary 
     rm ./minio.jar && \
@@ -33,7 +27,7 @@ cleanUp(){
 build() {
 	# Download Minio.jar / okhttp and compile test files.
 	curl -s -o $MINIO_JAR http://repo1.maven.org/maven2/io/minio/minio/3.0.4/minio-3.0.4-all.jar && \
-	curl -s -o $OK_HTTP_JAR http://central.maven.org/maven2/com/squareup/okhttp3/okhttp/3.7.0/okhttp-3.7.0.jar && \ 
+	curl -s -o $OK_HTTP_JAR http://central.maven.org/maven2/com/squareup/okhttp3/okhttp/3.7.0/okhttp-3.7.0.jar && \
 	javac -cp $MINIO_JAR FunctionalTest.java PutObjectRunnable.java
 }
 

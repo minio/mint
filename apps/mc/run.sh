@@ -17,12 +17,13 @@
 
 cleanUp(){
     # remove mc 
-    rm mc
+    rm ./mc
 }
 
 downloadMC() {
     # Download latest MC release
     curl -s -o mc https://dl.minio.io/client/mc/release/linux-amd64/mc
+}
 
 build() {
         
