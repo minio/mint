@@ -27,10 +27,7 @@ _init() {
 	set -e
 
 	# If SERVER_ENDPOINT is not set the tests are run on play.minio.io by default.
-
 	# SERVER_ENDPOINT is passed on as env variables while starting the docker container.
-	# see README.md for info on options.
-	#  Note: https://play.minio.io hosts publicly available Minio server.
 	if [ -z "$SERVER_ENDPOINT" ]; then
 	    export SERVER_ENDPOINT="play.minio.io:9000"
 	    export ACCESS_KEY="Q3AM3UQ867SPQQA43P2F"
@@ -40,7 +37,7 @@ _init() {
 	# other env vars
 	export S3_REGION="us-east-1"  # needed for minio-java
 
-	# Init log directory
+	# init log directory
 	if [ ! -d $log_dir ]; then 
 		mkdir $log_dir
 	fi
@@ -48,6 +45,9 @@ _init() {
 
 # Run the current SDK Test
 runTest() {
+
+	# copy the run mode argument
+	run_mode=$2
 
 	# Clear log directories before run.
 	local sdk_log_dir=$root_dir/$log_dir/$1
@@ -59,33 +59,51 @@ runTest() {
 		else 
 			rm -rf $sdk_log_dir/*
 	fi
+
+	# move to SDK directory
 	cd $test_dir/$1
-	
+
+	# make the script executable	
 	chmod +x ./run.sh
 
-	./run.sh "$sdk_log_dir/$log_file_name" "$sdk_log_dir/$error_file_name" && \
+	# run the test
+	./run.sh "$sdk_log_dir/$log_file_name" "$sdk_log_dir/$error_file_name" "$run_mode"  && \
+
+	# move back to top level directory
 	cd ../..
 }
+
 printMsg() {
 	echo ""
-	echo 'Use "docker ps -a" to find CONTAINER ID'
-	echo 'Export run logs from the container using "docker cp CONTAINER-ID:/mint/log  /tmp/all"'
+	echo "Use 'docker ps -a' to find container-id"
+	echo "Export run logs from the container using 'docker cp container-id:/mint/log /tmp/mint-logs'"
 }
 
 # Cycle through the sdk directories and run sdk tests
 main() {
+	
+	# read the mode from config.yaml
+	run_mode=$(yq -r '.mode' $root_dir/config.yaml);
+
+	# read the SDKs to run
 	for i in $(yq  -r '.apps[]' $root_dir/config.yaml ); 
+		
 		do 
 			f=$root_dir/$test_dir/$i
+			
 			if [ -d ${f} ]; then
+
 		        # Will not run if no directories are available
 		        sdk="$(basename $f)"
 		        echo "Running $sdk tests ..."
-		        # Run test
-				runTest "$sdk"	|| { printMsg; exit 2; }
+		        
+				# Run test
+				runTest "$sdk" "$run_mode" || { printMsg; exit 2; }
 			fi
+
 		done
-		echo "Mint ran all sdk tests successfully. To view logs, use 'docker cp container-id:/log  /tmp/all'"
+
+		echo "Mint ran all sdk tests successfully. To view logs, use 'docker cp container-id:/mint/log /tmp/mint-logs'"
 }
 
 _init && main 

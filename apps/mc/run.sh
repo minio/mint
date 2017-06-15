@@ -55,14 +55,19 @@ run() {
 }
 
 main() {
-    # Build test file binary
-    build >>$1  2>&1 || { echo " mc build failed."; exit 1; }
     
+    logfile=$1
+    errfile=$2
+    run_mode=$3
+    
+    # Build test file binary
+    build >>$logfile  2>&1 || { echo 'mc build failed' ; exit 1; }
+  
+    # run the tests
     rc=0
-    # run the tests, then cleanup binary.
-    run >>$1  2>&1   && cleanUp || { echo "mc run failed.";rc=1; }
 
-    grep -e '<ERROR>' $1 > $2
+    run $run_mode 2>>$errfile 1>>$logfile && cleanUp || { echo 'mc run failed.'; rc=1; } 
+    grep -e '<ERROR>' $logfile >> $errfile
     return $rc
 }
 

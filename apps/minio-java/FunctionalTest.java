@@ -52,6 +52,7 @@ public class FunctionalTest {
   private static String accessKey;
   private static String secretKey;
   private static String region;
+  private static String mode;
   private static MinioClient client = null;
 
   /**
@@ -1663,7 +1664,7 @@ public class FunctionalTest {
    * main().
    */
   public static void main(String[] args) {
-    if (args.length != 4) {
+    if (args.length != 5) {
       System.out.println("usage: FunctionalTest <ENDPOINT> <ACCESSKEY> <SECRETKEY> <REGION>");
       System.exit(-1);
     }
@@ -1672,16 +1673,18 @@ public class FunctionalTest {
     accessKey = args[1];
     secretKey = args[2];
     region = args[3];
+    mode = args[4]; 
     try {
-      client = new MinioClient(endpoint, accessKey, secretKey);
       // Enable trace for debugging.
       // client.traceOn(System.out);
-      //FunctionalTest.runTests();
-
-      // Run fast test with region parameter passed to the constructor
-      client = new MinioClient(endpoint, accessKey, secretKey, region);
-      FunctionalTest.runFastTests();
-
+      if (!mode.equals("quick")) {
+        client = new MinioClient(endpoint, accessKey, secretKey);
+        FunctionalTest.runTests();
+      } else {
+        // Run fast test with region parameter passed to the constructor
+        client = new MinioClient(endpoint, accessKey, secretKey, region);
+        FunctionalTest.runFastTests();
+      }
     } catch (Exception e) {
       e.printStackTrace();
       System.exit(-1);

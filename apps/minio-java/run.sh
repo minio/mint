@@ -35,20 +35,20 @@ run() {
 	if [ -n $MINIO_JAR ]; then
 		[[ "$ENABLE_HTTPS" == "1" ]] && scheme="https" || scheme="http"  
 		ENDPOINT_URL=$scheme://"${SERVER_ENDPOINT}"
-		java -cp $MINIO_JAR":."  FunctionalTest  "$ENDPOINT_URL" "${ACCESS_KEY}" "${SECRET_KEY}" "${S3_REGION}"
+		java -cp $MINIO_JAR":."  FunctionalTest  "$ENDPOINT_URL" "${ACCESS_KEY}" "${SECRET_KEY}" "${S3_REGION}" "$1"
 	fi
 }
 
 main() {
     logfile=$1
     errfile=$2
-    
+    run_mode=$3
     # Build test file binary
     build >>$logfile  2>&1 || { echo "minio-java build failed."; exit 1;}
  
     # run the tests
     rc=0
-    run 2>>$errfile 1>>$logfile && cleanUp || { echo "minio-java run failed."; rc=1; }
+    run $run_mode 2>>$errfile 1>>$logfile && cleanUp || { echo "minio-java run failed."; rc=1; }
     return $rc
 }
 

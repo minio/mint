@@ -26,21 +26,24 @@ build() {
 }
 
 run() {
-	chmod +x ./minio.test && \
-	./minio.test -test.v -timeout 20m
+    if [[ "$1" -eq "quick" ]]; then 
+        chmod +x ./minio.test && ./minio.test -test.short -test.timeout 20m
+    else
+        chmod +x ./minio.test && ./minio.test -test.v -test.timeout 20m       
+    fi
 }
 
 main() {
     logfile=$1
     errfile=$2
-    
+    run_mode=$3
     # Build test file binary
     build >>$logfile  2>&1 || { echo 'minio-go build failed' ; exit 1; }
   
     # run the tests
     rc=0
-    run 2>>$errfile 1>>$logfile && cleanUp || { echo 'minio-go run failed.'; rc=1; } 
 
+    run $run_mode 2>>$errfile 1>>$logfile && cleanUp || { echo 'minio-go run failed.'; rc=1; } 
     grep -e 'FAIL' $logfile >> $errfile
     return $rc
 }

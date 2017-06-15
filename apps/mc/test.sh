@@ -36,6 +36,9 @@ createFile_02(){
     echo "Creating a 2mb temp file for upload" 
     truncate -s 2m /tmp/file
 
+    # save md5 hash
+    hash1=`md5sum /tmp/file | awk '{print $1}'`
+    
     # create a bucket
     echo "Creating a bucket" 
     ./mc mb target/testbucket1 
@@ -47,8 +50,13 @@ createFile_02(){
     echo "Download the file" 
     ./mc cp target/testbucket1/file /tmp/file_downloaded 
     
+    #save md5 hash of downloaded file
+    hash2=`md5sum /tmp/file_downloaded | awk '{print $1}'`
+
     echo "Testing if the downloaded file is same as local file" 
-    comm /tmp/file_downloaded /tmp/file 
+    if [ $hash1 -ne $hash2 ]; then
+        return 1
+    fi
 
     echo "Removing the bucket" 
     # remove bucket
