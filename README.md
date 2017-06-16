@@ -1,11 +1,21 @@
-# Mint
-Collection of tests to detect resource leaks, gauge performance problems and overall quality of Minio server.
+# Mint [![Slack](https://slack.minio.io/slack?type=svg)](https://slack.minio.io) [![Go Report Card](https://goreportcard.com/badge/minio/minio)](https://goreportcard.com/report/minio/minio) [![Docker Pulls](https://img.shields.io/docker/pulls/minio/minio.svg?maxAge=604800)](https://hub.docker.com/r/minio/minio/) [![codecov](https://codecov.io/gh/minio/minio/branch/master/graph/badge.svg)](https://codecov.io/gh/minio/minio)
+
+Collection of tests to detect overall correctness of Minio server.
 
 ## Goals
-- To run tests in self contained manner, with various tools pre-installed.
-- To asses the quality of the Minio server product.
+
+- To run tests in self contained manner, with various tools pre-installed
+- To assess the quality of the Minio server product
+
+## Roadmap
+
+- Add test cases under categories like correctness, stress/load, etc.
+- Add specific tests for distributed mode, shared-backend mode, gateway mode
+- Add other SDK/Client side tools to increase the test case variety
+- Add bench-marking tools
 
 ## How to Run
+
 The project will be published in Docker hub after further more testing. Till then the docker image has to be built locally and run.
 
 ### Build
@@ -13,39 +23,62 @@ The project will be published in Docker hub after further more testing. Till the
 ```sh
 $ git clone https://github.com/minio/mint.git
 $ cd mint
-$ docker build -t minio/mint:alpha .
+$ docker build -t minio/mint .
 ```
 
 ### Options
 
-Options are provided as environment variables to the docker container. Supported envs:
+#### Env variables
 
- - `S3_ADDRESS`     - <IP/URL>:<PORT> of the Minio server on which the tests has to be run.
- - `ACCESS_KEY`   - Access Key of the server.
- - `SECRET_KEY`   - Secret Key of the server.
- - `ENABLE_HTTPS` - Optional value when set to 1 sends HTTPS requests on SSL enabled deployment.
+Set environment variables to pass test target server details to the docker container. Supported envs:
 
-
-### Run
-
-```sh
-$ docker run -e S3_ADDRESS=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA43P2F  -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG -e ENABLE_HTTPS=1  minio/mint:alpha
-```
+- `SERVER_ENDPOINT`- <IP/URL>:<PORT> of the Minio server on which the tests has to be run
+- `ACCESS_KEY`     - Access Key of the server
+- `SECRET_KEY`     - Secret Key of the server
+- `ENABLE_HTTPS`   - Optional value when set to 1 sends HTTPS requests on SSL enabled deployment
 
 Note: With no env variables provided the tests are run on play.minio.io by default
 
+#### Config file
+
+- `apps` - Directories specified in this section are executed in sequential order. You can comment out specific directories to remove them from execution or rearrange them to change execution order.
+- `mode` - Only `quick` mode supported right now. Only basic tests are run in quick mode. 
+
+### Run
+
+To run Mint image, use the `docker run` command. For example, to run Mint with Minio Play server as test target use the below command
+
+```sh
+$ docker run -e SERVER_ENDPOINT=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA43P2F -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG -e ENABLE_HTTPS=1 minio/mint 
+```
+
+After the tests are run, output is stored in `/mint/log` directory inside the container. You can access these logs via `docker cp` command. For example to store logs to `/tmp/logs` directory on your host, run
+
+```sh
+docker cp minio/mint:/mint/log /tmp/logs
+```
+
+Then navigate to `/tmp/logs` directory to access the test logs.
+
 ### Current tests
-- SDK Tests (Contains tests using S3 compatible client libraries)
-  - Minio-go functional tests.
 
-- Functional tests (Tests with handcrafted HTTP requests for various functionalities)
-  - Minio server functional test.
- 
-### Adding tests. 
-- See if the new tests fit into the existing category of tests (ex: sdk-tests).
-- If yes follow the instructions in the README.md inside the test category folder.
-- If not, create a folder for the new test category and add your tests there.
-- Add build.sh and run.sh to build and run the test, and README.md with info in the test category folder (see sdk-tests).
-- Set permissions and execute build.sh and run.sh of the new tests from `run.sh` in the project root.
- 
+Following SDKs/CLI tools are available:
 
+- mc
+- minio-go
+- minio-java
+- minio-js
+- minio-py
+
+### Adding tests
+
+To add tests to an existing SDK folder:
+
+- Navigate to specific SDK test file in the path `apps/<sdk_name>/`.
+- Add test cases and update `main` method if applicable.
+
+To add new SDK/CLI to Mint:
+
+- Create new directory in `apps/` directory with corresponding tool name
+- Add a `run.sh` script. This script should set up the SDK/CLI tool and then execute the tests
+- Add an entry in `config.yaml` with name of folder, e.g test_folder

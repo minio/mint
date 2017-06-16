@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -15,14 +15,28 @@
 #  limitations under the License.
 #
 
-# Add build instructions for SDK tests here.
-# The Run instructions should be added to run.sh
-# minio/pkg/admin is a dependency for main.go
-# admin api from the package is used to check whether Minio server with given
-# credentials is reachable.
-go get -u github.com/minio/minio/pkg/madmin
-# first build the main program.
-go build main.go
+cleanUp() {
+    # remove executable 
+    rm initCheck 2> /dev/null
+}
 
+build() {
+    go get -u github.com/minio/minio/pkg/madmin
+    go build -o initCheck ./initCheck.go
+}
 
+run() {
+	chmod +x initCheck
+    ./initCheck
+}
 
+main() {
+    # Build test file binary
+    build >>$1  2>&1 || { echo 'initCheck build failed' ; exit 1; }
+    
+    # run the tests
+    run >>$1  2>&1 && cleanUp || { echo 'Server not reachable. Exiting...'; exit 1;}
+}
+
+# invoke the script
+main "$@"

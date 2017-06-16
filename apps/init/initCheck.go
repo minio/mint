@@ -24,10 +24,7 @@ import (
 )
 
 func main() {
-	// obtain endpoint from env.
-	// it is set using `-e` when starting the container
-	// check README.md for instructions.
-	endpoint := os.Getenv("S3_ADDRESS")
+	endpoint := os.Getenv("SERVER_ENDPOINT")
 	accessKeyID := os.Getenv("ACCESS_KEY")
 	secretAccessKey := os.Getenv("SECRET_KEY")
 	useSSL := false
@@ -36,18 +33,19 @@ func main() {
 		useSSL = true
 	}
 
-	// Initialize minio admin client object.
 	madmClnt, err := madmin.New(endpoint, accessKeyID, secretAccessKey, useSSL)
 	if err != nil {
 		// Print() followed by a call to os.Exit(1).
 		log.Fatalln(err)
 	}
+
 	// check the status of the Minio server.
 	_, err = madmClnt.ServiceStatus()
 	if err != nil {
 		// Print() followed by a call to os.Exit(1).
 		log.Fatalln(err)
 	}
+
 	// log the success message.
-	log.Println("Minio server is reachable and credentials right. Starting the tests...")
+	log.Println("Target server: " + endpoint + " is reachable. Starting the tests...")
 }

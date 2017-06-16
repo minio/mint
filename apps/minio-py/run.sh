@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env bash
+#!/usr/bin/expect -f
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -15,9 +16,26 @@
 #  limitations under the License.
 #
 
-# Add Build instructions for SDK tests here.
-# The Run instructions should be added to run.sh
+build() {
+	pip3 install --user -r requirements.txt && \
+	pip3 install minio
+}
 
-# Build Minio functional tests.
-go test -c functional-test/minio-functional-test/server_test.go
+run() {
+	python3 ./functional_test.py $1 
+}
 
+main () {
+    logfile=$1
+    errfile=$2
+    # Build test file binary
+    build >>$logfile  2>&1 || { echo "minio-py build failed."; exit 1;}
+
+    # run the tests
+    rc=0
+    run $logfile 2>>$errfile 1>>$logfile || { echo "minio-py run failed."; exit 1;}
+}
+
+# invoke the script
+
+main "$@"
