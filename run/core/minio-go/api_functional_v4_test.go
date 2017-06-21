@@ -21,9 +21,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	. "github.com/minio/minio-go"
-	"github.com/minio/minio-go/pkg/encrypt"
-	"github.com/minio/minio-go/pkg/policy"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -34,6 +31,10 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	. "github.com/minio/minio-go"
+	"github.com/minio/minio-go/pkg/encrypt"
+	"github.com/minio/minio-go/pkg/policy"
 )
 
 const minPartSize = 1024 * 1024 * 64
@@ -842,7 +843,7 @@ func TestResumablePutObject(t *testing.T) {
 		t.Fatal("Error:", err, bucketName)
 	}
 
-	// Create a temporary file.
+	// Create a temporary file
 	file, err := ioutil.TempFile(os.TempDir(), "resumable")
 	if err != nil {
 		t.Fatal("Error:", err)
@@ -2578,7 +2579,7 @@ func TestPutObjectUploadSeekedObject(t *testing.T) {
 func mustParseBool(str string) bool {
 	b, err := strconv.ParseBool(str)
 	if err != nil {
-		return true
+		return false
 	}
 	return b
 }

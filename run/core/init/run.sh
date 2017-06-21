@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -15,27 +15,13 @@
 #  limitations under the License.
 #
 
-cleanUp() {
-    # remove executable 
-    rm initCheck 2> /dev/null
-}
-
-build() {
-    go get -u github.com/minio/minio/pkg/madmin
-    go build -o initCheck ./initCheck.go
-}
-
 run() {
-	chmod +x initCheck
     ./initCheck
 }
 
 main() {
-    # Build test file binary
-    build >>$1  2>&1 || { echo 'initCheck build failed' ; exit 1; }
-    
     # run the tests
-    run >>$1  2>&1 && cleanUp || { echo 'Server not reachable. Exiting...'; exit 1;}
+    run >>$1  2>&1 || { echo 'Server not reachable. Exiting...'; exit 1;}
 }
 
 # invoke the script

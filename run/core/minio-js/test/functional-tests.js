@@ -46,6 +46,12 @@ describe('functional tests', function() {
   if (process.env['SECRET_KEY']) {
     playConfig.secretKey = process.env['SECRET_KEY']
   }
+  if (process.env['ENABLE_HTTPS'] == "1") {
+    playConfig.secure = true
+  } else {
+    playConfig.secure = false
+  }
+
   var client = new minio.Client(playConfig)
   var usEastConfig = playConfig
   usEastConfig.region = 'us-east-1'
@@ -640,4 +646,3 @@ describe('functional tests', function() {
     })
   })
 })
-
