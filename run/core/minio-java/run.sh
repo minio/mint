@@ -15,36 +15,20 @@
 #  limitations under the License.
 #
 
-cleanUp(){
-    # remove binary 
-    rm ./minio.test
-}
-
-build() {
-    go get -u github.com/minio/minio-go
-	go test -c api_functional_v4_test.go -o minio.test
-}
-
 run() {
-    if [[ "$1" -eq "quick" ]]; then 
-        chmod +x ./minio.test && ./minio.test -test.short -test.timeout 20m
-    else
-        chmod +x ./minio.test && ./minio.test -test.v -test.timeout 20m       
-    fi
+	[ "$ENABLE_HTTPS" == "1" ] && scheme="https" || scheme="http" 
+    ENDPOINT_URL=$scheme://"$SERVER_ENDPOINT"
+
+    java -cp /usr/local/minio.jar":." FunctionalTest "$ENDPOINT_URL" "$ACCESS_KEY" "$SECRET_KEY" "$S3_REGION"
 }
 
 main() {
     logfile=$1
     errfile=$2
-    run_mode=$3
-    # Build test file binary
-    build >>$logfile  2>&1 || { echo 'minio-go build failed' ; exit 1; }
-  
+
     # run the tests
     rc=0
-
-    run $run_mode 2>>$errfile 1>>$logfile && cleanUp || { echo 'minio-go run failed.'; rc=1; } 
-    grep -e 'FAIL' $logfile >> $errfile
+    run 2>>$errfile 1>>$logfile || { echo "minio-java run failed."; rc=1; }
     return $rc
 }
 

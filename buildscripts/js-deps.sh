@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-#!/usr/bin/expect -f
+#!/bin/bash
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -16,26 +15,28 @@
 #  limitations under the License.
 #
 
-build() {
-	pip3 install --user -r requirements.txt && \
-	pip3 install minio
+set -e
+
+_init() {
+    minio_js_sdk_path=$1
+    minio_js_sdk_version=$2
 }
 
-run() {
-	python3 ./functional_test.py $1 
+# Install JS dependencies
+installMinioJSDeps() {
+    curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
+    apt-get install -y nodejs
 }
 
-main () {
-    logfile=$1
-    errfile=$2
-    # Build test file binary
-    build >>$logfile  2>&1 || { echo "minio-py build failed."; exit 1;}
-
-    # run the tests
-    rc=0
-    run $logfile 2>>$errfile 1>>$logfile || { echo "minio-py run failed."; exit 1;}
+# Compile test files
+buildMinioJSTests() {
+    npm --prefix $minio_js_sdk_path install --save minio@$minio_js_sdk_version && \
+    npm --prefix $minio_js_sdk_path install
 }
 
-# invoke the script
+jsMain() {
+    installMinioJSDeps && \
+    buildMinioJSTests
+}
 
-main "$@"
+_init "$@" && jsMain
