@@ -10,6 +10,8 @@ WORKDIR /mint
 
 COPY . /mint
 
-RUN /mint/buildscripts/mint-deps.sh
+RUN apt-get update && apt-get install -yq \
+    git && \
+    /mint/buildscripts/mint-deps.sh
   
 CMD /mint/run.sh

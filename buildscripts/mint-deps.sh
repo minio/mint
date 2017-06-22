@@ -42,13 +42,12 @@ _init() {
 installGeneralDeps() {
     apt-get update && apt-get install -yq \
     curl \
-    git \
     python3 \
     openssl
 }
 
 removeGeneralDeps() {
-    apt-get purge -yq curl
+    apt-get purge -yq curl git
     apt-get autoremove -yq 
 }
 
