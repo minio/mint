@@ -33,13 +33,12 @@ installMinioGoDeps() {
  
 # Build init tests
 buildInitTests() {
-    go get -u github.com/minio/minio/pkg/madmin && \
+    go get -u github.com/minio/minio-go && \
     go build -o ${init_test_path}/initCheck ${init_test_path}/initCheck.go
 }
 
 # Build Minio Go tests
 buildMinioGoTests() {
-    go get -u github.com/minio/minio-go && \
 	go test -o ${minio_go_sdk_path}/minio.test -c ${minio_go_sdk_path}/api_functional_v4_test.go
 }
 
