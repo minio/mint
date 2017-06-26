@@ -18,10 +18,37 @@ package main
 
 import (
 	"log"
+	"math/rand"
 	"os"
+	"time"
 
-	"github.com/minio/minio/pkg/madmin"
+	minio "github.com/minio/minio-go"
 )
+
+const (
+	letterIdxBits = 6                    // 6 bits to represent a letter index
+	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
+	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
+	letterBytes   = "abcdefghijklmnopqrstuvwxyz01234569"
+)
+
+// randString generates random names and prepends them with a known prefix.
+func randString(n int, src rand.Source, prefix string) string {
+	b := make([]byte, n)
+	// A rand.Int63() generates 63 random bits, enough for letterIdxMax letters!
+	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {
+		if remain == 0 {
+			cache, remain = src.Int63(), letterIdxMax
+		}
+		if idx := int(cache & letterIdxMask); idx < len(letterBytes) {
+			b[i] = letterBytes[idx]
+			i--
+		}
+		cache >>= letterIdxBits
+		remain--
+	}
+	return prefix + string(b[0:30-len(prefix)])
+}
 
 func main() {
 	endpoint := os.Getenv("SERVER_ENDPOINT")
@@ -33,16 +60,23 @@ func main() {
 		useSSL = true
 	}
 
-	madmClnt, err := madmin.New(endpoint, accessKeyID, secretAccessKey, useSSL)
+	// Instantiate new minio client object.
+	minioClient, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
 	if err != nil {
-		// Print() followed by a call to os.Exit(1).
 		log.Fatalln(err)
 	}
 
-	// check the status of the Minio server.
-	_, err = madmClnt.ServiceStatus()
+	// Make a new bucket to see if the server is reachable.
+	bucketName := randString(60, rand.NewSource(time.Now().UnixNano()), "minio-go-test")
+	location := "us-east-1"
+
+	err = minioClient.MakeBucket(bucketName, location)
 	if err != nil {
-		// Print() followed by a call to os.Exit(1).
+		log.Fatalln(err)
+	}
+
+	err = minioClient.RemoveBucket(bucketName)
+	if err != nil {
 		log.Fatalln(err)
 	}
 

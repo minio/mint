@@ -15,10 +15,15 @@
 #  limitations under the License.
 #
 
+create_random_string() {
+    bucketName=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 32 | head -n 1)
+}
+
 createBuckets_01(){
+    create_random_string
     echo "Running createBuckets_01" 
     # Make bucket
-    ./mc mb target/testbucket1 
+    ./mc mb target/$bucketName 
 
     echo "Testing if the bucket was created" 
     # list buckets
@@ -26,10 +31,11 @@ createBuckets_01(){
 
     echo "Removing the bucket" 
     # remove bucket
-    ./mc rm target/testbucket1 
+    ./mc rm target/$bucketName 
 }
 
 createFile_02(){
+    create_random_string
     echo "Running createFile_02" 
 
     # Create a temp 2m file
@@ -41,14 +47,14 @@ createFile_02(){
     
     # create a bucket
     echo "Creating a bucket" 
-    ./mc mb target/testbucket1 
+    ./mc mb target/$bucketName 
 
     # copy the file
     echo "Uploading the 2mb temp file" 
-    ./mc cp /tmp/file target/testbucket1 
+    ./mc cp /tmp/file target/$bucketName 
 
     echo "Download the file" 
-    ./mc cp target/testbucket1/file /tmp/file_downloaded 
+    ./mc cp target/${bucketName}/file /tmp/file_downloaded 
     
     #save md5 hash of downloaded file
     hash2=`md5sum /tmp/file_downloaded | awk '{print $1}'`
@@ -60,8 +66,9 @@ createFile_02(){
 
     echo "Removing the bucket" 
     # remove bucket
-    ./mc rm --force --recursive target/testbucket1 
+    ./mc rm --force --recursive target/$bucketName 
 }
 
+# Run tests
 createBuckets_01
 createFile_02
