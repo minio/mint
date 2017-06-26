@@ -50,6 +50,10 @@ _init() {
 	if [ ! -d $log_dir ]; then 
 		mkdir $log_dir
 	fi
+
+	if [ -z "$DATA_DIR" ]; then 
+		export DATA_DIR="/mint/data"
+	fi
 }
 
 printMsg() {

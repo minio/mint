@@ -26,6 +26,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 ENABLE_HTTPS  = os.getenv('ENABLE_HTTPS') 
 is_s3 = SERVER_ENDPOINT.startswith("s3.amazonaws")
 _http = None
+data_dir = "/mint/data" if os.getenv('DATA_DIR') == None else os.getenv('DATA_DIR')
 
 def generate_random_string(length=20):
     return ''.join(choice(ascii_uppercase) for i in range(length)).lower()
@@ -90,11 +91,7 @@ def put_small_object_from_stream_test(client,bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = 'testfile'
-
-    with open(testfile, 'wb') as file_data:
-        file_data.write(fake.text().encode('utf-8'))
-    file_data.close()
+    testfile = data_dir + "/" + "SmallFile"
 
     # Put a file
     file_stat = os.stat(testfile)
@@ -102,7 +99,6 @@ def put_small_object_from_stream_test(client,bucket_name, object_name):
         client.put_object(bucket_name, object_name, file_data,
                           file_stat.st_size)
     file_data.close()
-    os.remove(testfile)
     stat = client.stat_object(bucket_name,object_name)
     assert stat.size == file_stat.st_size
 
@@ -111,18 +107,13 @@ def put_large_object_from_stream_test(client,bucket_name, object_name):
     found = client.bucket_exists(bucket_name)
     assert found == True
 
-    largefile = 'largefile'
-    with open(largefile, 'wb') as file_data:
-        for i in range(0, 140857):
-            file_data.write(fake.text().encode('utf-8'))
-    file_data.close()
+    largefile = data_dir + "/" + "FileOfSize6MB"
     # Put a file
     file_stat = os.stat(largefile)
     with open(largefile, 'rb') as file_data:
         client.put_object(bucket_name, object_name, file_data,
                           file_stat.st_size)
     file_data.close()
-    os.remove(largefile)
     stat = client.stat_object(bucket_name,object_name)
     assert stat.size == file_stat.st_size
 
@@ -130,11 +121,8 @@ def put_object(client, bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = 'testfile'
+    testfile = data_dir + "/" + "FileOfSize100KB"
 
-    with open(testfile, 'wb') as file_data:
-        file_data.write(fake.text().encode('utf-8'))
-    file_data.close()
     file_stat = os.stat(testfile)
 
     # Fput a file
@@ -142,7 +130,6 @@ def put_object(client, bucket_name, object_name):
     if is_s3:
         client.fput_object(bucket_name, object_name, testfile,
                            metadata={'x-amz-storage-class': 'STANDARD_IA'})
-    os.remove(testfile)
     stat = client.stat_object(bucket_name,object_name)
     assert stat.size == file_stat.st_size
 
@@ -156,18 +143,13 @@ def put_small_object_from_file_test(client,bucket_name,object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = 'testfile'
-
-    with open(testfile, 'wb') as file_data:
-        file_data.write(fake.text().encode('utf-8'))
-    file_data.close()
+    testfile = data_dir + "/" + "SmallFile"
     file_stat = os.stat(testfile)
     # Fput a file
     client.fput_object(bucket_name, object_name, testfile)
     if is_s3:
         client.fput_object(bucket_name, object_name, testfile,
                            metadata={'x-amz-storage-class': 'STANDARD_IA'})
-    os.remove(testfile)
     stat = client.stat_object(bucket_name,object_name)
     assert stat.size == file_stat.st_size
 
@@ -175,11 +157,7 @@ def put_large_object_from_file_test(client,bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True, logger.error(bucket_name + " missing on server")
-    largefile = 'largefile'
-    with open(largefile, 'wb') as file_data:
-        for i in range(0, 140857):
-            file_data.write(fake.text().encode('utf-8'))
-    file_data.close()
+    largefile = data_dir + "/" + "FileOfSize6MB"
     # Put a file
     file_stat = os.stat(largefile)
     if is_s3:
@@ -188,7 +166,6 @@ def put_large_object_from_file_test(client,bucket_name, object_name):
     else:
         client.fput_object(bucket_name, object_name, largefile)
 
-    os.remove(largefile)
     stat = client.stat_object(bucket_name,object_name)
     assert stat.size == file_stat.st_size
 
@@ -196,14 +173,11 @@ def copy_object_test(client,bucket_name,dest_object_name, src_object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = 'testfile'
-    with open(testfile, 'wb') as file_data:
-        file_data.write(fake.text().encode('utf-8'))
-    file_data.close()
+    testfile = data_dir + "/" + "SmallFile"
+
     # Put a file
     file_stat = os.stat(testfile)
     client.fput_object(bucket_name, src_object_name, testfile)
-    os.remove(testfile)
     stat = client.stat_object(bucket_name,src_object_name)
     assert stat.size == file_stat.st_size
     client.copy_object(bucket_name,dest_object_name,
@@ -215,15 +189,12 @@ def copy_object_with_conditions_test(client,bucket_name, dest_object_name, src_o
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = 'testfile'
-    with open(testfile, 'wb') as file_data:
-        file_data.write(fake.text().encode('utf-8'))
-    file_data.close()
+    testfile = data_dir + "/" + "SmallFile"
+
     object_name = uuid.uuid4().__str__()
     # Put a file
     file_stat = os.stat(testfile)
     client.fput_object(bucket_name, src_object_name, testfile)
-    os.remove(testfile)
     stat = client.stat_object(bucket_name,src_object_name)
     assert stat.size == file_stat.st_size
     try:
@@ -245,10 +216,7 @@ def stat_object_test(client,bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = 'testfile'
-    with open(testfile, 'wb') as file_data:
-        file_data.write(fake.text().encode('utf-8'))
-    file_data.close()
+    testfile = data_dir + "/" + "SmallFile"
     # Put a file
     client.fput_object(bucket_name,object_name,testfile)
     file_stat = os.stat(testfile)

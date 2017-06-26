@@ -14,22 +14,20 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+data_dir="/mint/data"
+if [ ! -d $data_dir ]; then 
+		mkdir $data_dir
+fi
+cd $data_dir
+dd if=/dev/zero of=SmallFile bs=1024 count=10
+dd if=/dev/zero of=FileOfSize1B bs=1 count=1
+dd if=/dev/zero of=FileOfSize1MB bs=1024 count=1024
+dd if=/dev/zero of=FileOfSizeGt1MB bs=1024 count=1056
 
-run() {
-    ./minio.go
-}
-
-main() {
-    logfile=$1
-    errfile=$2
-
-    # run the tests
-    rc=0
-
-    run 2>>$errfile 1>>$logfile || { echo 'minio-go run failed.'; rc=1; } 
-    grep -e 'FAIL' $logfile >> $errfile
-    return $rc
-}
-
-# invoke the script
-main "$@"
+dd if=/dev/zero of=FileOfSize5MB bs=1024 count=5120
+dd if=/dev/zero of=FileOfSize6MB bs=1024 count=6144
+dd if=/dev/zero of=FileOfSize11MB bs=1024 count=11264
+dd if=/dev/zero of=FileOfSize65MB bs=1024 count=66560
+dd if=/dev/zero of=FileOfSizeGt32KB bs=1024 count=33
+dd if=/dev/zero of=FileOfSize100KB bs=1024 count=100
+cd ../
