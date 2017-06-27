@@ -19,15 +19,13 @@ if [ ! -d $data_dir ]; then
 		mkdir $data_dir
 fi
 cd $data_dir
+for COUNT in 1 5 6 11 65
+do 
+	dd if=/dev/zero of=FileOfSize"$COUNT"MB bs=1M count=$COUNT	
+done
 dd if=/dev/zero of=SmallFile bs=1024 count=10
 dd if=/dev/zero of=FileOfSize1B bs=1 count=1
-dd if=/dev/zero of=FileOfSize1MB bs=1024 count=1024
 dd if=/dev/zero of=FileOfSizeGt1MB bs=1024 count=1056
-
-dd if=/dev/zero of=FileOfSize5MB bs=1024 count=5120
-dd if=/dev/zero of=FileOfSize6MB bs=1024 count=6144
-dd if=/dev/zero of=FileOfSize11MB bs=1024 count=11264
-dd if=/dev/zero of=FileOfSize65MB bs=1024 count=66560
 dd if=/dev/zero of=FileOfSizeGt32KB bs=1024 count=33
 dd if=/dev/zero of=FileOfSize100KB bs=1024 count=100
 cd ../

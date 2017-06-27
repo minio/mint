@@ -16,7 +16,7 @@
 #
 
 run() {
-    ./minio.go
+    ./minio-go
 }
 
 main() {
