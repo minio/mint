@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Minio Cloud Storage, (C) 2017 Minio, Inc.
+#  Mint (C) 2017 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,26 +18,17 @@
 set -e
 
 _init() {
-    minio_py_sdk_path=$1
-    minio_py_sdk_version=$2
+    MINIO_PY_SDK_PATH="/mint/run/core/minio-py"
+    MINIO_PY_SDK_VERSION="2.2.2"
 }
 
-# Install PY dependencies
-installMinioPyDeps() {
-    apt-get install -yq python3-pip && \
-    pip3 install --user -r ${minio_py_sdk_path}/requirements.txt && \
-    pip3 install minio==$minio_py_sdk_version
+installDeps() {
+    pip3 install --user -r ${MINIO_PY_SDK_PATH}/requirements.txt
+    pip3 install minio==$MINIO_PY_SDK_VERSION
 }
 
-# Remove Python dependencies
-cleanMinioPyDeps() {
-    apt-get purge -yq python3-pip && \
-    apt-get autoremove -yq
+main() {
+    installDeps
 }
 
-pyMain() {
-    installMinioPyDeps && \
-    cleanMinioPyDeps
-}
-
-_init "$@" && pyMain
+_init "$@" && main

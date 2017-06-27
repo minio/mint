@@ -15,22 +15,19 @@
 #  limitations under the License.
 #
 
-run() {
-    [ "$ENABLE_HTTPS" == "1" ] && scheme="https" || scheme="http"
-    ENDPOINT_URL=$scheme://"$SERVER_ENDPOINT"
+set -e
 
-    java -cp /usr/local/minio.jar":." FunctionalTest "$ENDPOINT_URL" "$ACCESS_KEY" "$SECRET_KEY" "$SERVER_REGION"
+_init() {
+    AWS_CLI_VERSION="1.11.112"
+}
+
+# Install PY dependencies
+installDeps() {
+    pip3 install awscli==$AWS_CLI_VERSION
 }
 
 main() {
-    logfile=$1
-    errfile=$2
-
-    # run the tests
-    rc=0
-    run 2>>$errfile 1>>$logfile || { echo "minio-java run failed."; rc=1; }
-    return $rc
+    installDeps
 }
 
-# invoke the script
-main "$@"
+_init "$@" && main
