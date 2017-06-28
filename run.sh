@@ -34,20 +34,21 @@ _init() {
 	    export ENABLE_HTTPS=1
 	fi
 
+        if [ -z "$SERVER_REGION" ]; then
+            export SERVER_REGION="us-east-1"
+        fi
+
 	if [ -z "$ENABLE_HTTPS" ]; then
 		ENABLE_HTTPS=0
 	fi
 
 	# mode is set via env vars
-	if [ -z "$MINT_MODE" ]; then 
+	if [ -z "$MINT_MODE" ]; then
 		export MINT_MODE=core
 	fi
 
-	# other env vars
-	export S3_REGION="us-east-1"  # needed for minio-java
-
 	# init log directory
-	if [ ! -d $log_dir ]; then 
+	if [ ! -d $log_dir ]; then
 		mkdir $log_dir
 	fi
 
@@ -67,12 +68,12 @@ runCoreTest() {
 
 	# Clear log directories before run.
 	local sdk_log_dir=$root_dir/$log_dir/$1
-	
+
 	# make and clean SDK specific log directories.
 	if [ ! -d $sdk_log_dir ]
 		then
 			mkdir $sdk_log_dir
-		else 
+		else
 			rm -rf $sdk_log_dir/*
 	fi
 
@@ -91,18 +92,15 @@ coreMain() {
 
 	test_dir="run/core"
 	# read the SDKs to run
-	for i in ${root_dir}/${test_dir}/*; 
-		
-		do 
+	for i in ${root_dir}/${test_dir}/*;
+		do
 			if [ -d ${i} ]; then
 
 		        # Will not run if no directories are available
 		        sdk="$(basename $i)"
 		        echo "Running $sdk tests ..."
-		        
 				runCoreTest "$sdk" "$MINT_MODE" || { printMsg; exit 2; }
 			fi
-
 		done
 
 	echo "Mint ran all core tests successfully. To view logs, use 'docker cp container-id:/mint/log /tmp/mint-logs'"
@@ -126,4 +124,4 @@ main() {
 	fi
 }
 
-_init && main 
+_init && main
