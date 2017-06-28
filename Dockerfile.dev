@@ -11,7 +11,7 @@ WORKDIR /mint
 COPY . /mint
 
 RUN apt-get update && apt-get install -yq \
-    git && /mint/buildscripts/mint-deps.sh && \
-    /mint/buildscripts/initData.sh
+    git && /mint/build/install.sh && \
+    /mint/build/initData.sh
   
 CMD /mint/run.sh

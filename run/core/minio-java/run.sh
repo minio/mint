@@ -19,7 +19,10 @@ run() {
     [ "$ENABLE_HTTPS" == "1" ] && scheme="https" || scheme="http"
     ENDPOINT_URL=$scheme://"$SERVER_ENDPOINT"
 
-    java -cp /usr/local/minio.jar":." FunctionalTest "$ENDPOINT_URL" "$ACCESS_KEY" "$SECRET_KEY" "$SERVER_REGION"
+    MINIO_JAVA_SDK_PATH="/mint/run/core/minio-java"
+    MINIO_JAVA_SDK_VERSION="3.0.5"
+
+    java -cp "$MINIO_JAVA_SDK_PATH/minio-${MINIO_JAVA_SDK_VERSION}-all.jar:." FunctionalTest "$ENDPOINT_URL" "$ACCESS_KEY" "$SECRET_KEY" "$SERVER_REGION"
 }
 
 main() {

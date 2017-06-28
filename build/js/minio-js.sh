@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Minio Cloud Storage, (C) 2017 Minio, Inc.
+#  Mint (C) 2017 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,27 +18,18 @@
 set -e
 
 _init() {
-    mc_test_path=$1
-    mc_version=$2
+    MINIO_JS_SDK_PATH="/mint/run/core/minio-js"
+    MINIO_JS_SDK_VERSION="3.1.3"
 }
 
-downloadMC() {
-    # Download MC specific version
-    curl -s -o ${mc_test_path}/mc https://dl.minio.io/client/mc/release/linux-amd64/mc.${mc_version}
-    
-    res=$?
-    if test "$res" != "0"; then
-        echo "curl command to download mc failed with: $res"
-        exit 1
-    else 
-        chmod +x ${mc_test_path}/mc
-        sync
-        echo "Downloaded mc $(${mc_test_path}/mc version | grep Version)"
-    fi
+# Compile test files
+install() {
+    npm --prefix "$MINIO_JS_SDK_PATH" install --save "minio@$MINIO_JS_SDK_VERSION"
+    npm --prefix "$MINIO_JS_SDK_PATH" install
 }
 
-cliToolsMain() {
-    downloadMC
+main() {
+    install
 }
 
-_init "$@" && cliToolsMain
+_init "$@" && main

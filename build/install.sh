@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Mint (C) 2017 Minio, Inc.
+#  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,22 +15,28 @@
 #  limitations under the License.
 #
 
-run() {
-    MINIO_GO_PATH="/mint/run/core/minio-go"
-    "$MINIO_GO_PATH/minio-go"
+set -e
+
+# Install general dependencies
+installDeps() {
+    apt-get update -yq
+    apt-get install -yq curl openssl
+}
+
+cleanupDeps() {
+    apt-get purge -yq curl git
+    apt-get autoremove -yq
 }
 
 main() {
-    logfile=$1
-    errfile=$2
+    installDeps
 
-    # run the tests
-    rc=0
+    for i in $(echo /mint/build/*/install.sh | tr ' ' '\n'); do
+        $i
+    done
 
-    run 2>>$errfile 1>>$logfile || { echo 'minio-go run failed.'; rc=1; }
-    grep -e 'FAIL' $logfile >> $errfile
-    return $rc
+    # Remove all the used deps
+    cleanupDeps
 }
 
-# invoke the script
-main "$@"
+main
