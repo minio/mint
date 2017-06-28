@@ -32,17 +32,14 @@ _init() {
     MINIO_JS_SDK_PATH="/mint/run/core/minio-js"
     MINIO_JS_SDK_VERSION="3.1.3"
 
-    MINIO_PY_SDK_PATH="/mint/run/core/minio-py"
-    MINIO_PY_SDK_VERSION="2.2.2"
-
     export SUDO_FORCE_REMOVE=yes
 }
 
 # Install general dependencies
 installGeneralDeps() {
-    apt-get update && apt-get install -yq \
+    apt-get update -yq
+    apt-get install -yq \
     curl \
-    python3 \
     openssl
 }
 
@@ -62,7 +59,7 @@ buildMain() {
 
     /mint/buildscripts/js-deps.sh $MINIO_JS_SDK_PATH $MINIO_JS_SDK_VERSION
 
-    /mint/buildscripts/py-deps.sh $MINIO_PY_SDK_PATH $MINIO_PY_SDK_VERSION
+    /mint/buildscripts/py/install.sh
 
     # Remove all the used deps
     removeGeneralDeps

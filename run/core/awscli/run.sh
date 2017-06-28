@@ -15,20 +15,37 @@
 #  limitations under the License.
 #
 
+# Execute test.sh
 run() {
-    [ "$ENABLE_HTTPS" == "1" ] && scheme="https" || scheme="http"
-    ENDPOINT_URL=$scheme://"$SERVER_ENDPOINT"
+    [ "$ENABLE_HTTPS" -eq "1" ] && scheme="https" || scheme="http"
+    endpoint_url=$scheme://$SERVER_ENDPOINT
 
-    java -cp /usr/local/minio.jar":." FunctionalTest "$ENDPOINT_URL" "$ACCESS_KEY" "$SECRET_KEY" "$SERVER_REGION"
+    echo "Starting aws cli tests on ${endpoint_url}"
+    ./test.sh "$endpoint_url"
+}
+
+configure() {
+    echo "Configure aws cli secrets."
+
+    aws configure set aws_access_key_id "$ACCESS_KEY"
+    aws configure set aws_secret_access_key "$SECRET_KEY"
+    aws configure set default.region "$SERVER_REGION"
 }
 
 main() {
+
     logfile=$1
     errfile=$2
 
     # run the tests
     rc=0
-    run 2>>$errfile 1>>$logfile || { echo "minio-java run failed."; rc=1; }
+
+    # configure aws cli
+    configure >>"$logfile" 2>&1 || { echo 'aws cli setup failed'; exit 1; }
+
+    run 2>>"$errfile" 1>>"$logfile" || { echo 'aws cli run failed.'; rc=1; }
+    grep -e '<ERROR>' "$logfile" >> "$errfile"
+
     return $rc
 }
 
