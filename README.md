@@ -60,6 +60,7 @@ Then navigate to `/tmp/logs` directory to access the test logs.
 
 Following SDKs/CLI tools are available:
 
+- aws-cli
 - mc
 - minio-go
 - minio-java
@@ -82,16 +83,17 @@ To add new SDK/CLI to Mint:
 
 ### Test data
 
-All test data used by SDK tests will reside in `/mint/data/` directory on the container.To add additional test files, edit `initData.sh` script   
+All test data used by SDK tests will reside in `/mint/data/` directory on the container. To add additional test files, edit `build/data/install.sh` script
+
 | File name |  Size 
 |:--- |:--- |
-| FileOfSize1B | 1B |
-| SmallFile   |10KB
-| FileOfSizeGt32KB |33KB
-| FileOfSize100KB |100KB
-| FileOfSize1MB |1MB
-| FileOfSize5MB |5MB
-| FileOfSize6MB |6MB
-| FileOfSize11MB |11MB
-| FileOfSize65MB |65MB
-| FileOfSizeGt1MB |1.03MB
+| datafile-1-b | 1B |
+| datafile-10-kB   |10KB
+| datafile-33-kB |33KB
+| datafile-100-kB |100KB
+| datafile-1-MB |1MB
+| datafile-1.03-MB |1.03MB
+| datafile-5-MB |5MB
+| datafile-6-MB |6MB
+| datafile-11-MB |11MB
+| datafile-65-MB |65MB

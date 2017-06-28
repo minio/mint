@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-#  Minio Cloud Storage, (C) 2017 Minio, Inc.
+#  Mint (C) 2017 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -22,8 +22,9 @@ create_random_string() {
 createBuckets_01(){
     create_random_string
     echo "Running createBuckets_01" 
+
     # Make bucket
-    ./mc mb target/$bucketName 
+    ./mc mb "target/${bucketName}" 
 
     echo "Testing if the bucket was created" 
     # list buckets
@@ -31,42 +32,38 @@ createBuckets_01(){
 
     echo "Removing the bucket" 
     # remove bucket
-    ./mc rm target/$bucketName 
+    ./mc rm "target/${bucketName}" 
 }
 
 createFile_02(){
     create_random_string
     echo "Running createFile_02" 
 
-    # Create a temp 2m file
-    echo "Creating a 2mb temp file for upload" 
-    truncate -s 2m /tmp/file
-
     # save md5 hash
-    hash1=`md5sum /tmp/file | awk '{print $1}'`
+    hash1=$(md5sum "$DATA_DIR"/datafile-1-MB | awk '{print $1}')
     
     # create a bucket
     echo "Creating a bucket" 
-    ./mc mb target/$bucketName 
+    ./mc mb "target/${bucketName}" 
 
     # copy the file
-    echo "Uploading the 2mb temp file" 
-    ./mc cp /tmp/file target/$bucketName 
+    echo "Uploading the 1MB temp file" 
+    ./mc cp "$DATA_DIR"/datafile-1-MB "target/${bucketName}" 
 
     echo "Download the file" 
-    ./mc cp target/${bucketName}/file /tmp/file_downloaded 
+    ./mc cp "target/${bucketName}/datafile-1-MB" /tmp/datafile-1-MB-downloaded 
     
     #save md5 hash of downloaded file
-    hash2=`md5sum /tmp/file_downloaded | awk '{print $1}'`
+    hash2=$(md5sum /tmp/datafile-1-MB-downloaded | awk '{print $1}')
 
     echo "Testing if the downloaded file is same as local file" 
-    if [ $hash1 -ne $hash2 ]; then
+    if [ "${hash1}" -ne "${hash2}" ]; then
         return 1
     fi
 
     echo "Removing the bucket" 
     # remove bucket
-    ./mc rm --force --recursive target/$bucketName 
+    ./mc rm --force --recursive "target/${bucketName}" 
 }
 
 # Run tests
