@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Minio Cloud Storage, (C) 2017 Minio, Inc.
+#  Mint (C) 2017 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -18,25 +18,23 @@
 set -e
 
 _init() {
-    minio_js_sdk_path=$1
-    minio_js_sdk_version=$2
+    MINIO_JAVA_SDK_PATH="/mint/run/core/minio-java"
+    MINIO_JAVA_SDK_VERSION="3.0.5"
 }
 
-# Install JS dependencies
-installMinioJSDeps() {
-    curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
-    apt-get install -y nodejs
-}
+# install java dependencies.
+install() {
+    curl -s -o "$MINIO_JAVA_SDK_PATH/minio-${MINIO_JAVA_SDK_VERSION}-all.jar" "http://repo1.maven.org/maven2/io/minio/minio/${MINIO_JAVA_SDK_VERSION}/minio-${MINIO_JAVA_SDK_VERSION}-all.jar"
+ }
 
 # Compile test files
-buildMinioJSTests() {
-    npm --prefix $minio_js_sdk_path install --save minio@$minio_js_sdk_version && \
-    npm --prefix $minio_js_sdk_path install
+build() {
+    javac -cp "$MINIO_JAVA_SDK_PATH/minio-${MINIO_JAVA_SDK_VERSION}-all.jar" "${MINIO_JAVA_SDK_PATH}/FunctionalTest.java" "${MINIO_JAVA_SDK_PATH}/PutObjectRunnable.java"
 }
 
-jsMain() {
-    installMinioJSDeps && \
-    buildMinioJSTests
+main() {
+    install
+    build
 }
 
-_init "$@" && jsMain
+_init "$@" && main

@@ -15,22 +15,30 @@
 #  limitations under the License.
 #
 
-run() {
-    MINIO_GO_PATH="/mint/run/core/minio-go"
-    "$MINIO_GO_PATH/minio-go"
+set -e
+
+_init() {
+    MC_VERSION="RELEASE.2017-06-15T03-38-43Z"
+    MC_TEST_PATH="/mint/run/core/mc"
+}
+
+install() {
+    # Download MC specific version
+    curl -s -o "${MC_TEST_PATH}/mc" "https://dl.minio.io/client/mc/release/linux-amd64/mc.${MC_VERSION}"
+
+    res=$?
+    if test "$res" != "0"; then
+        echo "curl command to download mc failed with: $res"
+        exit 1
+    else
+        chmod +x "${MC_TEST_PATH}/mc"
+        sync
+        echo "Downloaded mc $("${MC_TEST_PATH}"/mc version | grep Version)"
+    fi
 }
 
 main() {
-    logfile=$1
-    errfile=$2
-
-    # run the tests
-    rc=0
-
-    run 2>>$errfile 1>>$logfile || { echo 'minio-go run failed.'; rc=1; }
-    grep -e 'FAIL' $logfile >> $errfile
-    return $rc
+    install
 }
 
-# invoke the script
-main "$@"
+_init && main

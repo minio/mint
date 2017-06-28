@@ -51,14 +51,13 @@ func randString(n int, src rand.Source, prefix string) string {
 }
 
 func main() {
-	endpoint := os.Getenv("SERVER_ENDPOINT")
-	accessKeyID := os.Getenv("ACCESS_KEY")
-	secretAccessKey := os.Getenv("SECRET_KEY")
-	useSSL := false
-	// check if ENABLE_HTTPS env flag is set.
-	if os.Getenv("ENABLE_HTTPS") != "" {
-		useSSL = true
-	}
+	var (
+		endpoint        = os.Getenv("SERVER_ENDPOINT")
+		accessKeyID     = os.Getenv("ACCESS_KEY")
+		secretAccessKey = os.Getenv("SECRET_KEY")
+		useSSL          = os.Getenv("ENABLE_HTTPS") == "1"
+		location        = os.Getenv("SERVER_REGION")
+	)
 
 	// Instantiate new minio client object.
 	minioClient, err := minio.New(endpoint, accessKeyID, secretAccessKey, useSSL)
@@ -68,7 +67,6 @@ func main() {
 
 	// Make a new bucket to see if the server is reachable.
 	bucketName := randString(60, rand.NewSource(time.Now().UnixNano()), "minio-go-test")
-	location := "us-east-1"
 
 	err = minioClient.MakeBucket(bucketName, location)
 	if err != nil {

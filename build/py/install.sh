@@ -31,7 +31,7 @@ cleanup() {
 
 installPkgs() {
     ## Execute all scripts present in py/* other than `install.sh`
-    for i in $(echo /mint/buildscripts/py/*.sh | tr ' ' '\n' | grep -v install.sh); do
+    for i in $(echo /mint/build/py/*.sh | tr ' ' '\n' | grep -v install.sh); do
         $i
     done
 }

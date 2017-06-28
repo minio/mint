@@ -15,22 +15,27 @@
 #  limitations under the License.
 #
 
-run() {
-    MINIO_GO_PATH="/mint/run/core/minio-go"
-    "$MINIO_GO_PATH/minio-go"
+set -e
+
+# Install JS dependencies
+install() {
+    curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
+    apt-get install -y nodejs
+}
+
+installPkgs() {
+    ## Execute all scripts present in js/* other than `install.sh`
+    for i in $(echo /mint/build/js/*.sh | tr ' ' '\n' | grep -v install.sh); do
+        $i
+    done
 }
 
 main() {
-    logfile=$1
-    errfile=$2
+    install
 
-    # run the tests
-    rc=0
-
-    run 2>>$errfile 1>>$logfile || { echo 'minio-go run failed.'; rc=1; }
-    grep -e 'FAIL' $logfile >> $errfile
-    return $rc
+    # Install all the dependent packages which are used
+    # for running tests
+    installPkgs
 }
 
-# invoke the script
-main "$@"
+main
