@@ -36,8 +36,6 @@ class PutObjectRunnable implements Runnable {
     try {
       traceBuffer.append("[" + filename + "]: threaded put object\n");
       client.putObject(bucketName, filename, filename);
-      traceBuffer.append("[" + filename + "]: delete file\n");
-      Files.delete(Paths.get(filename));
       traceBuffer.append("[" + filename + "]: delete object\n");
       client.removeObject(bucketName, filename);
     } catch (Exception e) {

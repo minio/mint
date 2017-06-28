@@ -39,7 +39,9 @@ buildInitTests() {
 
 # Build Minio Go tests
 buildMinioGoTests() {
-	go test -o ${minio_go_sdk_path}/minio.test -c ${minio_go_sdk_path}/api_functional_v4_test.go
+    go get -u github.com/sirupsen/logrus && \
+    go get -u github.com/minio/minio-go && \
+    go build -o ${minio_go_sdk_path}/minio-go  ${minio_go_sdk_path}/api_functional_v4_tests.go
 }
 
 # Remove Go dependencies

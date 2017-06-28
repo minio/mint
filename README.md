@@ -16,7 +16,7 @@ Collection of tests to detect overall correctness of Minio server.
 
 ## How to Run
 
-The project will be published in Docker hub after further more testing. Till then the docker image has to be built locally and run.
+The project will be published in Docker hub after further testing. Till then the docker image has to be built locally and run.
 
 ### Build
 
@@ -36,13 +36,9 @@ Set environment variables to pass test target server details to the docker conta
 - `ACCESS_KEY`     - Access Key of the server
 - `SECRET_KEY`     - Secret Key of the server
 - `ENABLE_HTTPS`   - Optional value when set to 1 sends HTTPS requests on SSL enabled deployment
+- `DATA_DIR`       - Optional value when set uses data from this directory for SDK tests
 
 Note: With no env variables provided the tests are run on play.minio.io by default
-
-#### Config file
-
-- `apps` - Directories specified in this section are executed in sequential order. You can comment out specific directories to remove them from execution or rearrange them to change execution order.
-- `mode` - Only `quick` mode supported right now. Only basic tests are run in quick mode. 
 
 ### Run
 
@@ -76,9 +72,26 @@ To add tests to an existing SDK folder:
 
 - Navigate to specific SDK test file in the path `apps/<sdk_name>/`.
 - Add test cases and update `main` method if applicable.
+- Refer test data section for using existing test data.
 
 To add new SDK/CLI to Mint:
 
 - Create new directory in `apps/` directory with corresponding tool name
 - Add a `run.sh` script. This script should set up the SDK/CLI tool and then execute the tests
 - Add an entry in `config.yaml` with name of folder, e.g test_folder
+
+### Test data
+
+All test data used by SDK tests will reside in `/mint/data/` directory on the container.To add additional test files, edit `initData.sh` script   
+| File name |  Size 
+|:--- |:--- |
+| FileOfSize1B | 1B |
+| SmallFile   |10KB
+| FileOfSizeGt32KB |33KB
+| FileOfSize100KB |100KB
+| FileOfSize1MB |1MB
+| FileOfSize5MB |5MB
+| FileOfSize6MB |6MB
+| FileOfSize11MB |11MB
+| FileOfSize65MB |65MB
+| FileOfSizeGt1MB |1.03MB

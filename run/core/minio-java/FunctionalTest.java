@@ -54,6 +54,13 @@ public class FunctionalTest {
   private static String region;
   private static String mode;
   private static MinioClient client = null;
+  private static String dataDir=System.getenv("DATA_DIR");
+  private static String FileOfSize1b=dataDir + "/FileOfSize1B";
+
+  private static String FileOfSize6mb=dataDir + "/FileOfSize6MB";
+
+  private static String smallFile=dataDir + "/FileOfSize1MB";
+  private static String largeFile=dataDir + "/FileOfSize11MB";
 
   /**
    * Do no-op.
@@ -176,10 +183,9 @@ public class FunctionalTest {
    */
   public static void putObject_test1() throws Exception {
     System.out.println("Test: putObject(String bucketName, String objectName, String filename)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
-    client.removeObject(bucketName, filename);
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -187,10 +193,9 @@ public class FunctionalTest {
    */
   public static void putObject_test2() throws Exception {
     System.out.println("Test: multipart: putObject(String bucketName, String objectName, String filename)");
-    String filename = createFile(13 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
-    client.removeObject(bucketName, filename);
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, largeFile);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -198,18 +203,17 @@ public class FunctionalTest {
    */
   public static void putObject_test3() throws Exception {
     System.out.println("Test: multipart resume: putObject(String bucketName, String objectName, String filename)");
-    String filename = createFile(13 * MB);
-    InputStream is = Files.newInputStream(Paths.get(filename));
+    String objectName = getRandomName();
+    InputStream is = Files.newInputStream(Paths.get(largeFile));
     try {
-      client.putObject(bucketName, filename, is, 20 * 1024 * 1024, null);
+      client.putObject(bucketName, objectName, is, 20 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore();
     }
     is.close();
 
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
-    client.removeObject(bucketName, filename);
+    client.putObject(bucketName, objectName, largeFile);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -218,17 +222,16 @@ public class FunctionalTest {
   public static void putObject_test4() throws Exception {
     System.out.println("Test: putObject(String bucketName, String objectName, String contentType, long size, "
                        + "InputStream body)");
-    String filename = createFile(3 * MB);
-    InputStream is = Files.newInputStream(Paths.get(filename));
-    client.putObject(bucketName, filename, is, 1024 * 1024, customContentType);
+    String objectName = getRandomName();
+    InputStream is = Files.newInputStream(Paths.get(smallFile));
+    client.putObject(bucketName, objectName, is, 1024 * 1024, customContentType);
     is.close();
-    Files.delete(Paths.get(filename));
-    ObjectStat objectStat = client.statObject(bucketName, filename);
+    ObjectStat objectStat = client.statObject(bucketName, objectName);
     if (!customContentType.equals(objectStat.contentType())) {
       throw new Exception("[FAILED] Test: putObject(String bucketName, String objectName, String contentType, "
                           + "long size, InputStream body)");
     }
-    client.removeObject(bucketName, filename);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -237,15 +240,14 @@ public class FunctionalTest {
   public static void putObject_test5() throws Exception {
     System.out.println("Test: putObject(String bucketName, String objectName, String filename,"
                        + " String contentType)");
-    String filename = createFile(13 * MB);
-    client.putObject(bucketName, filename, filename, customContentType);
-    Files.delete(Paths.get(filename));
-    ObjectStat objectStat = client.statObject(bucketName, filename);
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, largeFile, customContentType);
+    ObjectStat objectStat = client.statObject(bucketName, objectName);
     if (!customContentType.equals(objectStat.contentType())) {
       throw new Exception("[FAILED] Test: putObject(String bucketName, String objectName, String filename,"
                           + " String contentType)");
     }
-    client.removeObject(bucketName, filename);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -255,10 +257,8 @@ public class FunctionalTest {
   public static void putObject_test6() throws Exception {
     System.out.println("Test: objectName with path segments: "
                        + "putObject(String bucketName, String objectName, String filename)");
-    String filename = createFile(3 * MB);
-    String objectName = "path/to/" + filename;
-    client.putObject(bucketName, objectName, filename);
-    Files.delete(Paths.get(filename));
+    String objectName = "path/to/" + getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
     client.removeObject(bucketName, objectName);
   }
 
@@ -369,11 +369,10 @@ public class FunctionalTest {
    */
   public static void statObject_test() throws Exception {
     System.out.println("Test: statObject(String bucketName, String objectName)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
-    client.statObject(bucketName, filename);
-    client.removeObject(bucketName, filename);
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
+    client.statObject(bucketName, objectName);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -381,12 +380,11 @@ public class FunctionalTest {
    */
   public static void getObject_test1() throws Exception {
     System.out.println("Test: getObject(String bucketName, String objectName)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
-    InputStream is = client.getObject(bucketName, filename);
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
+    InputStream is = client.getObject(bucketName, objectName);
     is.close();
-    client.removeObject(bucketName, filename);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -394,12 +392,11 @@ public class FunctionalTest {
    */
   public static void getObject_test2() throws Exception {
     System.out.println("Test: getObject(String bucketName, String objectName, long offset)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
-    InputStream is = client.getObject(bucketName, filename, 1000L);
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
+    InputStream is = client.getObject(bucketName, objectName, 1000L);
     is.close();
-    client.removeObject(bucketName, filename);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -407,12 +404,11 @@ public class FunctionalTest {
    */
   public static void getObject_test3() throws Exception {
     System.out.println("Test: getObject(String bucketName, String objectName, long offset, Long length)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
-    InputStream is = client.getObject(bucketName, filename, 1000L, 1024 * 1024L);
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
+    InputStream is = client.getObject(bucketName, objectName, 1000L, 1024 * 1024L);
     is.close();
-    client.removeObject(bucketName, filename);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -420,12 +416,11 @@ public class FunctionalTest {
    */
   public static void getObject_test4() throws Exception {
     System.out.println("Test: getObject(String bucketName, String objectName, String filename)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
-    client.getObject(bucketName, filename, filename + ".downloaded");
-    Files.delete(Paths.get(filename + ".downloaded"));
-    client.removeObject(bucketName, filename);
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
+    client.getObject(bucketName, objectName, smallFile + ".downloaded");
+    Files.delete(Paths.get(smallFile + ".downloaded"));
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -435,12 +430,10 @@ public class FunctionalTest {
   public static void getObject_test5() throws Exception {
     System.out.println("Test: objectName with multiple path segments: "
                        + "getObject(String bucketName, String objectName, String filename)");
-    String filename = createFile(3 * MB);
-    String objectName = "path/to/" + filename;
-    client.putObject(bucketName, objectName, filename);
-    Files.delete(Paths.get(filename));
-    client.getObject(bucketName, objectName, filename + ".downloaded");
-    Files.delete(Paths.get(filename + ".downloaded"));
+    String objectName = "path/to/" + getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
+    client.getObject(bucketName, objectName, smallFile + ".downloaded");
+    Files.delete(Paths.get(smallFile + ".downloaded"));
     client.removeObject(bucketName, objectName);
   }
 
@@ -585,12 +578,11 @@ public class FunctionalTest {
   public static void listObject_test1() throws Exception {
     int i;
     System.out.println("Test: listObjects(final String bucketName)");
-    String[] filenames = new String[3];
+    String[] objectNames = new String[3];
     for (i = 0; i < 3; i++) {
-      String filename = createFile(1 * MB);
-      client.putObject(bucketName, filename, filename);
-      Files.delete(Paths.get(filename));
-      filenames[i] = filename;
+      String objectName = getRandomName();
+      client.putObject(bucketName, objectName,smallFile);
+      objectNames[i] = objectName;
     }
 
     i = 0;
@@ -602,7 +594,7 @@ public class FunctionalTest {
     }
 
     for (i = 0; i < 3; i++) {
-      client.removeObject(bucketName, filenames[i]);
+      client.removeObject(bucketName, objectNames[i]);
     }
   }
 
@@ -612,12 +604,11 @@ public class FunctionalTest {
   public static void listObject_test2() throws Exception {
     int i;
     System.out.println("Test: listObjects(final String bucketName, final String prefix)");
-    String[] filenames = new String[3];
+    String[] objectNames = new String[3];
     for (i = 0; i < 3; i++) {
-      String filename = createFile(1 * MB);
-      client.putObject(bucketName, filename, filename);
-      Files.delete(Paths.get(filename));
-      filenames[i] = filename;
+      String objectName = getRandomName();
+      client.putObject(bucketName, objectName, smallFile);
+      objectNames[i] = objectName;
     }
 
     i = 0;
@@ -629,7 +620,7 @@ public class FunctionalTest {
     }
 
     for (i = 0; i < 3; i++) {
-      client.removeObject(bucketName, filenames[i]);
+      client.removeObject(bucketName, objectNames[i]);
     }
   }
 
@@ -639,12 +630,11 @@ public class FunctionalTest {
   public static void listObject_test3() throws Exception {
     int i;
     System.out.println("Test: listObjects(final String bucketName, final String prefix, final boolean recursive)");
-    String[] filenames = new String[3];
+    String[] objectNames = new String[3];
     for (i = 0; i < 3; i++) {
-      String filename = createFile(1 * MB);
-      client.putObject(bucketName, filename, filename);
-      Files.delete(Paths.get(filename));
-      filenames[i] = filename;
+      String objectName = getRandomName();
+      client.putObject(bucketName, objectName, smallFile);
+      objectNames[i] = objectName;
     }
 
     i = 0;
@@ -656,7 +646,7 @@ public class FunctionalTest {
     }
 
     for (i = 0; i < 3; i++) {
-      client.removeObject(bucketName, filenames[i]);
+      client.removeObject(bucketName, objectNames[i]);
     }
   }
 
@@ -687,12 +677,11 @@ public class FunctionalTest {
            + ", final boolean recursive)");
     String[] objectNames = new String[objCount];
 
-    String baseFilename = createFile(1);
+    String baseObjectName = getRandomName();
     for (i = 0; i < objCount; i++) {
-      objectNames[i] = baseFilename + "-" + i;
-      client.putObject(bucketName, objectNames[i], baseFilename);
+      objectNames[i] = baseObjectName + "-" + i;
+      client.putObject(bucketName, objectNames[i],FileOfSize1b);
     }
-    Files.delete(Paths.get(baseFilename));
 
     i = 0;
     for (Result<?> r : client.listObjects(bucketName, "minio", true)) {
@@ -717,12 +706,11 @@ public class FunctionalTest {
     int i;
     System.out.println("Test: listObjects(final String bucketName, final String prefix, final boolean recursive,"
                        + " final boolean useVersion1)");
-    String[] filenames = new String[3];
+    String[] objectNames = new String[3];
     for (i = 0; i < 3; i++) {
-      String filename = createFile(1 * MB);
-      client.putObject(bucketName, filename, filename);
-      Files.delete(Paths.get(filename));
-      filenames[i] = filename;
+      String objectName = getRandomName();
+      client.putObject(bucketName, objectName, smallFile);
+      objectNames[i] = objectName;
     }
 
     i = 0;
@@ -734,7 +722,7 @@ public class FunctionalTest {
     }
 
     for (i = 0; i < 3; i++) {
-      client.removeObject(bucketName, filenames[i]);
+      client.removeObject(bucketName, objectNames[i]);
     }
   }
 
@@ -743,10 +731,9 @@ public class FunctionalTest {
    */
   public static void removeObject_test1() throws Exception {
     System.out.println("Test: removeObject(String bucketName, String objectName)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
-    client.removeObject(bucketName, filename);
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
+    client.removeObject(bucketName, objectName);
   }
 
   /**
@@ -755,16 +742,15 @@ public class FunctionalTest {
   public static void removeObject_test2() throws Exception {
     System.out.println("Test: removeObject(final String bucketName, final Iterable<String> objectNames)");
 
-    String[] filenames = new String[4];
+    String[] objectNames = new String[4];
     for (int i = 0; i < 3; i++) {
-      String filename = createFile(1 * MB);
-      client.putObject(bucketName, filename, filename);
-      Files.delete(Paths.get(filename));
-      filenames[i] = filename;
+      String objectName = getRandomName();
+      client.putObject(bucketName, objectName, smallFile);
+      objectNames[i] = objectName;
     }
-    filenames[3] = "nonexistent-object";
+    objectNames[3] = "nonexistent-object";
 
-    for (Result<?> r : client.removeObject(bucketName, Arrays.asList(filenames))) {
+    for (Result<?> r : client.removeObject(bucketName, Arrays.asList(objectNames))) {
       ignore(r.get());
     }
   }
@@ -774,10 +760,10 @@ public class FunctionalTest {
    */
   public static void listIncompleteUploads_test1() throws Exception {
     System.out.println("Test: listIncompleteUploads(String bucketName)");
-    String filename = createFile(6 * MB);
-    InputStream is = Files.newInputStream(Paths.get(filename));
+    String objectName = getRandomName();
+    InputStream is = Files.newInputStream(Paths.get(FileOfSize6mb));
     try {
-      client.putObject(bucketName, filename, is, 9 * 1024 * 1024, null);
+      client.putObject(bucketName, objectName, is, 9 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore("Exception occurred as excepted");
     }
@@ -791,8 +777,7 @@ public class FunctionalTest {
       }
     }
 
-    Files.delete(Paths.get(filename));
-    client.removeIncompleteUpload(bucketName, filename);
+    client.removeIncompleteUpload(bucketName, objectName);
   }
 
   /**
@@ -800,10 +785,10 @@ public class FunctionalTest {
    */
   public static void listIncompleteUploads_test2() throws Exception {
     System.out.println("Test: listIncompleteUploads(String bucketName, String prefix)");
-    String filename = createFile(6 * MB);
-    InputStream is = Files.newInputStream(Paths.get(filename));
+    String objectName = getRandomName();
+    InputStream is = Files.newInputStream(Paths.get(FileOfSize6mb));
     try {
-      client.putObject(bucketName, filename, is, 9 * 1024 * 1024, null);
+      client.putObject(bucketName, objectName, is, 9 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore("Exception occurred as excepted");
     }
@@ -817,8 +802,7 @@ public class FunctionalTest {
       }
     }
 
-    Files.delete(Paths.get(filename));
-    client.removeIncompleteUpload(bucketName, filename);
+    client.removeIncompleteUpload(bucketName, objectName);
   }
 
   /**
@@ -827,10 +811,10 @@ public class FunctionalTest {
   public static void listIncompleteUploads_test3() throws Exception {
     System.out.println("Test: listIncompleteUploads(final String bucketName, final String prefix, "
                        + "final boolean recursive)");
-    String filename = createFile(6 * MB);
-    InputStream is = Files.newInputStream(Paths.get(filename));
+    String objectName = getRandomName();
+    InputStream is = Files.newInputStream(Paths.get(FileOfSize6mb));
     try {
-      client.putObject(bucketName, filename, is, 9 * 1024 * 1024, null);
+      client.putObject(bucketName, objectName, is, 9 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore("Exception occurred as excepted");
     }
@@ -844,8 +828,7 @@ public class FunctionalTest {
       }
     }
 
-    Files.delete(Paths.get(filename));
-    client.removeIncompleteUpload(bucketName, filename);
+    client.removeIncompleteUpload(bucketName, objectName);
   }
 
   /**
@@ -853,10 +836,10 @@ public class FunctionalTest {
    */
   public static void removeIncompleteUploads_test() throws Exception {
     System.out.println("Test: removeIncompleteUpload(String bucketName, String objectName)");
-    String filename = createFile(6 * MB);
-    InputStream is = Files.newInputStream(Paths.get(filename));
+    String objectName = getRandomName();
+    InputStream is = Files.newInputStream(Paths.get(FileOfSize6mb));
     try {
-      client.putObject(bucketName, filename, is, 9 * 1024 * 1024, null);
+      client.putObject(bucketName, objectName, is, 9 * 1024 * 1024, null);
     } catch (InsufficientDataException e) {
       ignore("Exception occurred as excepted");
     }
@@ -870,8 +853,7 @@ public class FunctionalTest {
       }
     }
 
-    Files.delete(Paths.get(filename));
-    client.removeIncompleteUpload(bucketName, filename);
+    client.removeIncompleteUpload(bucketName, objectName);
   }
 
   /**
@@ -1192,7 +1174,7 @@ public class FunctionalTest {
     Thread[] threads = new Thread[7];
 
     for (int i = 0; i < 7; i++) {
-      threads[i] = new Thread(new PutObjectRunnable(client, bucketName, createFile(17 * MB)));
+      threads[i] = new Thread(new PutObjectRunnable(client, bucketName,largeFile));
     }
 
     for (int i = 0; i < 7; i++) {
@@ -1212,18 +1194,17 @@ public class FunctionalTest {
    */
   public static void copyObject_test1() throws Exception {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
 
     String destBucketName = getRandomName();
     client.makeBucket(destBucketName);
-    client.copyObject(bucketName, filename, destBucketName);
-    client.getObject(destBucketName, filename, filename + ".downloaded");
-    Files.delete(Paths.get(filename + ".downloaded"));
+    client.copyObject(bucketName, objectName, destBucketName);
+    client.getObject(destBucketName, objectName, objectName + ".downloaded");
+    Files.delete(Paths.get(objectName + ".downloaded"));
 
-    client.removeObject(bucketName, filename);
-    client.removeObject(destBucketName, filename);
+    client.removeObject(bucketName, objectName);
+    client.removeObject(destBucketName, objectName);
     client.removeBucket(destBucketName);
   }
 
@@ -1235,9 +1216,8 @@ public class FunctionalTest {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
                        + "CopyConditions copyConditions) with Matching ETag (Negative Case)");
 
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
 
     String destBucketName = getRandomName();
     client.makeBucket(destBucketName);
@@ -1246,12 +1226,12 @@ public class FunctionalTest {
     copyConditions.setMatchETag("TestETag");
 
     try {
-      client.copyObject(bucketName, filename, destBucketName, copyConditions);
+      client.copyObject(bucketName, objectName, destBucketName, copyConditions);
     } catch (ErrorResponseException e) {
       ignore();
     }
 
-    client.removeObject(bucketName, filename);
+    client.removeObject(bucketName, objectName);
     client.removeBucket(destBucketName);
   }
 
@@ -1263,24 +1243,23 @@ public class FunctionalTest {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
                        + "CopyConditions copyConditions) with Matching ETag (Positive Case)");
 
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
 
     String destBucketName = getRandomName();
     client.makeBucket(destBucketName);
 
-    ObjectStat stat = client.statObject(bucketName, filename);
+    ObjectStat stat = client.statObject(bucketName, objectName);
     CopyConditions copyConditions = new CopyConditions();
     copyConditions.setMatchETag(stat.etag());
 
     // File should be copied as ETag set in copyConditions matches object's ETag.
-    client.copyObject(bucketName, filename, destBucketName, copyConditions);
-    client.getObject(destBucketName, filename, filename + ".downloaded");
-    Files.delete(Paths.get(filename + ".downloaded"));
+    client.copyObject(bucketName, objectName, destBucketName, copyConditions);
+    client.getObject(destBucketName, objectName, objectName + ".downloaded");
+    Files.delete(Paths.get(objectName + ".downloaded"));
 
-    client.removeObject(bucketName, filename);
-    client.removeObject(destBucketName, filename);
+    client.removeObject(bucketName, objectName);
+    client.removeObject(destBucketName, objectName);
     client.removeBucket(destBucketName);
   }
 
@@ -1292,9 +1271,8 @@ public class FunctionalTest {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
                        + "CopyConditions copyConditions) with not matching ETag"
                        + " (Positive Case)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
 
     String destBucketName = getRandomName();
     client.makeBucket(destBucketName);
@@ -1303,12 +1281,12 @@ public class FunctionalTest {
     copyConditions.setMatchETagNone("TestETag");
 
     // File should be copied as ETag set in copyConditions doesn't match object's ETag.
-    client.copyObject(bucketName, filename, destBucketName, copyConditions);
-    client.getObject(destBucketName, filename, filename + ".downloaded");
-    Files.delete(Paths.get(filename + ".downloaded"));
+    client.copyObject(bucketName, objectName, destBucketName, copyConditions);
+    client.getObject(destBucketName, objectName, objectName + ".downloaded");
+    Files.delete(Paths.get(objectName + ".downloaded"));
 
-    client.removeObject(bucketName, filename);
-    client.removeObject(destBucketName, filename);
+    client.removeObject(bucketName, objectName);
+    client.removeObject(destBucketName, objectName);
     client.removeBucket(destBucketName);
   }
 
@@ -1320,25 +1298,24 @@ public class FunctionalTest {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
                        + "CopyConditions copyConditions) with not matching ETag"
                        + " (Negative Case)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
 
     String destBucketName = getRandomName();
     client.makeBucket(destBucketName);
 
-    ObjectStat stat = client.statObject(bucketName, filename);
+    ObjectStat stat = client.statObject(bucketName, objectName);
     CopyConditions copyConditions = new CopyConditions();
     copyConditions.setMatchETagNone(stat.etag());
 
     try {
-      client.copyObject(bucketName, filename, destBucketName, copyConditions);
+      client.copyObject(bucketName, objectName, destBucketName, copyConditions);
     } catch (ErrorResponseException e) {
       // File should not be copied as ETag set in copyConditions matches object's ETag.
       ignore();
     }
 
-    client.removeObject(bucketName, filename);
+    client.removeObject(bucketName, objectName);
     client.removeBucket(destBucketName);
   }
 
@@ -1350,9 +1327,8 @@ public class FunctionalTest {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
                        + "CopyConditions copyConditions) with modified after "
                        + "condition (Positive Case)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
+    String objectName = createFile(3 * MB);
+    client.putObject(bucketName, objectName, smallFile);
 
     String destBucketName = getRandomName();
     client.makeBucket(destBucketName);
@@ -1363,12 +1339,12 @@ public class FunctionalTest {
     copyConditions.setModified(dateRepresentation);
 
     // File should be copied as object was modified after the set date.
-    client.copyObject(bucketName, filename, destBucketName, copyConditions);
-    client.getObject(destBucketName, filename, filename + ".downloaded");
-    Files.delete(Paths.get(filename + ".downloaded"));
+    client.copyObject(bucketName, objectName, destBucketName, copyConditions);
+    client.getObject(destBucketName, objectName, objectName + ".downloaded");
+    Files.delete(Paths.get(objectName + ".downloaded"));
 
-    client.removeObject(bucketName, filename);
-    client.removeObject(destBucketName, filename);
+    client.removeObject(bucketName, objectName);
+    client.removeObject(destBucketName, objectName);
     client.removeBucket(destBucketName);
   }
 
@@ -1380,9 +1356,8 @@ public class FunctionalTest {
     System.out.println("Test: copyObject(String bucketName, String objectName, String destBucketName,"
                        + "CopyConditions copyConditions) with modified after"
                        + " condition (Negative Case)");
-    String filename = createFile(3 * MB);
-    client.putObject(bucketName, filename, filename);
-    Files.delete(Paths.get(filename));
+    String objectName = getRandomName();
+    client.putObject(bucketName, objectName, smallFile);
 
     String destBucketName = getRandomName();
     client.makeBucket(destBucketName);
@@ -1393,7 +1368,7 @@ public class FunctionalTest {
     copyConditions.setUnmodified(dateRepresentation);
 
     try {
-      client.copyObject(bucketName, filename, destBucketName, copyConditions);
+      client.copyObject(bucketName, objectName, destBucketName, copyConditions);
     } catch (ErrorResponseException e) {
       // File should not be copied as object was modified after date set in copyConditions.
       if (!e.errorResponse().code().equals("PreconditionFailed")) {
@@ -1401,7 +1376,7 @@ public class FunctionalTest {
       }
     }
 
-    client.removeObject(bucketName, filename);
+    client.removeObject(bucketName, objectName);
     // Destination bucket is expected to be empty, otherwise it will trigger an exception.
     client.removeBucket(destBucketName);
   }

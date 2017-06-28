@@ -1,3 +1,5 @@
+// +build ignore
+
 /*
  * Minio Go Library for Amazon S3 Compatible Cloud Storage (C) 2015 Minio, Inc.
  *
@@ -14,7 +16,7 @@
  * limitations under the License.
  */
 
-package minio
+package main
 
 import (
 	"bytes"
@@ -27,12 +29,14 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
-	"testing"
 	"time"
 
-	. "github.com/minio/minio-go"
+	minio "github.com/minio/minio-go"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/minio/minio-go/pkg/encrypt"
 	"github.com/minio/minio-go/pkg/policy"
 )
@@ -44,6 +48,14 @@ const (
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
+
+func getFilePath(filename string) string {
+	var dir = os.Getenv("DATA_DIR")
+	if dir == "" {
+		dir = "/mint/data"
+	}
+	return dir + "/" + filename
+}
 
 // randString generates random names and prepends them with a known prefix.
 func randString(n int, src rand.Source, prefix string) string {
@@ -63,27 +75,34 @@ func randString(n int, src rand.Source, prefix string) string {
 	return prefix + string(b[0:30-len(prefix)])
 }
 
+func isQuickMode() bool {
+	return os.Getenv("MODE") == "quick"
+}
+
 // Tests bucket re-create errors.
-func TestMakeBucketError(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for short runs")
+func testMakeBucketError() {
+	logTrace()
+	if isQuickMode() {
+		log.Info("skipping functional tests for short runs")
+		return
 	}
 	if os.Getenv("SERVER_ENDPOINT") != "s3.amazonaws.com" {
-		t.Skip("skipping region functional tests for non s3 runs")
+		log.Info("skipping region functional tests for non s3 runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatalf("Error:", err)
+		log.Fatalf("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -97,42 +116,46 @@ func TestMakeBucketError(t *testing.T) {
 
 	// Make a new bucket in 'eu-central-1'.
 	if err = c.MakeBucket(bucketName, "eu-central-1"); err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 	if err = c.MakeBucket(bucketName, "eu-central-1"); err == nil {
-		t.Fatal("Error: make bucket should should fail for", bucketName)
+		log.Fatal("Error: make bucket should should fail for", bucketName)
 	}
 	// Verify valid error response from server.
-	if ToErrorResponse(err).Code != "BucketAlreadyExists" &&
-		ToErrorResponse(err).Code != "BucketAlreadyOwnedByYou" {
-		t.Fatal("Error: Invalid error returned by server", err)
+	if minio.ToErrorResponse(err).Code != "BucketAlreadyExists" &&
+		minio.ToErrorResponse(err).Code != "BucketAlreadyOwnedByYou" {
+		log.Fatal("Error: Invalid error returned by server", err)
 	}
 	if err = c.RemoveBucket(bucketName); err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 }
 
 // Tests various bucket supported formats.
-func TestMakeBucketRegions(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for short runs")
+func testMakeBucketRegions() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for short runs")
+		return
 	}
 	if os.Getenv("SERVER_ENDPOINT") != "s3.amazonaws.com" {
-		t.Skip("skipping region functional tests for non s3 runs")
+		log.Info("skipping region functional tests for non s3 runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -146,44 +169,46 @@ func TestMakeBucketRegions(t *testing.T) {
 
 	// Make a new bucket in 'eu-central-1'.
 	if err = c.MakeBucket(bucketName, "eu-central-1"); err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	if err = c.RemoveBucket(bucketName); err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Make a new bucket with '.' in its name, in 'us-west-2'. This
 	// request is internally staged into a path style instead of
 	// virtual host style.
 	if err = c.MakeBucket(bucketName+".withperiod", "us-west-2"); err != nil {
-		t.Fatal("Error:", err, bucketName+".withperiod")
+		log.Fatal("Error:", err, bucketName+".withperiod")
 	}
 
 	// Remove the newly created bucket.
 	if err = c.RemoveBucket(bucketName + ".withperiod"); err != nil {
-		t.Fatal("Error:", err, bucketName+".withperiod")
+		log.Fatal("Error:", err, bucketName+".withperiod")
 	}
 }
 
 // Test PutObject using a large data to trigger multipart readat
-func TestPutObjectReadAt(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for short runs")
+func testPutObjectReadAt() {
+	logTrace()
+	if isQuickMode() {
+		log.Info("skipping functional tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -198,16 +223,15 @@ func TestPutObjectReadAt(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Generate data using 4 parts so that all 3 'workers' are utilized and a part is leftover.
 	// Use different data for each part for multipart tests to ensure part order at the end.
 	var buf []byte
-	for i := 0; i < 4; i++ {
-		buf = append(buf, bytes.Repeat([]byte(string('a'+i)), minPartSize)...)
-	}
 
+	fileName := getFilePath("FileOfSize65MB")
+	buf, _ = ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 	// Object content type
@@ -215,65 +239,67 @@ func TestPutObjectReadAt(t *testing.T) {
 
 	n, err := c.PutObject(bucketName, objectName, bytes.NewReader(buf), objectContentType)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	if n != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
 	}
 
 	// Read the data back
 	r, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	st, err := r.Stat()
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 	if st.Size != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
+		log.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
 			len(buf), st.Size)
 	}
 	if st.ContentType != objectContentType {
-		t.Fatalf("Error: Content types don't match, expected: %+v, found: %+v\n", objectContentType, st.ContentType)
+		log.Fatalf("Error: Content types don't match, expected: %+v, found: %+v\n", objectContentType, st.ContentType)
 	}
 	if err := r.Close(); err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if err := r.Close(); err == nil {
-		t.Fatal("Error: object is already closed, should return error")
+		log.Fatal("Error: object is already closed, should return error")
 	}
 
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Test PutObject using a large data to trigger multipart readat
-func TestPutObjectWithMetadata(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for short runs")
+func testPutObjectWithMetadata() {
+	logTrace()
+	if isQuickMode() {
+		log.Info("skipping functional tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -288,16 +314,14 @@ func TestPutObjectWithMetadata(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Generate data using 2 parts
 	// Use different data in each part for multipart tests to ensure part order at the end.
 	var buf []byte
-	for i := 0; i < 2; i++ {
-		buf = append(buf, bytes.Repeat([]byte(string('a'+i)), minPartSize)...)
-	}
-
+	fileName := getFilePath("FileOfSize65MB")
+	buf, _ = ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 
@@ -306,66 +330,68 @@ func TestPutObjectWithMetadata(t *testing.T) {
 
 	n, err := c.PutObjectWithMetadata(bucketName, objectName, bytes.NewReader(buf), map[string][]string{"Content-Type": {customContentType}}, nil)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	if n != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
 	}
 
 	// Read the data back
 	r, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	st, err := r.Stat()
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 	if st.Size != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
+		log.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
 			len(buf), st.Size)
 	}
 	if st.ContentType != customContentType {
-		t.Fatalf("Error: Expected and found content types do not match, want %v, got %v\n",
+		log.Fatalf("Error: Expected and found content types do not match, want %v, got %v\n",
 			customContentType, st.ContentType)
 	}
 	if err := r.Close(); err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if err := r.Close(); err == nil {
-		t.Fatal("Error: object is already closed, should return error")
+		log.Fatal("Error: object is already closed, should return error")
 	}
 
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Test put object with streaming signature.
-func TestPutObjectStreaming(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping function tests for short runs")
+func testPutObjectStreaming() {
+	logTrace()
+	if isQuickMode() {
+		log.Info("skipping function tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := NewV4(
+	c, err := minio.NewV4(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -381,7 +407,7 @@ func TestPutObjectStreaming(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Upload an object.
@@ -391,45 +417,47 @@ func TestPutObjectStreaming(t *testing.T) {
 		data := bytes.Repeat([]byte("a"), int(size))
 		n, err := c.PutObjectStreaming(bucketName, objectName, bytes.NewReader(data))
 		if err != nil {
-			t.Fatalf("Test %d Error: %v %s %s", i+1, err, bucketName, objectName)
+			log.Fatalf("Test %d Error: %v %s %s", i+1, err, bucketName, objectName)
 		}
 
 		if n != size {
-			t.Errorf("Test %d Expected upload object size %d but got %d", i+1, size, n)
+			log.Error(fmt.Errorf("Test %d Expected upload object size %d but got %d", i+1, size, n))
 		}
 	}
 
 	// Remove the object.
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Remove the bucket.
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Test listing partially uploaded objects.
-func TestListPartiallyUploaded(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping function tests for short runs")
+func testListPartiallyUploaded() {
+	logTrace()
+	if isQuickMode() {
+		log.Info("skipping function tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Set user agent.
@@ -444,7 +472,7 @@ func TestListPartiallyUploaded(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	r := bytes.NewReader(bytes.Repeat([]byte("0"), minPartSize*2))
@@ -455,7 +483,7 @@ func TestListPartiallyUploaded(t *testing.T) {
 		for i < 25 {
 			_, cerr := io.CopyN(writer, r, (minPartSize*2)/25)
 			if cerr != nil {
-				t.Fatal("Error:", cerr, bucketName)
+				log.Fatal("Error:", cerr, bucketName)
 			}
 			i++
 			r.Seek(0, 0)
@@ -466,10 +494,10 @@ func TestListPartiallyUploaded(t *testing.T) {
 	objectName := bucketName + "-resumable"
 	_, err = c.PutObject(bucketName, objectName, reader, "application/octet-stream")
 	if err == nil {
-		t.Fatal("Error: PutObject should fail.")
+		log.Fatal("Error: PutObject should fail.")
 	}
 	if err.Error() != "proactively closed to be verified later" {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	doneCh := make(chan struct{})
@@ -478,34 +506,36 @@ func TestListPartiallyUploaded(t *testing.T) {
 	multiPartObjectCh := c.ListIncompleteUploads(bucketName, objectName, isRecursive, doneCh)
 	for multiPartObject := range multiPartObjectCh {
 		if multiPartObject.Err != nil {
-			t.Fatalf("Error: Error when listing incomplete upload")
+			log.Fatalf("Error: Error when listing incomplete upload")
 		}
 	}
 
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Test get object seeker from the end, using whence set to '2'.
-func TestGetOjectSeekEnd(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for short runs")
+func testGetObjectSeekEnd() {
+	logTrace()
+	if isQuickMode() {
+		log.Info("skipping functional tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -520,87 +550,90 @@ func TestGetOjectSeekEnd(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
-
+	fileName := getFilePath("FileOfSizeGt1MB")
+	buf, _ := ioutil.ReadFile(fileName)
 	// Generate data more than 32K
-	buf := bytes.Repeat([]byte("1"), rand.Intn(1<<20)+32*1024)
+	//buf := bytes.Repeat([]byte("1"), rand.Intn(1<<20)+32*1024)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 	n, err := c.PutObject(bucketName, objectName, bytes.NewReader(buf), "binary/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	if n != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
 	}
 
 	// Read the data back
 	r, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	st, err := r.Stat()
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 	if st.Size != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
+		log.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
 			len(buf), st.Size)
 	}
 
 	pos, err := r.Seek(-100, 2)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 	if pos != st.Size-100 {
-		t.Fatalf("Expected %d, got %d instead", pos, st.Size-100)
+		log.Fatalf("Expected %d, got %d instead", pos, st.Size-100)
 	}
 	buf2 := make([]byte, 100)
 	m, err := io.ReadFull(r, buf2)
 	if err != nil {
-		t.Fatal("Error: reading through io.ReadFull", err, bucketName, objectName)
+		log.Fatal("Error: reading through io.ReadFull", err, bucketName, objectName)
 	}
 	if m != len(buf2) {
-		t.Fatalf("Expected %d bytes, got %d", len(buf2), m)
+		log.Fatalf("Expected %d bytes, got %d", len(buf2), m)
 	}
 	hexBuf1 := fmt.Sprintf("%02x", buf[len(buf)-100:])
 	hexBuf2 := fmt.Sprintf("%02x", buf2[:m])
 	if hexBuf1 != hexBuf2 {
-		t.Fatalf("Expected %s, got %s instead", hexBuf1, hexBuf2)
+		log.Fatalf("Expected %s, got %s instead", hexBuf1, hexBuf2)
 	}
 	pos, err = r.Seek(-100, 2)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 	if pos != st.Size-100 {
-		t.Fatalf("Expected %d, got %d instead", pos, st.Size-100)
+		log.Fatalf("Expected %d, got %d instead", pos, st.Size-100)
 	}
 	if err = r.Close(); err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 }
 
 // Test get object reader to not throw error on being closed twice.
-func TestGetObjectClosedTwice(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for short runs")
+func testGetObjectClosedTwice() {
+	logTrace()
+	if isQuickMode() {
+		log.Info("skipping functional tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -615,65 +648,69 @@ func TestGetObjectClosedTwice(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Generate data more than 32K
-	buf := bytes.Repeat([]byte("1"), rand.Intn(1<<20)+32*1024)
+	fileName := getFilePath("FileOfSizeGt32KB")
+	buf, _ := ioutil.ReadFile(fileName)
+	//buf := bytes.Repeat([]byte("1"), rand.Intn(1<<20)+32*1024)
 
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 	n, err := c.PutObject(bucketName, objectName, bytes.NewReader(buf), "binary/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	if n != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
 	}
 
 	// Read the data back
 	r, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	st, err := r.Stat()
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 	if st.Size != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
+		log.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
 			len(buf), st.Size)
 	}
 	if err := r.Close(); err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if err := r.Close(); err == nil {
-		t.Fatal("Error: object is already closed, should return error")
+		log.Fatal("Error: object is already closed, should return error")
 	}
 
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Test removing multiple objects with Remove API
-func TestRemoveMultipleObjects(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping function tests for short runs")
+func testRemoveMultipleObjects() {
+	logTrace()
+	if isQuickMode() {
+		log.Info("skipping function tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
@@ -681,7 +718,7 @@ func TestRemoveMultipleObjects(t *testing.T) {
 	)
 
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Set user agent.
@@ -696,13 +733,13 @@ func TestRemoveMultipleObjects(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	r := bytes.NewReader(bytes.Repeat([]byte("a"), 8))
 
-	// Multi remove of 1100 objects
-	nrObjects := 1100
+	// Multi remove of 100 objects
+	nrObjects := 100
 
 	objectsCh := make(chan string)
 
@@ -713,7 +750,7 @@ func TestRemoveMultipleObjects(t *testing.T) {
 			objectName := "sample" + strconv.Itoa(i) + ".txt"
 			_, err = c.PutObject(bucketName, objectName, r, "application/octet-stream")
 			if err != nil {
-				t.Error("Error: PutObject shouldn't fail.", err)
+				log.Error("Error: PutObject shouldn't fail.", err)
 				continue
 			}
 			objectsCh <- objectName
@@ -727,35 +764,37 @@ func TestRemoveMultipleObjects(t *testing.T) {
 	select {
 	case r, more := <-errorCh:
 		if more {
-			t.Fatalf("Unexpected error, objName(%v) err(%v)", r.ObjectName, r.Err)
+			log.Fatalf("Unexpected error, objName(%v) err(%v)", r.ObjectName, r.Err)
 		}
 	}
 
 	// Clean the bucket created by the test
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Tests removing partially uploaded objects.
-func TestRemovePartiallyUploaded(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping function tests for short runs")
+func testRemovePartiallyUploaded() {
+	logTrace()
+	if isQuickMode() {
+		log.Info("skipping function tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Set user agent.
@@ -770,7 +809,7 @@ func TestRemovePartiallyUploaded(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	r := bytes.NewReader(bytes.Repeat([]byte("a"), 128*1024))
@@ -781,7 +820,7 @@ func TestRemovePartiallyUploaded(t *testing.T) {
 		for i < 25 {
 			_, cerr := io.CopyN(writer, r, 128*1024)
 			if cerr != nil {
-				t.Fatal("Error:", cerr, bucketName)
+				log.Fatal("Error:", cerr, bucketName)
 			}
 			i++
 			r.Seek(0, 0)
@@ -792,40 +831,43 @@ func TestRemovePartiallyUploaded(t *testing.T) {
 	objectName := bucketName + "-resumable"
 	_, err = c.PutObject(bucketName, objectName, reader, "application/octet-stream")
 	if err == nil {
-		t.Fatal("Error: PutObject should fail.")
+		log.Fatal("Error: PutObject should fail.")
 	}
 	if err.Error() != "proactively closed to be verified later" {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	err = c.RemoveIncompleteUpload(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Tests resumable put object cloud to cloud.
-func TestResumablePutObject(t *testing.T) {
+func testResumablePutObject() {
+	logTrace()
+
 	// By passing 'go test -short' skips these tests.
-	if testing.Short() {
-		t.Skip("skipping functional tests for the short runs")
+	if isQuickMode() {
+		log.Info("skipping functional tests for the short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Set user agent.
@@ -840,26 +882,28 @@ func TestResumablePutObject(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Create a temporary file
 	file, err := ioutil.TempFile(os.TempDir(), "resumable")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
-	r := bytes.NewReader(bytes.Repeat([]byte("b"), minPartSize*2))
+	fileName := getFilePath("FileOfSize128mb")
+	buf, _ := ioutil.ReadFile(fileName)
+	r := bytes.NewReader(buf)
 	n, err := io.CopyN(file, r, minPartSize*2)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if n != int64(minPartSize*2) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*2, n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*2, n)
 	}
 
 	// Close the file pro-actively for windows.
 	if err = file.Close(); err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// New object name.
@@ -869,78 +913,81 @@ func TestResumablePutObject(t *testing.T) {
 	// Upload the file.
 	n, err = c.FPutObject(bucketName, objectName, file.Name(), objectContentType)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if n != int64(minPartSize*2) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*2, n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*2, n)
 	}
 
 	// Get the uploaded object.
 	reader, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Get object info.
 	objInfo, err := reader.Stat()
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	if objInfo.ContentType != objectContentType {
-		t.Fatalf("Error: Content types don't match, want %v, got %v\n", objectContentType, objInfo.ContentType)
+		log.Fatalf("Error: Content types don't match, want %v, got %v\n", objectContentType, objInfo.ContentType)
 	}
 
 	// Upload now cloud to cloud.
 	n, err = c.PutObject(bucketName, objectName+"-put", reader, objectContentType)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	if n != objInfo.Size {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", objInfo.Size, n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", objInfo.Size, n)
 	}
 
 	// Remove all temp files, objects and bucket.
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	err = c.RemoveObject(bucketName, objectName+"-put")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	err = os.Remove(file.Name())
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Tests resumable file based put object multipart upload.
-func TestResumableFPutObject(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for the short runs")
+func testResumableFPutObject() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for the short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Set user agent.
@@ -955,79 +1002,66 @@ func TestResumableFPutObject(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	file, err := ioutil.TempFile(os.TempDir(), "resumable")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Upload 4 parts to use all 3 multipart 'workers' and have an extra part.
 	// Use different data in each part for multipart tests to ensure parts are uploaded in correct order.
-	var buffer []byte
-	for i := 0; i < 4; i++ {
-		buffer = append(buffer, bytes.Repeat([]byte(string('a'+i)), minPartSize)...)
-	}
 
-	size, err := file.Write(buffer)
-	if err != nil {
-		t.Fatal("Error:", err)
-	}
-	if size != minPartSize*4 {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*4, size)
-	}
-
-	// Close the file pro-actively for windows.
-	err = file.Close()
-	if err != nil {
-		t.Fatal("Error:", err)
-	}
-
+	fileName := getFilePath("FileOfSize65MB")
+	totalSize := minPartSize*1 + 1024*1024*1
 	objectName := bucketName + "-resumable"
 
-	n, err := c.FPutObject(bucketName, objectName, file.Name(), "application/octet-stream")
+	n, err := c.FPutObject(bucketName, objectName, fileName, "application/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
-	if n != int64(minPartSize*4) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*4, n)
+	if n != int64(totalSize) {
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", totalSize, n)
 	}
 
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	err = os.Remove(file.Name())
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Tests FPutObject of a big file to trigger multipart
-func TestFPutObjectMultipart(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for short runs")
+func testFPutObjectMultipart() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -1042,93 +1076,74 @@ func TestFPutObjectMultipart(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
-	}
-
-	// Make a temp file with minPartSize*4 bytes of data.
-	file, err := ioutil.TempFile(os.TempDir(), "FPutObjectTest")
-	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Upload 4 parts to utilize all 3 'workers' in multipart and still have a part to upload.
-	var buffer []byte
-	for i := 0; i < 4; i++ {
-		buffer = append(buffer, bytes.Repeat([]byte(string('a'+i)), minPartSize)...)
-	}
 
-	size, err := file.Write(buffer)
-	if err != nil {
-		t.Fatal("Error:", err)
-	}
-	if size != minPartSize*4 {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*4, size)
-	}
-
-	// Close the file pro-actively for windows.
-	err = file.Close()
-	if err != nil {
-		t.Fatal("Error:", err)
-	}
-
+	fileName := getFilePath("FileOfSize65MB")
+	totalSize := minPartSize*1 + 1024*1024*1
 	// Set base object name
 	objectName := bucketName + "FPutObject"
 	objectContentType := "testapplication/octet-stream"
 
 	// Perform standard FPutObject with contentType provided (Expecting application/octet-stream)
-	n, err := c.FPutObject(bucketName, objectName+"-standard", file.Name(), objectContentType)
+	n, err := c.FPutObject(bucketName, objectName+"-standard", fileName, objectContentType)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
-	if n != int64(minPartSize*4) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*4, n)
+	if n != int64(totalSize) {
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", totalSize, n)
 	}
 
 	r, err := c.GetObject(bucketName, objectName+"-standard")
 	if err != nil {
-		t.Fatalf("Unexpected error: %v\n", err)
+		log.Fatalf("Unexpected error: %v\n", err)
 	}
 	objInfo, err := r.Stat()
 	if err != nil {
-		t.Fatalf("Unexpected error: %v\n", err)
+		log.Fatalf("Unexpected error: %v\n", err)
 	}
-	if objInfo.Size != minPartSize*4 {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*4, n)
+	if objInfo.Size != int64(totalSize) {
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", totalSize, n)
 	}
 	if objInfo.ContentType != objectContentType {
-		t.Fatalf("Error: Content types don't match, want %v, got %v\n", objectContentType, objInfo.ContentType)
+		log.Fatalf("Error: Content types don't match, want %v, got %v\n", objectContentType, objInfo.ContentType)
 	}
 
 	// Remove all objects and bucket and temp file
 	err = c.RemoveObject(bucketName, objectName+"-standard")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Tests FPutObject hidden contentType setting
-func TestFPutObject(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for short runs")
+func testFPutObject() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -1143,148 +1158,137 @@ func TestFPutObject(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
-	// Make a temp file with minPartSize*4 bytes of data.
-	file, err := ioutil.TempFile(os.TempDir(), "FPutObjectTest")
-	if err != nil {
-		t.Fatal("Error:", err)
-	}
-
-	// Upload 4 parts worth of data to use all 3 of multiparts 'workers' and have an extra part.
+	// Upload 3 parts worth of data to use all 3 of multiparts 'workers' and have an extra part.
 	// Use different data in part for multipart tests to check parts are uploaded in correct order.
-	var buffer []byte
-	for i := 0; i < 4; i++ {
-		buffer = append(buffer, bytes.Repeat([]byte(string('a'+i)), minPartSize)...)
-	}
 
-	// Write the data to the file.
-	size, err := file.Write(buffer)
-	if err != nil {
-		t.Fatal("Error:", err)
-	}
-	if size != minPartSize*4 {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*4, size)
-	}
-
-	// Close the file pro-actively for windows.
-	err = file.Close()
-	if err != nil {
-		t.Fatal("Error:", err)
-	}
+	fName := getFilePath("FileOfSize65MB")
+	var totalSize = minPartSize*1 + 1024*1024*1
 
 	// Set base object name
 	objectName := bucketName + "FPutObject"
 
 	// Perform standard FPutObject with contentType provided (Expecting application/octet-stream)
-	n, err := c.FPutObject(bucketName, objectName+"-standard", file.Name(), "application/octet-stream")
+	n, err := c.FPutObject(bucketName, objectName+"-standard", fName, "application/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
-	if n != int64(minPartSize*4) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*4, n)
+	if n != int64(totalSize) {
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", totalSize, n)
 	}
 
 	// Perform FPutObject with no contentType provided (Expecting application/octet-stream)
-	n, err = c.FPutObject(bucketName, objectName+"-Octet", file.Name(), "")
+	n, err = c.FPutObject(bucketName, objectName+"-Octet", fName, "")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
-	if n != int64(minPartSize*4) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*4, n)
+	if n != int64(totalSize) {
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", totalSize, n)
 	}
-
+	srcFile, err := os.Open(fName)
+	if err != nil {
+		log.Fatal("Error:", err)
+	}
+	defer srcFile.Close()
 	// Add extension to temp file name
-	fileName := file.Name()
-	err = os.Rename(file.Name(), fileName+".gtar")
+	tmpFile, err := os.Create(fName + ".gtar")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
+	}
+	defer tmpFile.Close()
+	_, err = io.Copy(tmpFile, srcFile)
+	if err != nil {
+		log.Fatal("Error:", err)
 	}
 
 	// Perform FPutObject with no contentType provided (Expecting application/x-gtar)
-	n, err = c.FPutObject(bucketName, objectName+"-GTar", fileName+".gtar", "")
+	n, err = c.FPutObject(bucketName, objectName+"-GTar", fName+".gtar", "")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
-	if n != int64(minPartSize*4) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*4, n)
+	if n != int64(totalSize) {
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", totalSize, n)
 	}
 
 	// Check headers
 	rStandard, err := c.StatObject(bucketName, objectName+"-standard")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName+"-standard")
+		log.Fatal("Error:", err, bucketName, objectName+"-standard")
 	}
 	if rStandard.ContentType != "application/octet-stream" {
-		t.Fatalf("Error: Content-Type headers mismatched, want %v, got %v\n",
+		log.Fatalf("Error: Content-Type headers mismatched, want %v, got %v\n",
 			"application/octet-stream", rStandard.ContentType)
 	}
 
 	rOctet, err := c.StatObject(bucketName, objectName+"-Octet")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName+"-Octet")
+		log.Fatal("Error:", err, bucketName, objectName+"-Octet")
 	}
 	if rOctet.ContentType != "application/octet-stream" {
-		t.Fatalf("Error: Content-Type headers mismatched, want %v, got %v\n",
+		log.Fatalf("Error: Content-Type headers mismatched, want %v, got %v\n",
 			"application/octet-stream", rStandard.ContentType)
 	}
 
 	rGTar, err := c.StatObject(bucketName, objectName+"-GTar")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName+"-GTar")
+		log.Fatal("Error:", err, bucketName, objectName+"-GTar")
 	}
 	if rGTar.ContentType != "application/x-gtar" {
-		t.Fatalf("Error: Content-Type headers mismatched, want %v, got %v\n",
+		log.Fatalf("Error: Content-Type headers mismatched, want %v, got %v\n",
 			"application/x-gtar", rStandard.ContentType)
 	}
 
 	// Remove all objects and bucket and temp file
 	err = c.RemoveObject(bucketName, objectName+"-standard")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	err = c.RemoveObject(bucketName, objectName+"-Octet")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	err = c.RemoveObject(bucketName, objectName+"-GTar")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
-	err = os.Remove(fileName + ".gtar")
+	err = os.Remove(fName + ".gtar")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 }
 
 // Tests get object ReaderSeeker interface methods.
-func TestGetObjectReadSeekFunctional(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for short runs")
+func testGetObjectReadSeekFunctional() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -1299,47 +1303,49 @@ func TestGetObjectReadSeekFunctional(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Generate data more than 32K
-	buf := bytes.Repeat([]byte("2"), rand.Intn(1<<20)+32*1024)
+	//buf := bytes.Repeat([]byte("2"), rand.Intn(1<<20)+32*1024)
+	fileName := getFilePath("FileOfSizeGt32KB")
+	buf, _ := ioutil.ReadFile(fileName)
 	bufSize := len(buf)
 
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 	n, err := c.PutObject(bucketName, objectName, bytes.NewReader(buf), "binary/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	if n != int64(bufSize) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
 	}
 
 	defer func() {
 		err = c.RemoveObject(bucketName, objectName)
 		if err != nil {
-			t.Fatal("Error: ", err)
+			log.Fatal("Error: ", err)
 		}
 		err = c.RemoveBucket(bucketName)
 		if err != nil {
-			t.Fatal("Error:", err)
+			log.Fatal("Error:", err)
 		}
 	}()
 
 	// Read the data back
 	r, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	st, err := r.Stat()
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 	if st.Size != int64(bufSize) {
-		t.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
+		log.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
 			len(buf), st.Size)
 	}
 
@@ -1352,11 +1358,11 @@ func TestGetObjectReadSeekFunctional(t *testing.T) {
 		buffer := bytes.NewBuffer([]byte{})
 		if _, err := io.CopyN(buffer, r, int64(bufSize)); err != nil {
 			if err != io.EOF {
-				t.Fatal("Error:", err)
+				log.Fatal("Error:", err)
 			}
 		}
 		if !bytes.Equal(buf[start:end], buffer.Bytes()) {
-			t.Fatal("Error: Incorrect read bytes v/s original buffer.")
+			log.Fatal("Error: Incorrect read bytes v/s original buffer.")
 		}
 	}
 
@@ -1399,11 +1405,11 @@ func TestGetObjectReadSeekFunctional(t *testing.T) {
 		n, err := r.Seek(testCase.offset, testCase.whence)
 		// We expect an error
 		if testCase.err == seekErr && err == nil {
-			t.Fatalf("Test %d, unexpected err value: expected: %v, found: %v", i+1, testCase.err, err)
+			log.Fatalf("Test %d, unexpected err value: expected: %v, found: %v", i+1, testCase.err, err)
 		}
 		// We expect a specific error
 		if testCase.err != seekErr && testCase.err != err {
-			t.Fatalf("Test %d, unexpected err value: expected: %v, found: %v", i+1, testCase.err, err)
+			log.Fatalf("Test %d, unexpected err value: expected: %v, found: %v", i+1, testCase.err, err)
 		}
 		// If we expect an error go to the next loop
 		if testCase.err != nil {
@@ -1411,7 +1417,7 @@ func TestGetObjectReadSeekFunctional(t *testing.T) {
 		}
 		// Check the returned seek pos
 		if n != testCase.pos {
-			t.Fatalf("Test %d, error: number of bytes seeked does not match, want %v, got %v\n", i+1,
+			log.Fatalf("Test %d, error: number of bytes seeked does not match, want %v, got %v\n", i+1,
 				testCase.pos, n)
 		}
 		// Compare only if shouldCmp is activated
@@ -1422,23 +1428,26 @@ func TestGetObjectReadSeekFunctional(t *testing.T) {
 }
 
 // Tests get object ReaderAt interface methods.
-func TestGetObjectReadAtFunctional(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for the short runs")
+func testGetObjectReadAtFunctional() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for the short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -1453,27 +1462,28 @@ func TestGetObjectReadAtFunctional(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Generate data more than 32K
-	buf := bytes.Repeat([]byte("3"), rand.Intn(1<<20)+32*1024)
-
+	//buf := bytes.Repeat([]byte("3"), rand.Intn(1<<20)+32*1024)
+	fileName := getFilePath("FileOfSizeGt32KB")
+	buf, _ := ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 	n, err := c.PutObject(bucketName, objectName, bytes.NewReader(buf), "binary/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	if n != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
 	}
 
 	// read the data back
 	r, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 	offset := int64(2048)
 
@@ -1486,56 +1496,56 @@ func TestGetObjectReadAtFunctional(t *testing.T) {
 	// Test readAt before stat is called.
 	m, err := r.ReadAt(buf1, offset)
 	if err != nil {
-		t.Fatal("Error:", err, len(buf1), offset)
+		log.Fatal("Error:", err, len(buf1), offset)
 	}
 	if m != len(buf1) {
-		t.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf1))
+		log.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf1))
 	}
 	if !bytes.Equal(buf1, buf[offset:offset+512]) {
-		t.Fatal("Error: Incorrect read between two ReadAt from same offset.")
+		log.Fatal("Error: Incorrect read between two ReadAt from same offset.")
 	}
 	offset += 512
 
 	st, err := r.Stat()
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 	if st.Size != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
+		log.Fatalf("Error: number of bytes in stat does not match, want %v, got %v\n",
 			len(buf), st.Size)
 	}
 
 	m, err = r.ReadAt(buf2, offset)
 	if err != nil {
-		t.Fatal("Error:", err, st.Size, len(buf2), offset)
+		log.Fatal("Error:", err, st.Size, len(buf2), offset)
 	}
 	if m != len(buf2) {
-		t.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf2))
+		log.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf2))
 	}
 	if !bytes.Equal(buf2, buf[offset:offset+512]) {
-		t.Fatal("Error: Incorrect read between two ReadAt from same offset.")
+		log.Fatal("Error: Incorrect read between two ReadAt from same offset.")
 	}
 	offset += 512
 	m, err = r.ReadAt(buf3, offset)
 	if err != nil {
-		t.Fatal("Error:", err, st.Size, len(buf3), offset)
+		log.Fatal("Error:", err, st.Size, len(buf3), offset)
 	}
 	if m != len(buf3) {
-		t.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf3))
+		log.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf3))
 	}
 	if !bytes.Equal(buf3, buf[offset:offset+512]) {
-		t.Fatal("Error: Incorrect read between two ReadAt from same offset.")
+		log.Fatal("Error: Incorrect read between two ReadAt from same offset.")
 	}
 	offset += 512
 	m, err = r.ReadAt(buf4, offset)
 	if err != nil {
-		t.Fatal("Error:", err, st.Size, len(buf4), offset)
+		log.Fatal("Error:", err, st.Size, len(buf4), offset)
 	}
 	if m != len(buf4) {
-		t.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf4))
+		log.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf4))
 	}
 	if !bytes.Equal(buf4, buf[offset:offset+512]) {
-		t.Fatal("Error: Incorrect read between two ReadAt from same offset.")
+		log.Fatal("Error: Incorrect read between two ReadAt from same offset.")
 	}
 
 	buf5 := make([]byte, n)
@@ -1543,14 +1553,14 @@ func TestGetObjectReadAtFunctional(t *testing.T) {
 	m, err = r.ReadAt(buf5, 0)
 	if err != nil {
 		if err != io.EOF {
-			t.Fatal("Error:", err, len(buf5))
+			log.Fatal("Error:", err, len(buf5))
 		}
 	}
 	if m != len(buf5) {
-		t.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf5))
+		log.Fatalf("Error: ReadAt read shorter bytes before reaching EOF, want %v, got %v\n", m, len(buf5))
 	}
 	if !bytes.Equal(buf, buf5) {
-		t.Fatal("Error: Incorrect data read in GetObject, than what was previously upoaded.")
+		log.Fatal("Error: Incorrect data read in GetObject, than what was previously upoaded.")
 	}
 
 	buf6 := make([]byte, n+1)
@@ -1558,36 +1568,39 @@ func TestGetObjectReadAtFunctional(t *testing.T) {
 	_, err = r.ReadAt(buf6, 0)
 	if err != nil {
 		if err != io.EOF {
-			t.Fatal("Error:", err, len(buf6))
+			log.Fatal("Error:", err, len(buf6))
 		}
 	}
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Test Presigned Post Policy
-func TestPresignedPostPolicy(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping functional tests for short runs")
+func testPresignedPostPolicy() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("Skipping functional tests for short runs")
+		return
 	}
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object
-	c, err := NewV4(
+	c, err := minio.NewV4(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -1602,43 +1615,44 @@ func TestPresignedPostPolicy(t *testing.T) {
 	// Make a new bucket in 'us-east-1' (source bucket).
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Generate data more than 32K
-	buf := bytes.Repeat([]byte("4"), rand.Intn(1<<20)+32*1024)
-
+	//buf := bytes.Repeat([]byte("4"), rand.Intn(1<<20)+32*1024)
+	fileName := getFilePath("FileOfSizeGt32KB")
+	buf, _ := ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 	n, err := c.PutObject(bucketName, objectName, bytes.NewReader(buf), "binary/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	if n != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes does not match want %v, got %v",
+		log.Fatalf("Error: number of bytes does not match want %v, got %v",
 			len(buf), n)
 	}
 
-	policy := NewPostPolicy()
+	policy := minio.NewPostPolicy()
 
 	if err := policy.SetBucket(""); err == nil {
-		t.Fatalf("Error: %s", err)
+		log.Fatalf("Error: %s", err)
 	}
 	if err := policy.SetKey(""); err == nil {
-		t.Fatalf("Error: %s", err)
+		log.Fatalf("Error: %s", err)
 	}
 	if err := policy.SetKeyStartsWith(""); err == nil {
-		t.Fatalf("Error: %s", err)
+		log.Fatalf("Error: %s", err)
 	}
 	if err := policy.SetExpires(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC)); err == nil {
-		t.Fatalf("Error: %s", err)
+		log.Fatalf("Error: %s", err)
 	}
 	if err := policy.SetContentType(""); err == nil {
-		t.Fatalf("Error: %s", err)
+		log.Fatalf("Error: %s", err)
 	}
 	if err := policy.SetContentLengthRange(1024*1024, 1024); err == nil {
-		t.Fatalf("Error: %s", err)
+		log.Fatalf("Error: %s", err)
 	}
 
 	policy.SetBucket(bucketName)
@@ -1649,40 +1663,43 @@ func TestPresignedPostPolicy(t *testing.T) {
 
 	_, _, err = c.PresignedPostPolicy(policy)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
-	policy = NewPostPolicy()
+	policy = minio.NewPostPolicy()
 
 	// Remove all objects and buckets
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // Tests copy object
-func TestCopyObject(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping functional tests for short runs")
+func testCopyObject() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("Skipping functional tests for short runs")
+		return
 	}
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object
-	c, err := NewV4(
+	c, err := minio.NewV4(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -1697,68 +1714,69 @@ func TestCopyObject(t *testing.T) {
 	// Make a new bucket in 'us-east-1' (source bucket).
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Make a new bucket in 'us-east-1' (destination bucket).
 	err = c.MakeBucket(bucketName+"-copy", "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName+"-copy")
+		log.Fatal("Error:", err, bucketName+"-copy")
 	}
 
 	// Generate data more than 32K
-	buf := bytes.Repeat([]byte("5"), rand.Intn(1<<20)+32*1024)
-
+	//buf := bytes.Repeat([]byte("5"), rand.Intn(1<<20)+32*1024)
+	fileName := getFilePath("FileOfSizeGt32KB")
+	buf, _ := ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 	n, err := c.PutObject(bucketName, objectName, bytes.NewReader(buf), "binary/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName)
+		log.Fatal("Error:", err, bucketName, objectName)
 	}
 
 	if n != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes does not match want %v, got %v",
+		log.Fatalf("Error: number of bytes does not match want %v, got %v",
 			len(buf), n)
 	}
 
 	r, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	// Check the various fields of source object against destination object.
 	objInfo, err := r.Stat()
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Set copy conditions.
-	copyConds := CopyConditions{}
+	copyConds := minio.CopyConditions{}
 
 	// Start by setting wrong conditions
 	err = copyConds.SetModified(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
 	if err == nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	err = copyConds.SetUnmodified(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
 	if err == nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	err = copyConds.SetMatchETag("")
 	if err == nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	err = copyConds.SetMatchETagExcept("")
 	if err == nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	err = copyConds.SetModified(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	err = copyConds.SetMatchETag(objInfo.ETag)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Copy source.
@@ -1767,90 +1785,93 @@ func TestCopyObject(t *testing.T) {
 	// Perform the Copy
 	err = c.CopyObject(bucketName+"-copy", objectName+"-copy", copySource, copyConds)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName+"-copy", objectName+"-copy")
+		log.Fatal("Error:", err, bucketName+"-copy", objectName+"-copy")
 	}
 
 	// Source object
 	reader, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	// Destination object
 	readerCopy, err := c.GetObject(bucketName+"-copy", objectName+"-copy")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	// Check the various fields of source object against destination object.
 	objInfo, err = reader.Stat()
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	objInfoCopy, err := readerCopy.Stat()
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if objInfo.Size != objInfoCopy.Size {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n",
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n",
 			objInfo.Size, objInfoCopy.Size)
 	}
 
 	// CopyObject again but with wrong conditions
-	copyConds = CopyConditions{}
+	copyConds = minio.CopyConditions{}
 	err = copyConds.SetUnmodified(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	err = copyConds.SetMatchETagExcept(objInfo.ETag)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Perform the Copy which should fail
 	err = c.CopyObject(bucketName+"-copy", objectName+"-copy", copySource, copyConds)
 	if err == nil {
-		t.Fatal("Error:", err, bucketName+"-copy", objectName+"-copy should fail")
+		log.Fatal("Error:", err, bucketName+"-copy", objectName+"-copy should fail")
 	}
 
 	// Remove all objects and buckets
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	err = c.RemoveObject(bucketName+"-copy", objectName+"-copy")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	err = c.RemoveBucket(bucketName + "-copy")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
 // TestEncryptionPutGet tests client side encryption
-func TestEncryptionPutGet(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for the short runs")
+func testEncryptionPutGet() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for the short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
 	// Instantiate new minio client object.
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -1865,7 +1886,7 @@ func TestEncryptionPutGet(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Generate a symmetric key
@@ -1897,7 +1918,7 @@ func TestEncryptionPutGet(t *testing.T) {
 			"9945cb5c7d")
 
 	if err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 
 	publicKey, err := hex.DecodeString("30819f300d06092a864886f70d010101050003818d003081890281810087" +
@@ -1907,13 +1928,13 @@ func TestEncryptionPutGet(t *testing.T) {
 		"c0a07020a78eed7eaa471eca4b92071394e061346c0615ccce2f465dee20" +
 		"80a89e43f29b570203010001")
 	if err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 
 	// Generate an asymmetric key
 	asymKey, err := encrypt.NewAsymmetricKey(privateKey, publicKey)
 	if err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 
 	// Object custom metadata
@@ -1950,39 +1971,39 @@ func TestEncryptionPutGet(t *testing.T) {
 		// Secured object
 		cbcMaterials, err := encrypt.NewCBCSecureMaterials(testCase.encKey)
 		if err != nil {
-			t.Fatal(err)
+			log.Fatal(err)
 		}
 
 		// Put encrypted data
 		_, err = c.PutEncryptedObject(bucketName, objectName, bytes.NewReader(testCase.buf), cbcMaterials, map[string][]string{"Content-Type": {customContentType}}, nil)
 		if err != nil {
-			t.Fatalf("Test %d, error: %v %v %v", i+1, err, bucketName, objectName)
+			log.Fatalf("Test %d, error: %v %v %v", i+1, err, bucketName, objectName)
 		}
 
 		// Read the data back
 		r, err := c.GetEncryptedObject(bucketName, objectName, cbcMaterials)
 		if err != nil {
-			t.Fatalf("Test %d, error: %v %v %v", i+1, err, bucketName, objectName)
+			log.Fatalf("Test %d, error: %v %v %v", i+1, err, bucketName, objectName)
 		}
 		defer r.Close()
 
 		// Compare the sent object with the received one
 		recvBuffer := bytes.NewBuffer([]byte{})
 		if _, err = io.Copy(recvBuffer, r); err != nil {
-			t.Fatalf("Test %d, error: %v", i+1, err)
+			log.Fatalf("Test %d, error: %v", i+1, err)
 		}
 		if recvBuffer.Len() != len(testCase.buf) {
-			t.Fatalf("Test %d, error: number of bytes of received object does not match, want %v, got %v\n",
+			log.Fatalf("Test %d, error: number of bytes of received object does not match, want %v, got %v\n",
 				i+1, len(testCase.buf), recvBuffer.Len())
 		}
 		if !bytes.Equal(testCase.buf, recvBuffer.Bytes()) {
-			t.Fatalf("Test %d, error: Encrypted sent is not equal to decrypted, want `%x`, go `%x`", i+1, testCase.buf, recvBuffer.Bytes())
+			log.Fatalf("Test %d, error: Encrypted sent is not equal to decrypted, want `%x`, go `%x`", i+1, testCase.buf, recvBuffer.Bytes())
 		}
 
 		// Remove test object
 		err = c.RemoveObject(bucketName, objectName)
 		if err != nil {
-			t.Fatalf("Test %d, error: %v", i+1, err)
+			log.Fatalf("Test %d, error: %v", i+1, err)
 		}
 
 	}
@@ -1990,34 +2011,38 @@ func TestEncryptionPutGet(t *testing.T) {
 	// Remove test bucket
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 }
 
-func TestBucketNotification(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for the short runs")
+func testBucketNotification() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for the short runs")
+		return
 	}
 	if os.Getenv("NOTIFY_BUCKET") == "" ||
 		os.Getenv("NOTIFY_SERVICE") == "" ||
 		os.Getenv("NOTIFY_REGION") == "" ||
 		os.Getenv("NOTIFY_ACCOUNTID") == "" ||
 		os.Getenv("NOTIFY_RESOURCE") == "" {
-		t.Skip("skipping notification test if not configured")
+		log.Info("skipping notification test if not configured")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable to debug
@@ -2028,25 +2053,25 @@ func TestBucketNotification(t *testing.T) {
 
 	bucketName := os.Getenv("NOTIFY_BUCKET")
 
-	topicArn := NewArn("aws", os.Getenv("NOTIFY_SERVICE"), os.Getenv("NOTIFY_REGION"), os.Getenv("NOTIFY_ACCOUNTID"), os.Getenv("NOTIFY_RESOURCE"))
-	queueArn := NewArn("aws", "dummy-service", "dummy-region", "dummy-accountid", "dummy-resource")
+	topicArn := minio.NewArn("aws", os.Getenv("NOTIFY_SERVICE"), os.Getenv("NOTIFY_REGION"), os.Getenv("NOTIFY_ACCOUNTID"), os.Getenv("NOTIFY_RESOURCE"))
+	queueArn := minio.NewArn("aws", "dummy-service", "dummy-region", "dummy-accountid", "dummy-resource")
 
-	topicConfig := NewNotificationConfig(topicArn)
-	topicConfig.AddEvents(ObjectCreatedAll, ObjectRemovedAll)
+	topicConfig := minio.NewNotificationConfig(topicArn)
+	topicConfig.AddEvents(minio.ObjectCreatedAll, minio.ObjectRemovedAll)
 	topicConfig.AddFilterSuffix("jpg")
 
-	queueConfig := NewNotificationConfig(queueArn)
-	queueConfig.AddEvents(ObjectCreatedAll)
+	queueConfig := minio.NewNotificationConfig(queueArn)
+	queueConfig.AddEvents(minio.ObjectCreatedAll)
 	queueConfig.AddFilterPrefix("photos/")
 
-	bNotification := BucketNotification{}
+	bNotification := minio.BucketNotification{}
 	bNotification.AddTopic(topicConfig)
 
 	// Add the same topicConfig again, should have no effect
 	// because it is duplicated
 	bNotification.AddTopic(topicConfig)
 	if len(bNotification.TopicConfigs) != 1 {
-		t.Fatal("Error: duplicated entry added")
+		log.Fatal("Error: duplicated entry added")
 	}
 
 	// Add and remove a queue config
@@ -2055,45 +2080,48 @@ func TestBucketNotification(t *testing.T) {
 
 	err = c.SetBucketNotification(bucketName, bNotification)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	bNotification, err = c.GetBucketNotification(bucketName)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	if len(bNotification.TopicConfigs) != 1 {
-		t.Fatal("Error: Topic config is empty")
+		log.Fatal("Error: Topic config is empty")
 	}
 
 	if bNotification.TopicConfigs[0].Filter.S3Key.FilterRules[0].Value != "jpg" {
-		t.Fatal("Error: cannot get the suffix")
+		log.Fatal("Error: cannot get the suffix")
 	}
 
 	err = c.RemoveAllBucketNotification(bucketName)
 	if err != nil {
-		t.Fatal("Error: cannot delete bucket notification")
+		log.Fatal("Error: cannot delete bucket notification")
 	}
 }
 
 // Tests comprehensive list of all methods.
-func TestFunctional(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for the short runs")
+func testFunctional() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for the short runs")
+		return
 	}
 
 	// Seed random based on current time.
 	rand.Seed(time.Now().Unix())
 
-	c, err := New(
+	c, err := minio.New(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable to debug
@@ -2108,20 +2136,20 @@ func TestFunctional(t *testing.T) {
 	// Make a new bucket.
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 
 	// Generate a random file name.
 	fileName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 	file, err := os.Create(fileName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	for i := 0; i < 3; i++ {
 		buf := make([]byte, rand.Intn(1<<19))
 		_, err = file.Write(buf)
 		if err != nil {
-			t.Fatal("Error:", err)
+			log.Fatal("Error:", err)
 		}
 	}
 	file.Close()
@@ -2130,67 +2158,67 @@ func TestFunctional(t *testing.T) {
 	var exists bool
 	exists, err = c.BucketExists(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 	if !exists {
-		t.Fatal("Error: could not find ", bucketName)
+		log.Fatal("Error: could not find ", bucketName)
 	}
 
 	// Asserting the default bucket policy.
 	policyAccess, err := c.GetBucketPolicy(bucketName, "")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if policyAccess != "none" {
-		t.Fatalf("Default bucket policy incorrect")
+		log.Fatalf("Default bucket policy incorrect")
 	}
 	// Set the bucket policy to 'public readonly'.
 	err = c.SetBucketPolicy(bucketName, "", policy.BucketPolicyReadOnly)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	// should return policy `readonly`.
 	policyAccess, err = c.GetBucketPolicy(bucketName, "")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if policyAccess != "readonly" {
-		t.Fatalf("Expected bucket policy to be readonly")
+		log.Fatalf("Expected bucket policy to be readonly")
 	}
 
 	// Make the bucket 'public writeonly'.
 	err = c.SetBucketPolicy(bucketName, "", policy.BucketPolicyWriteOnly)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	// should return policy `writeonly`.
 	policyAccess, err = c.GetBucketPolicy(bucketName, "")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if policyAccess != "writeonly" {
-		t.Fatalf("Expected bucket policy to be writeonly")
+		log.Fatalf("Expected bucket policy to be writeonly")
 	}
 	// Make the bucket 'public read/write'.
 	err = c.SetBucketPolicy(bucketName, "", policy.BucketPolicyReadWrite)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	// should return policy `readwrite`.
 	policyAccess, err = c.GetBucketPolicy(bucketName, "")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if policyAccess != "readwrite" {
-		t.Fatalf("Expected bucket policy to be readwrite")
+		log.Fatalf("Expected bucket policy to be readwrite")
 	}
 	// List all buckets.
 	buckets, err := c.ListBuckets()
 	if len(buckets) == 0 {
-		t.Fatal("Error: list buckets cannot be empty", buckets)
+		log.Fatal("Error: list buckets cannot be empty", buckets)
 	}
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Verify if previously created bucket is listed in list buckets.
@@ -2203,7 +2231,7 @@ func TestFunctional(t *testing.T) {
 
 	// If bucket not found error out.
 	if !bucketFound {
-		t.Fatal("Error: bucket ", bucketName, "not found")
+		log.Fatal("Error: bucket ", bucketName, "not found")
 	}
 
 	objectName := bucketName + "unique"
@@ -2213,19 +2241,19 @@ func TestFunctional(t *testing.T) {
 
 	n, err := c.PutObject(bucketName, objectName, bytes.NewReader(buf), "")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	if n != int64(len(buf)) {
-		t.Fatal("Error: bad length ", n, len(buf))
+		log.Fatal("Error: bad length ", n, len(buf))
 	}
 
 	n, err = c.PutObject(bucketName, objectName+"-nolength", bytes.NewReader(buf), "binary/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName, objectName+"-nolength")
+		log.Fatal("Error:", err, bucketName, objectName+"-nolength")
 	}
 
 	if n != int64(len(buf)) {
-		t.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
+		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", len(buf), n)
 	}
 
 	// Instantiate a done channel to close all listing.
@@ -2241,7 +2269,7 @@ func TestFunctional(t *testing.T) {
 		}
 	}
 	if !objFound {
-		t.Fatal("Error: object " + objectName + " not found.")
+		log.Fatal("Error: object " + objectName + " not found.")
 	}
 
 	objFound = false
@@ -2253,7 +2281,7 @@ func TestFunctional(t *testing.T) {
 		}
 	}
 	if !objFound {
-		t.Fatal("Error: object " + objectName + " not found.")
+		log.Fatal("Error: object " + objectName + " not found.")
 	}
 
 	incompObjNotFound := true
@@ -2264,48 +2292,48 @@ func TestFunctional(t *testing.T) {
 		}
 	}
 	if !incompObjNotFound {
-		t.Fatal("Error: unexpected dangling incomplete upload found.")
+		log.Fatal("Error: unexpected dangling incomplete upload found.")
 	}
 
 	newReader, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	newReadBytes, err := ioutil.ReadAll(newReader)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	if !bytes.Equal(newReadBytes, buf) {
-		t.Fatal("Error: bytes mismatch.")
+		log.Fatal("Error: bytes mismatch.")
 	}
 
 	err = c.FGetObject(bucketName, objectName, fileName+"-f")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	// Generate presigned GET object url.
 	presignedGetURL, err := c.PresignedGetObject(bucketName, objectName, 3600*time.Second, nil)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	// Verify if presigned url works.
 	resp, err := http.Get(presignedGetURL.String())
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		t.Fatal("Error: ", resp.Status)
+		log.Fatal("Error: ", resp.Status)
 	}
 	newPresignedBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	if !bytes.Equal(newPresignedBytes, buf) {
-		t.Fatal("Error: bytes mismatch.")
+		log.Fatal("Error: bytes mismatch.")
 	}
 
 	// Set request parameters.
@@ -2313,37 +2341,37 @@ func TestFunctional(t *testing.T) {
 	reqParams.Set("response-content-disposition", "attachment; filename=\"test.txt\"")
 	presignedGetURL, err = c.PresignedGetObject(bucketName, objectName, 3600*time.Second, reqParams)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	// Verify if presigned url works.
 	resp, err = http.Get(presignedGetURL.String())
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		t.Fatal("Error: ", resp.Status)
+		log.Fatal("Error: ", resp.Status)
 	}
 	newPresignedBytes, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	if !bytes.Equal(newPresignedBytes, buf) {
-		t.Fatal("Error: bytes mismatch for presigned GET URL.")
+		log.Fatal("Error: bytes mismatch for presigned GET URL.")
 	}
 	if resp.Header.Get("Content-Disposition") != "attachment; filename=\"test.txt\"" {
-		t.Fatalf("Error: wrong Content-Disposition received %s", resp.Header.Get("Content-Disposition"))
+		log.Fatalf("Error: wrong Content-Disposition received %s", resp.Header.Get("Content-Disposition"))
 	}
 
 	presignedPutURL, err := c.PresignedPutObject(bucketName, objectName+"-presigned", 3600*time.Second)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	buf = bytes.Repeat([]byte("g"), 1<<19)
 
 	req, err := http.NewRequest("PUT", presignedPutURL.String(), bytes.NewReader(buf))
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	httpClient := &http.Client{
 		// Setting a sensible time out of 30secs to wait for response
@@ -2354,74 +2382,77 @@ func TestFunctional(t *testing.T) {
 	}
 	resp, err = httpClient.Do(req)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	newReader, err = c.GetObject(bucketName, objectName+"-presigned")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	newReadBytes, err = ioutil.ReadAll(newReader)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 
 	if !bytes.Equal(newReadBytes, buf) {
-		t.Fatal("Error: bytes mismatch.")
+		log.Fatal("Error: bytes mismatch.")
 	}
 
 	err = c.RemoveObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	err = c.RemoveObject(bucketName, objectName+"-f")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	err = c.RemoveObject(bucketName, objectName+"-nolength")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	err = c.RemoveObject(bucketName, objectName+"-presigned")
 	if err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	err = c.RemoveBucket(bucketName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	err = c.RemoveBucket(bucketName)
 	if err == nil {
-		t.Fatal("Error:")
+		log.Fatal("Error:")
 	}
 	if err.Error() != "The specified bucket does not exist" {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	if err = os.Remove(fileName); err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 	if err = os.Remove(fileName + "-f"); err != nil {
-		t.Fatal("Error: ", err)
+		log.Fatal("Error: ", err)
 	}
 }
 
 // Test for validating GetObject Reader* methods functioning when the
 // object is modified in the object store.
-func TestGetObjectObjectModified(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for the short runs")
+func testGetObjectObjectModified() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for the short runs")
+		return
 	}
 
 	// Instantiate new minio client object.
-	c, err := NewV4(
+	c, err := minio.NewV4(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -2434,7 +2465,7 @@ func TestGetObjectObjectModified(t *testing.T) {
 	bucketName := randString(60, rand.NewSource(time.Now().UnixNano()), "minio-go-test")
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 	defer c.RemoveBucket(bucketName)
 
@@ -2443,14 +2474,14 @@ func TestGetObjectObjectModified(t *testing.T) {
 	content := "helloworld"
 	_, err = c.PutObject(bucketName, objectName, strings.NewReader(content), "application/text")
 	if err != nil {
-		t.Fatalf("Failed to upload %s/%s: %v", bucketName, objectName, err)
+		log.Fatalf("Failed to upload %s/%s: %v", bucketName, objectName, err)
 	}
 
 	defer c.RemoveObject(bucketName, objectName)
 
 	reader, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatalf("Failed to get object %s/%s: %v", bucketName, objectName, err)
+		log.Fatalf("Failed to get object %s/%s: %v", bucketName, objectName, err)
 	}
 	defer reader.Close()
 
@@ -2458,44 +2489,47 @@ func TestGetObjectObjectModified(t *testing.T) {
 	b := make([]byte, 5)
 	n, err := reader.ReadAt(b, 0)
 	if err != nil {
-		t.Fatalf("Failed to read object %s/%s at an offset: %v", bucketName, objectName, err)
+		log.Fatalf("Failed to read object %s/%s at an offset: %v", bucketName, objectName, err)
 	}
 
 	// Upload different contents to the same object while object is being read.
 	newContent := "goodbyeworld"
 	_, err = c.PutObject(bucketName, objectName, strings.NewReader(newContent), "application/text")
 	if err != nil {
-		t.Fatalf("Failed to upload %s/%s: %v", bucketName, objectName, err)
+		log.Fatalf("Failed to upload %s/%s: %v", bucketName, objectName, err)
 	}
 
 	// Confirm that a Stat() call in between doesn't change the Object's cached etag.
 	_, err = reader.Stat()
 	if err.Error() != "At least one of the pre-conditions you specified did not hold" {
-		t.Errorf("Expected Stat to fail with error %s but received %s", "At least one of the pre-conditions you specified did not hold", err.Error())
+		log.Error(fmt.Errorf("Expected Stat to fail with error %s but received %s", "At least one of the pre-conditions you specified did not hold", err.Error()))
 	}
 
 	// Read again only to find object contents have been modified since last read.
 	_, err = reader.ReadAt(b, int64(n))
 	if err.Error() != "At least one of the pre-conditions you specified did not hold" {
-		t.Errorf("Expected ReadAt to fail with error %s but received %s", "At least one of the pre-conditions you specified did not hold", err.Error())
+		log.Error(fmt.Errorf("Expected ReadAt to fail with error %s but received %s", "At least one of the pre-conditions you specified did not hold", err.Error()))
 	}
 }
 
 // Test validates putObject to upload a file seeked at a given offset.
-func TestPutObjectUploadSeekedObject(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping functional tests for the short runs")
+func testPutObjectUploadSeekedObject() {
+	logTrace()
+
+	if isQuickMode() {
+		log.Info("skipping functional tests for the short runs")
+		return
 	}
 
 	// Instantiate new minio client object.
-	c, err := NewV4(
+	c, err := minio.NewV4(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
 		os.Getenv("SECRET_KEY"),
 		mustParseBool(os.Getenv("ENABLE_HTTPS")),
 	)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	// Enable tracing, write to stderr.
@@ -2508,70 +2542,72 @@ func TestPutObjectUploadSeekedObject(t *testing.T) {
 	bucketName := randString(60, rand.NewSource(time.Now().UnixNano()), "minio-go-test")
 	err = c.MakeBucket(bucketName, "us-east-1")
 	if err != nil {
-		t.Fatal("Error:", err, bucketName)
+		log.Fatal("Error:", err, bucketName)
 	}
 	defer c.RemoveBucket(bucketName)
 
 	tempfile, err := ioutil.TempFile("", "minio-go-upload-test-")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
-	var length = 120000
-	data := bytes.Repeat([]byte("1"), length)
-
+	//var length = 120000
+	//data := bytes.Repeat([]byte("1"), length)
+	fileName := getFilePath("FileOfSize100KB")
+	data, _ := ioutil.ReadFile(fileName)
+	var length = len(data)
 	if _, err = tempfile.Write(data); err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	objectName := fmt.Sprintf("test-file-%v", rand.Uint32())
 
 	offset := length / 2
 	if _, err := tempfile.Seek(int64(offset), 0); err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	n, err := c.PutObject(bucketName, objectName, tempfile, "binary/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if n != int64(length-offset) {
-		t.Fatalf("Invalid length returned, want %v, got %v", int64(length-offset), n)
+		log.Fatalf("Invalid length returned, want %v, got %v", int64(length-offset), n)
 	}
 	tempfile.Close()
 	if err = os.Remove(tempfile.Name()); err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	length = int(n)
 
 	obj, err := c.GetObject(bucketName, objectName)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	n, err = obj.Seek(int64(offset), 0)
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if n != int64(offset) {
-		t.Fatalf("Invalid offset returned, want %v, got %v", int64(offset), n)
+		log.Fatalf("Invalid offset returned, want %v, got %v", int64(offset), n)
 	}
 
 	n, err = c.PutObject(bucketName, objectName+"getobject", obj, "binary/octet-stream")
 	if err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 	if n != int64(length-offset) {
-		t.Fatalf("Invalid length returned, want %v, got %v", int64(length-offset), n)
+		log.Fatalf("Invalid length returned, want %v, got %v", int64(length-offset), n)
 	}
 
 	if err = c.RemoveObject(bucketName, objectName); err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 
 	if err = c.RemoveObject(bucketName, objectName+"getobject"); err != nil {
-		t.Fatal("Error:", err)
+		log.Fatal("Error:", err)
 	}
 }
 
@@ -2582,4 +2618,39 @@ func mustParseBool(str string) bool {
 		return false
 	}
 	return b
+}
+func logTrace() {
+	pc := make([]uintptr, 10) // at least 1 entry needed
+	runtime.Callers(2, pc)
+	f := runtime.FuncForPC(pc[0])
+	_, line := f.FileLine(pc[0])
+	log.Info(fmt.Sprintf("Running %s at line:%d", f.Name(), line))
+}
+
+func main() {
+	log.Info("Running functional tests for minio-go sdk....")
+	testMakeBucketError()
+	testMakeBucketRegions()
+	testPutObjectWithMetadata()
+
+	testPutObjectReadAt()
+
+	testPutObjectStreaming()
+	testListPartiallyUploaded()
+	testGetObjectSeekEnd()
+	testGetObjectClosedTwice()
+	testRemoveMultipleObjects()
+	testRemovePartiallyUploaded()
+	testFPutObjectMultipart()
+	testFPutObject()
+	testGetObjectReadSeekFunctional()
+	testGetObjectReadAtFunctional()
+	testPresignedPostPolicy()
+	testCopyObject()
+	testEncryptionPutGet()
+	testBucketNotification()
+	testFunctional()
+	testGetObjectObjectModified()
+	testPutObjectUploadSeekedObject()
+	log.Info("Functional tests complete for minio-go sdk")
 }
