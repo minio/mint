@@ -10,7 +10,7 @@ WORKDIR /mint
 
 COPY . /mint
 
-RUN apt-get update && apt-get install -yq \
-    git && /mint/build/install.sh
-  
+RUN apt-get update && apt-get install -yq git jq && \
+    /mint/build/install.sh
+
 CMD /mint/run.sh

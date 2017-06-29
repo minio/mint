@@ -17,7 +17,7 @@
 
 # Execute test.sh
 run() {
-    [ "$ENABLE_HTTPS" -eq "1" ] && scheme="https" || scheme="http"
+    [ "$ENABLE_HTTPS" == "1" ] && scheme="https" || scheme="http"
     endpoint_url=$scheme://$SERVER_ENDPOINT
 
     echo "Starting aws cli tests on ${endpoint_url}"
