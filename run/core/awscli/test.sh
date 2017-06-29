@@ -48,13 +48,8 @@ createObject_02(){
 
     bucketName=$(create_random_string)
 
-    # Create a temp 2m file
-    echo "Creating a 2mb temp file for upload"
-    tmpfile=`tempfile`
-    truncate -s 2m "$tmpfile"
-
     # save md5 hash
-    hash1=`md5sum $tmpfile | awk '{print $1}'`
+    hash1=$(md5sum "${DATA_DIR}/datafile-1-MB" | awk '{print $1}')
 
     # create a bucket
     echo "Create a bucket"
@@ -62,13 +57,13 @@ createObject_02(){
 
     # copy the file
     echo "Upload an object"
-    ${AWS} s3api put-object --body "${tmpfile}" --bucket "${bucketName}" --key "$(basename "${tmpfile}")"
+    ${AWS} s3api put-object --body "${DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB"
 
     echo "Download the file"
-    ${AWS} s3api get-object --bucket "${bucketName}" --key "$(basename "${tmpfile}")" "${tmpfile}_downloaded"
+    ${AWS} s3api get-object --bucket "${bucketName}" --key "datafile-1-MB" "/tmp/datafile-1-MB-downloaded"
 
     #save md5 hash of downloaded file
-    hash2=$(md5sum "/tmp/${tmpfile}_downloaded" | awk '{print $1}')
+    hash2=$(md5sum "/tmp/datafile-1-MB-downloaded" | awk '{print $1}')
 
     echo "Testing if the downloaded file is same as local file"
     if [ "$hash1" -ne "$hash2" ]; then
@@ -76,7 +71,7 @@ createObject_02(){
     fi
 
     echo "Remove the object"
-    ${AWS} s3api delete-object --bucket "${bucketName}" --key "$(basename "${tmpfile}")"
+    ${AWS} s3api delete-object --bucket "${bucketName}" --key "datafile-1-MB"
 
     echo "Remove the bucket"
     ${AWS} s3api delete-bucket --bucket "${bucketName}"

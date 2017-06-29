@@ -8,8 +8,7 @@ ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
 
 RUN apt-get update && apt-get install -yq \
     git && git clone https://github.com/minio/mint.git && \
-    cd /mint && /mint/build/install.sh && \
-    /mint/build/initData.sh
+    cd /mint && /mint/build/install.sh 
 
 WORKDIR /mint
 
