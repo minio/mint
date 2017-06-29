@@ -37,7 +37,7 @@ Set environment variables to pass test target server details to the docker conta
 - `SECRET_KEY`     - Secret Key of the server. Defaults to Minio Play Secret Key.
 - `ENABLE_HTTPS`   - Set to 1 to send HTTPS requests on SSL enabled deployment. Defaults to 0.
 - `DATA_DIR`       - Data directory for SDK tests. Defaults to data directory created by `build/data/install.sh` script.
-- `IGNORE_TESTS`   - `;` separated list of SDKs to ignore running. Empty by default.
+- `SKIP_TESTS`     - `','` separated list of SDKs to ignore running. Empty by default. For example, to skip `minio-js` and `aws-cli` tests, use `export SKIP_TESTS=minio-js,aws-cli`. 
 
 Note: With no env variables provided the tests are run on play.minio.io by default
 
