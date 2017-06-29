@@ -22,8 +22,8 @@ fake = Factory.create()
 # Generate unique string
 SERVER_ENDPOINT = os.getenv('SERVER_ENDPOINT')
 ACCESS_KEY = os.getenv('ACCESS_KEY')
-SECRET_KEY = os.getenv('SECRET_KEY') 
-ENABLE_HTTPS  = os.getenv('ENABLE_HTTPS') 
+SECRET_KEY = os.getenv('SECRET_KEY')
+ENABLE_HTTPS  = os.getenv('ENABLE_HTTPS')
 is_s3 = SERVER_ENDPOINT.startswith("s3.amazonaws")
 _http = None
 data_dir = "/mint/data" if os.getenv('DATA_DIR') == None else os.getenv('DATA_DIR')
@@ -107,7 +107,7 @@ def put_large_object_from_stream_test(client,bucket_name, object_name):
     found = client.bucket_exists(bucket_name)
     assert found == True
 
-    largefile = data_dir + "/" + "FileOfSize6MB"
+    largefile = data_dir + "/" + "datafile-6-MB"
     # Put a file
     file_stat = os.stat(largefile)
     with open(largefile, 'rb') as file_data:
@@ -121,7 +121,7 @@ def put_object(client, bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "FileOfSize100KB"
+    testfile = data_dir + "/" + "datafie-100-kB"
 
     file_stat = os.stat(testfile)
 
@@ -157,7 +157,7 @@ def put_large_object_from_file_test(client,bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True, logger.error(bucket_name + " missing on server")
-    largefile = data_dir + "/" + "FileOfSize6MB"
+    largefile = data_dir + "/" + "datafile-6-MB"
     # Put a file
     file_stat = os.stat(largefile)
     if is_s3:
@@ -223,7 +223,7 @@ def stat_object_test(client,bucket_name, object_name):
     stat = client.stat_object(bucket_name,object_name)
     assert stat.size == file_stat.st_size
 
-def get_object_test(client, bucket_name, object_name): 
+def get_object_test(client, bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
@@ -234,13 +234,13 @@ def get_object_test(client, bucket_name, object_name):
         for data in object_data:
             file_data.write(data)
     file_data.close()
-    
+
     file_stat = os.stat("newfile")
     stat = client.stat_object(bucket_name,object_name)
     assert stat.size == file_stat.st_size
     os.remove("newfile")
 
-def get_partial_object_test(client, bucket_name, object_name): 
+def get_partial_object_test(client, bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
@@ -249,26 +249,26 @@ def get_partial_object_test(client, bucket_name, object_name):
     with open('my-testfile', 'wb') as file_data:
         for d in data:
             file_data.write(d)
-    
-    file_data.close()       
+
+    file_data.close()
     file_stat = os.stat('my-testfile')
 
     assert file_stat.st_size == 10
     os.remove("my-testfile")
 
-def get_fobject_test(client, bucket_name, object_name): 
+def get_fobject_test(client, bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
      # Get a full object locally.
     client.fget_object(bucket_name, object_name, "newfile_f")
-    
+
     file_stat = os.stat("newfile_f")
     stat = client.stat_object(bucket_name,object_name)
     assert stat.size == file_stat.st_size
     os.remove("newfile_f")
 
-def list_objects_test(client, bucket_name): 
+def list_objects_test(client, bucket_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
@@ -280,7 +280,7 @@ def list_objects_test(client, bucket_name):
                            obj.etag, obj.size, \
                            obj.content_type
 
-def list_objects_v2_test(client, bucket_name): 
+def list_objects_v2_test(client, bucket_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
@@ -292,7 +292,7 @@ def list_objects_v2_test(client, bucket_name):
                            obj.etag, obj.size, \
                            obj.content_type
 
-def remove_objects_test(client, bucket_name): 
+def remove_objects_test(client, bucket_name):
     _log_test()
     client.make_bucket(bucket_name)
     for i in range(10):
@@ -352,7 +352,7 @@ def init_client():
 
     return client
 
-def setup(client): 
+def setup(client):
     bucket_name = generate_random_string().lower()
     object_name = uuid.uuid4().__str__().lower()
     make_bucket_test(client, bucket_name)
@@ -367,9 +367,9 @@ def run_tests(client):
     put_small_object_from_stream_test(client, bucket_name, object_name + suffixes[1])
     put_large_object_from_stream_test(client, bucket_name, object_name + suffixes[2])
     put_small_object_from_file_test(client, bucket_name, object_name + suffixes[3])
-    
+
     put_large_object_from_file_test(client, bucket_name, object_name + suffixes[4])
-    
+
     copy_object_test(client,bucket_name,object_name + suffixes[5], object_name)
     copy_object_with_conditions_test(client,bucket_name, object_name + suffixes[6], object_name)
     stat_object_test(client, bucket_name, object_name)
@@ -381,14 +381,14 @@ def run_tests(client):
     presigned_post_policy_test(client, bucket_name)
     list_objects_test(client,bucket_name)
     list_objects_v2_test(client,bucket_name)
-    
+
     remove_objects_test(client,bucket_name + "rmv")
     teardown(client,bucket_name, object_name, suffixes)
 
 
 def teardown(client,bucket_name, object_name, suffixes):
 
-    for suffix in suffixes: 
+    for suffix in suffixes:
         client.remove_object(bucket_name, object_name + suffix)
     client.remove_bucket(bucket_name)
     return
