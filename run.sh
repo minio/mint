@@ -21,6 +21,22 @@ log_dir="log"
 error_file_name="error.log"
 log_file_name="output.log"
 
+# Utility methods
+
+# Prints message after an error
+printMsg() {
+	echo ""
+	echo "Use 'docker ps -a' to find container-id"
+	echo "Export run logs from the container using 'docker cp container-id:/mint/log /tmp/mint-logs'"
+}
+
+# checks if an elements is not present in an array
+containsElement () {
+    local e
+    for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
+    return 1
+}
+
 # Setup environment variables for the run.
 _init() {
 	set -e
@@ -57,12 +73,6 @@ _init() {
 	fi
 }
 
-printMsg() {
-	echo ""
-	echo "Use 'docker ps -a' to find container-id"
-	echo "Export run logs from the container using 'docker cp container-id:/mint/log /tmp/mint-logs'"
-}
-
 # Run the current SDK Test
 runCoreTest() {
 
@@ -91,15 +101,30 @@ runCoreTest() {
 coreMain() {
 
 	test_dir="run/core"
+
+    # check if any tests are ignored
+    if [ -z "${IGNORE_TESTS}" ]; then
+        IFS=';' read -ra SDK_TO_IGNORE <<< "${IGNORE_TESTS}"
+    fi
+
 	# read the SDKs to run
 	for i in ${root_dir}/${test_dir}/*;
-		do
-			if [ -d ${i} ]; then
+		do  
+            # if directory exists and is not excluded
+			if [ -d "${i}" ] && [ ! $(containsElement "${i}" "${SDK_TO_IGNORE[@]}") ]; then
 
 		        # Will not run if no directories are available
 		        sdk="$(basename $i)"
-		        echo "Running $sdk tests ..."
+
+				echo "Running $sdk tests ..."
+				# log start time
+				start=$(date +%s)
 				runCoreTest "$sdk" "$MINT_MODE" || { printMsg; exit 2; }
+				# log end time
+				end=$(date +%s)
+				# get diif
+				diff=$(( $end - $start ))
+				echo "Finished $sdk tests in $diff seconds"
 			fi
 		done
 

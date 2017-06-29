@@ -20,7 +20,6 @@ set -e
 _init() {
     GO_VERSION="1.7.5"
     GO_INSTALL_PATH="/usr/local"
-    MINT_INIT_PATH="/mint/run/core/init"
     MINIO_GO_PATH="/mint/run/core/minio-go"
 }
 
@@ -32,11 +31,6 @@ installGo() {
 installGoPkgs() {
     go get -u github.com/minio/minio-go/...
     go get -u github.com/sirupsen/logrus/...
-}
-
-# Build init tests
-buildInitTests() {
-    CGO_ENABLED=0 go build -o "${MINT_INIT_PATH}/initCheck" "${MINT_INIT_PATH}/initCheck.go"
 }
 
 # Build Minio Go tests
@@ -56,7 +50,6 @@ main() {
     installGo
     installGoPkgs
 
-    buildInitTests
     buildGoTests
     cleanup
 }

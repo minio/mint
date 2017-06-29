@@ -30,13 +30,14 @@ $ docker build -t minio/mint .
 
 #### Env variables
 
-Set environment variables to pass test target server details to the docker container. Supported envs:
+Set environment variables to pass test target server details to the docker container. Supported environment variables:
 
-- `SERVER_ENDPOINT`- <IP/URL>:<PORT> of the Minio server on which the tests has to be run
-- `ACCESS_KEY`     - Access Key of the server
-- `SECRET_KEY`     - Secret Key of the server
-- `ENABLE_HTTPS`   - Optional value when set to 1 sends HTTPS requests on SSL enabled deployment
-- `DATA_DIR`       - Optional value when set uses data from this directory for SDK tests
+- `SERVER_ENDPOINT`- <IP/URL>:<PORT> of the Minio server on which the tests has to be run. Defaults to [Minio Play Server](play.minio.io:9000/minio/).
+- `ACCESS_KEY`     - Access Key of the server. Defaults to Minio Play Access Key.
+- `SECRET_KEY`     - Secret Key of the server. Defaults to Minio Play Secret Key.
+- `ENABLE_HTTPS`   - Set to 1 to send HTTPS requests on SSL enabled deployment. Defaults to 0.
+- `DATA_DIR`       - Data directory for SDK tests. Defaults to data directory created by `build/data/install.sh` script.
+- `IGNORE_TESTS`   - `;` separated list of SDKs to ignore running. Empty by default.
 
 Note: With no env variables provided the tests are run on play.minio.io by default
 
