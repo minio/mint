@@ -230,7 +230,7 @@ func testPutObjectReadAt() {
 	// Use different data for each part for multipart tests to ensure part order at the end.
 	var buf []byte
 
-	fileName := getFilePath("FileOfSize65MB")
+	fileName := getFilePath("datafile-65-MB")
 	buf, _ = ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
@@ -320,7 +320,7 @@ func testPutObjectWithMetadata() {
 	// Generate data using 2 parts
 	// Use different data in each part for multipart tests to ensure part order at the end.
 	var buf []byte
-	fileName := getFilePath("FileOfSize65MB")
+	fileName := getFilePath("datafile-65-MB")
 	buf, _ = ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
@@ -552,10 +552,8 @@ func testGetObjectSeekEnd() {
 	if err != nil {
 		log.Fatal("Error:", err, bucketName)
 	}
-	fileName := getFilePath("FileOfSizeGt1MB")
+	fileName := getFilePath("datafile-1-MB")
 	buf, _ := ioutil.ReadFile(fileName)
-	// Generate data more than 32K
-	//buf := bytes.Repeat([]byte("1"), rand.Intn(1<<20)+32*1024)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
 	n, err := c.PutObject(bucketName, objectName, bytes.NewReader(buf), "binary/octet-stream")
@@ -651,10 +649,8 @@ func testGetObjectClosedTwice() {
 		log.Fatal("Error:", err, bucketName)
 	}
 
-	// Generate data more than 32K
-	fileName := getFilePath("FileOfSizeGt32KB")
+	fileName := getFilePath("datafile-33-kB")
 	buf, _ := ioutil.ReadFile(fileName)
-	//buf := bytes.Repeat([]byte("1"), rand.Intn(1<<20)+32*1024)
 
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
@@ -846,201 +842,6 @@ func testRemovePartiallyUploaded() {
 	}
 }
 
-// Tests resumable put object cloud to cloud.
-func testResumablePutObject() {
-	logTrace()
-
-	// By passing 'go test -short' skips these tests.
-	if isQuickMode() {
-		log.Info("skipping functional tests for the short runs")
-		return
-	}
-
-	// Seed random based on current time.
-	rand.Seed(time.Now().Unix())
-
-	// Instantiate new minio client object.
-	c, err := minio.New(
-		os.Getenv("SERVER_ENDPOINT"),
-		os.Getenv("ACCESS_KEY"),
-		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("ENABLE_HTTPS")),
-	)
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	// Set user agent.
-	c.SetAppInfo("Minio-go-FunctionalTest", "0.1.0")
-
-	// Enable tracing, write to stdout.
-	// c.TraceOn(os.Stderr)
-
-	// Generate a new random bucket name.
-	bucketName := randString(60, rand.NewSource(time.Now().UnixNano()), "minio-go-test")
-
-	// Make a new bucket.
-	err = c.MakeBucket(bucketName, "us-east-1")
-	if err != nil {
-		log.Fatal("Error:", err, bucketName)
-	}
-
-	// Create a temporary file
-	file, err := ioutil.TempFile(os.TempDir(), "resumable")
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-	fileName := getFilePath("FileOfSize128mb")
-	buf, _ := ioutil.ReadFile(fileName)
-	r := bytes.NewReader(buf)
-	n, err := io.CopyN(file, r, minPartSize*2)
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-	if n != int64(minPartSize*2) {
-		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*2, n)
-	}
-
-	// Close the file pro-actively for windows.
-	if err = file.Close(); err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	// New object name.
-	objectName := bucketName + "-resumable"
-	objectContentType := "application/custom-octet-stream"
-
-	// Upload the file.
-	n, err = c.FPutObject(bucketName, objectName, file.Name(), objectContentType)
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-	if n != int64(minPartSize*2) {
-		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", minPartSize*2, n)
-	}
-
-	// Get the uploaded object.
-	reader, err := c.GetObject(bucketName, objectName)
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	// Get object info.
-	objInfo, err := reader.Stat()
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	if objInfo.ContentType != objectContentType {
-		log.Fatalf("Error: Content types don't match, want %v, got %v\n", objectContentType, objInfo.ContentType)
-	}
-
-	// Upload now cloud to cloud.
-	n, err = c.PutObject(bucketName, objectName+"-put", reader, objectContentType)
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	if n != objInfo.Size {
-		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", objInfo.Size, n)
-	}
-
-	// Remove all temp files, objects and bucket.
-	err = c.RemoveObject(bucketName, objectName)
-	if err != nil {
-		log.Fatal("Error: ", err)
-	}
-
-	err = c.RemoveObject(bucketName, objectName+"-put")
-	if err != nil {
-		log.Fatal("Error: ", err)
-	}
-
-	err = c.RemoveBucket(bucketName)
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	err = os.Remove(file.Name())
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-}
-
-// Tests resumable file based put object multipart upload.
-func testResumableFPutObject() {
-	logTrace()
-
-	if isQuickMode() {
-		log.Info("skipping functional tests for the short runs")
-		return
-	}
-
-	// Seed random based on current time.
-	rand.Seed(time.Now().Unix())
-
-	// Instantiate new minio client object.
-	c, err := minio.New(
-		os.Getenv("SERVER_ENDPOINT"),
-		os.Getenv("ACCESS_KEY"),
-		os.Getenv("SECRET_KEY"),
-		mustParseBool(os.Getenv("ENABLE_HTTPS")),
-	)
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	// Set user agent.
-	c.SetAppInfo("Minio-go-FunctionalTest", "0.1.0")
-
-	// Enable tracing, write to stdout.
-	// c.TraceOn(os.Stderr)
-
-	// Generate a new random bucket name.
-	bucketName := randString(60, rand.NewSource(time.Now().UnixNano()), "minio-go-test")
-
-	// Make a new bucket.
-	err = c.MakeBucket(bucketName, "us-east-1")
-	if err != nil {
-		log.Fatal("Error:", err, bucketName)
-	}
-
-	file, err := ioutil.TempFile(os.TempDir(), "resumable")
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	// Upload 4 parts to use all 3 multipart 'workers' and have an extra part.
-	// Use different data in each part for multipart tests to ensure parts are uploaded in correct order.
-
-	fileName := getFilePath("FileOfSize65MB")
-	totalSize := minPartSize*1 + 1024*1024*1
-	objectName := bucketName + "-resumable"
-
-	n, err := c.FPutObject(bucketName, objectName, fileName, "application/octet-stream")
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-	if n != int64(totalSize) {
-		log.Fatalf("Error: number of bytes does not match, want %v, got %v\n", totalSize, n)
-	}
-
-	err = c.RemoveObject(bucketName, objectName)
-	if err != nil {
-		log.Fatal("Error: ", err)
-	}
-
-	err = c.RemoveBucket(bucketName)
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-
-	err = os.Remove(file.Name())
-	if err != nil {
-		log.Fatal("Error:", err)
-	}
-}
-
 // Tests FPutObject of a big file to trigger multipart
 func testFPutObjectMultipart() {
 	logTrace()
@@ -1081,7 +882,7 @@ func testFPutObjectMultipart() {
 
 	// Upload 4 parts to utilize all 3 'workers' in multipart and still have a part to upload.
 
-	fileName := getFilePath("FileOfSize65MB")
+	fileName := getFilePath("datafile-65-MB")
 	totalSize := minPartSize*1 + 1024*1024*1
 	// Set base object name
 	objectName := bucketName + "FPutObject"
@@ -1164,7 +965,7 @@ func testFPutObject() {
 	// Upload 3 parts worth of data to use all 3 of multiparts 'workers' and have an extra part.
 	// Use different data in part for multipart tests to check parts are uploaded in correct order.
 
-	fName := getFilePath("FileOfSize65MB")
+	fName := getFilePath("datafile-65-MB")
 	var totalSize = minPartSize*1 + 1024*1024*1
 
 	// Set base object name
@@ -1306,9 +1107,7 @@ func testGetObjectReadSeekFunctional() {
 		log.Fatal("Error:", err, bucketName)
 	}
 
-	// Generate data more than 32K
-	//buf := bytes.Repeat([]byte("2"), rand.Intn(1<<20)+32*1024)
-	fileName := getFilePath("FileOfSizeGt32KB")
+	fileName := getFilePath("datafile-33-kB")
 	buf, _ := ioutil.ReadFile(fileName)
 	bufSize := len(buf)
 
@@ -1465,9 +1264,7 @@ func testGetObjectReadAtFunctional() {
 		log.Fatal("Error:", err, bucketName)
 	}
 
-	// Generate data more than 32K
-	//buf := bytes.Repeat([]byte("3"), rand.Intn(1<<20)+32*1024)
-	fileName := getFilePath("FileOfSizeGt32KB")
+	fileName := getFilePath("datafile-33-kB")
 	buf, _ := ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
@@ -1618,9 +1415,7 @@ func testPresignedPostPolicy() {
 		log.Fatal("Error:", err, bucketName)
 	}
 
-	// Generate data more than 32K
-	//buf := bytes.Repeat([]byte("4"), rand.Intn(1<<20)+32*1024)
-	fileName := getFilePath("FileOfSizeGt32KB")
+	fileName := getFilePath("datafile-33-kB")
 	buf, _ := ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
@@ -1723,9 +1518,7 @@ func testCopyObject() {
 		log.Fatal("Error:", err, bucketName+"-copy")
 	}
 
-	// Generate data more than 32K
-	//buf := bytes.Repeat([]byte("5"), rand.Intn(1<<20)+32*1024)
-	fileName := getFilePath("FileOfSizeGt32KB")
+	fileName := getFilePath("datafile-33-kB")
 	buf, _ := ioutil.ReadFile(fileName)
 	// Save the data
 	objectName := randString(60, rand.NewSource(time.Now().UnixNano()), "")
@@ -2551,9 +2344,7 @@ func testPutObjectUploadSeekedObject() {
 		log.Fatal("Error:", err)
 	}
 
-	//var length = 120000
-	//data := bytes.Repeat([]byte("1"), length)
-	fileName := getFilePath("FileOfSize100KB")
+	fileName := getFilePath("datafile-100-kB")
 	data, _ := ioutil.ReadFile(fileName)
 	var length = len(data)
 	if _, err = tempfile.Write(data); err != nil {

@@ -71,19 +71,19 @@ describe('functional tests', function() {
 
     //var _100kb = new Buffer(100*1024)
     //_100kb.fill('a')
-    var _100kb = fs.readFileSync(dataDir + "/FileOfSize100KB")
+    var _100kb = fs.readFileSync(dataDir + "/datafile-100-kB")
     var _100kbObjectName = 'miniojsobject_100kb'
     var _100kbObjectBufferName = `${_100kbObjectName}.buffer`
     var _100kbObjectStringName = `${_100kbObjectName}.string`
     var _100kbmd5 = crypto.createHash('md5').update(_100kb).digest('hex')
 
-    var _11mb = fs.readFileSync(dataDir + "/FileOfSize11MB")
+    var _11mb = fs.readFileSync(dataDir + "/datafile-11-MB")
     var _11mbObjectName = 'miniojsobject_11mb'
     var _11mbmd5 = crypto.createHash('md5').update(_11mb).digest('hex')
 
     var _11mbObjectNameCopy = _11mbObjectName + '_copy'
 
-    var _5mb = fs.readFileSync(dataDir + "/FileOfSize5MB")
+    var _5mb = fs.readFileSync(dataDir + "/datafile-5-MB")
     var _5mbObjectName = 'miniojsobject_5mb'
     var _5mbmd5 = crypto.createHash('md5').update(_5mb).digest('hex')
 

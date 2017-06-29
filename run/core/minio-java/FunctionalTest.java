@@ -1,6 +1,5 @@
-
 /*
- *  Minio Cloud Storage, (C) 2017 Minio, Inc.
+ * Mint (C) 2017 Minio, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,12 +54,12 @@ public class FunctionalTest {
   private static String mode;
   private static MinioClient client = null;
   private static String dataDir=System.getenv("DATA_DIR");
-  private static String FileOfSize1b=dataDir + "/FileOfSize1B";
+  private static String FileOfSize1b=dataDir + "/datafile-1-b";
 
-  private static String FileOfSize6mb=dataDir + "/FileOfSize6MB";
+  private static String FileOfSize6mb=dataDir + "/datafile-6-MB";
 
-  private static String smallFile=dataDir + "/FileOfSize1MB";
-  private static String largeFile=dataDir + "/FileOfSize11MB";
+  private static String smallFile=dataDir + "/datafile-1-MB";
+  private static String largeFile=dataDir + "/datafile-11-MB";
 
   /**
    * Do no-op.
@@ -673,7 +672,7 @@ public class FunctionalTest {
     int i;
     int objCount = 1050;
 
-    System.out.println("Test: recursive: listObjects(final String bucketName, final String prefix" 
+    System.out.println("Test: recursive: listObjects(final String bucketName, final String prefix"
            + ", final boolean recursive)");
     String[] objectNames = new String[objCount];
 
@@ -690,7 +689,7 @@ public class FunctionalTest {
 
     // Check the number of uploaded objects
     if (i != objCount) {
-      throw new Exception("[FAILED] Test: recursive: listObject_test5(), number of items, expected: " 
+      throw new Exception("[FAILED] Test: recursive: listObject_test5(), number of items, expected: "
            + objCount + ", found: " + i);
     }
 
@@ -1188,7 +1187,7 @@ public class FunctionalTest {
 
     // All threads are completed.
   }
- 
+
   /**
    * Test: copyObject(String bucketName, String objectName, String destBucketName).
    */
