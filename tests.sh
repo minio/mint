@@ -30,13 +30,6 @@ printMsg() {
     echo "Export run logs from the container using 'docker cp container-id:/mint/log /tmp/mint-logs'"
 }
 
-# checks if an elements is not present in an array
-containsElement () {
-    local e
-    for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
-    return 1
-}
-
 # Setup environment variables for the run.
 _init() {
     set -e
@@ -50,9 +43,9 @@ _init() {
         export ENABLE_HTTPS=1
     fi
 
-        if [ -z "$SERVER_REGION" ]; then
-            export SERVER_REGION="us-east-1"
-        fi
+    if [ -z "$SERVER_REGION" ]; then
+        export SERVER_REGION="us-east-1"
+    fi
 
     if [ -z "$ENABLE_HTTPS" ]; then
         ENABLE_HTTPS=0
@@ -65,10 +58,10 @@ _init() {
 
     # init log directory
     if [ ! -d $log_dir ]; then
-        mkdir $log_dir
+        mkdir -p "$log_dir"
     fi
 
-    if [ -z "$DATA_DIR" ]; then 
+    if [ -z "$DATA_DIR" ]; then
         export DATA_DIR="/mint/data"
     fi
 }
@@ -77,58 +70,78 @@ _init() {
 runCoreTest() {
 
     # Clear log directories before run.
-    local sdk_log_dir=$root_dir/$log_dir/$1
+    local sdk_log_dir
+
+    sdk_log_dir="$root_dir/$log_dir/$(basename "$1")"
 
     # make and clean SDK specific log directories.
-    if [ ! -d $sdk_log_dir ]
-        then
-            mkdir $sdk_log_dir
-        else
-            rm -rf $sdk_log_dir/*
+    if [ ! -d "$sdk_log_dir" ]
+    then
+        mkdir -p "$sdk_log_dir"
+    else
+        rm -rf "$sdk_log_dir"
     fi
 
     # move to SDK directory
-    cd $test_dir/$1/
+    cd "$1"
 
     # run the test
-    ./run.sh "$sdk_log_dir/$log_file_name" "$sdk_log_dir/$error_file_name"  && \
+    ./run.sh "$sdk_log_dir/$log_file_name" "$sdk_log_dir/$error_file_name"
 
     # move back to top level directory
     cd "${root_dir}"
 }
 
+# checks if an element is not present in an array
+containsElement () {
+    local e
+    for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
+    return 1
+}
+
+
 # Cycle through the sdk directories and run sdk/cli tests
 coreMain() {
+    local test_dir
 
     test_dir="run/core"
 
     # check if any tests are ignored
     if [ -z "${SKIP_TESTS}" ]; then
-        IFS=',' read -ra SDK_TO_IGNORE <<< "${SKIP_TESTS}"
+        IFS=',' read -ra SDKS_TO_IGNORE <<< "${SKIP_TESTS}"
     fi
 
     # read the SDKs to run
     for i in ${root_dir}/${test_dir}/*;
-        do  
-            # if directory exists and is not excluded
-            if [ -d "${i}" ] && [ ! $(containsElement "${i}" "${SDK_TO_IGNORE[@]}") ]; then
-
-                # Will not run if no directories are available
-                sdk="$(basename $i)"
-
-                echo "Running $sdk tests ..."
-                # log start time
-                start=$(date +%s)
-                runCoreTest "$sdk" "$MINT_MODE" || { printMsg; exit 2; }
-                # log end time
-                end=$(date +%s)
-                # get diif
-                diff=$(( $end - $start ))
-                echo "Finished $sdk tests in $diff seconds"
-            fi
-        done
-
+    do
+        # if directory exists.
+        if [ -d "${i}" ] && [ ! $(containsElement "${i}" "${SDKS_TO_IGNORE[@]}") ]; then
+            sdk="$(basename "$i")"
+            echo -n "Running $sdk tests ... "
+            # log start time
+            start=$(date +%s)
+            runCoreTest "$i" "$MINT_MODE" || { printMsg; exit 2; }
+            # log end time
+            end=$(date +%s)
+            # get diif
+            diff=$(( end - start ))
+            echo "Finished in $(humantime ${diff})"
+        fi
+    done
     echo "Mint ran all core tests successfully. To view logs, use 'docker cp container-id:/mint/log /tmp/mint-logs'"
+}
+
+function humantime {
+    local T=$1
+    local D=$((T/60/60/24))
+    local H=$((T/60/60%24))
+    local M=$((T/60%60))
+    local S=$((T%60))
+    (( D > 0 )) && printf '%d days ' $D
+    (( H > 0 )) && printf '%d hours ' $H
+    (( M > 0 )) && printf '%d minutes ' $M
+    (( D > 0 || H > 0 || M > 0 )) && printf 'and '
+    printf '%d seconds\n' $S
 }
 
 # calls subsequent test methods based on the mode.
