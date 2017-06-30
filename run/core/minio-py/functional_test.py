@@ -121,7 +121,7 @@ def put_object(client, bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "datafie-100-kB"
+    testfile = data_dir + "/" + "datafile-100-kB"
 
     file_stat = os.stat(testfile)
 
