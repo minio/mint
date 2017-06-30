@@ -1,5 +1,7 @@
 FROM ubuntu:16.04
 
+ENV DEBIAN_FRONTEND noninteractive
+
 ENV GOROOT /usr/local/go
 
 ENV GOPATH /usr/local
