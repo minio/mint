@@ -21,8 +21,11 @@
 APPNAME=$1
 CUR_DIR=$(dirname $(realpath $0))
 
+pid=0
+
 sig_handler() {
 	echo "EXIT signal captured.."
+	kill $pid
 	exit -1
 }
 
@@ -31,9 +34,6 @@ trap 'sig_handler' SIGTERM SIGINT
 
 # Run application in background
 $APPNAME &
+pid=$!
 
-# Wait forever
-while true
-do
-  tail -f /dev/null & wait ${!}
-done
+wait $pid
