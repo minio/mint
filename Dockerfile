@@ -12,4 +12,4 @@ RUN apt-get update && apt-get install -yq git jq && \
 
 WORKDIR /mint
 
-CMD /mint/run.sh
+CMD ["/mint/run.sh", "/mint/tests.sh"]
