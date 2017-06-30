@@ -19,18 +19,17 @@
 [[ $# -ne 1 ]] && echo "USAGE: ./run.sh /path/to/target/app" && exit -1
 
 APPNAME=$1
-CUR_DIR=$(dirname $(realpath $0))
 
 pid=0
 
 sig_handler() {
-	echo "EXIT signal captured.."
-	kill $pid
-	exit -1
+    echo "EXIT signal captured.."
+    kill $pid
+    exit -1
 }
 
 # Register signal handler
-trap 'sig_handler' SIGTERM SIGINT
+trap 'sig_handler' SIGINT
 
 # Run application in background
 $APPNAME &
