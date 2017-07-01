@@ -24,6 +24,7 @@ create_random_string() {
     echo "$random_str"
 }
 
+# Tests creating, stat and delete on a bucket.
 createBucket_01(){
     local bucketName
 
@@ -42,6 +43,7 @@ createBucket_01(){
     ${AWS} s3api delete-bucket --bucket "${bucketName}"
 }
 
+# Tests creating and deleting an object.
 createObject_02(){
     echo "Running createObject_02"
     local bucketName
@@ -77,6 +79,7 @@ createObject_02(){
     ${AWS} s3api delete-bucket --bucket "${bucketName}"
 }
 
+# Tests listing objects for both v1 and v2 API.
 listObjects_03() {
     echo "Running listObjects_03"
     local bucketName
@@ -127,6 +130,7 @@ listObjects_03() {
     ${AWS} s3api delete-bucket --bucket "${bucketName}"
 }
 
+# Tests multipart API by making each individual calls.
 multipart_04() {
     echo "Running multipart_04"
     local bucketName
@@ -179,7 +183,81 @@ multipart_04() {
     ${AWS} s3api delete-bucket --bucket "${bucketName}"
 }
 
-copy_05() {
+# Copy object tests for server side copy
+# of the object, validates returned md5sum.
+copyObject_05() {
+    echo "Running copyObject_05"
+    local bucketName
+
+    bucketName=$(create_random_string)
+
+    # save md5 hash
+    hash1=$(md5sum "${DATA_DIR}/datafile-1-MB" | awk '{print $1}')
+
+    # create a bucket
+    echo "Create a bucket"
+    ${AWS} s3api create-bucket --bucket "${bucketName}"
+
+    # upload an object
+    echo "Upload an object"
+    ${AWS} s3api put-object --body "${DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB"
+
+    # copy object server side
+    echo "Copy server side object"
+    hash2=$(${AWS} s3api copy-object --bucket "${bucketName}" --key "datafile-1-MB-copy" --copy-source "${bucketName}/datafile-1-MB" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
+
+    echo "Testing if the copied object is same as source"
+    if [ "$hash1" != "$hash2" ]; then
+        return 1
+    fi
+
+    echo "Remove the object"
+    ${AWS} s3api delete-object --bucket "${bucketName}" --key "datafile-1-MB"
+
+    echo "Remove the copied object"
+    ${AWS} s3api delete-object --bucket "${bucketName}" --key "datafile-1-MB-copy"
+
+    echo "Remove the bucket"
+    ${AWS} s3api delete-bucket --bucket "${bucketName}"
+}
+
+# Tests for presigned URL success case, presigned URL
+# is correct and accessible - we calculate md5sum of
+# the object and validate it against a local files md5sum.
+presignedObject_06() {
+    echo "Running presignedObject_06"
+    local bucketName
+
+    bucketName=$(create_random_string)
+
+    # create a bucket
+    echo "Create a bucket"
+    ${AWS} s3api create-bucket --bucket "${bucketName}"
+
+    # save md5 hash
+    hash1=$(md5sum "${DATA_DIR}/datafile-1-MB" | awk '{print $1}')
+
+    # upload an object
+    echo "Upload an object"
+    ${AWS} s3api put-object --body "${DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB"
+
+    url=$(${AWS} s3 presign "s3://${bucketName}/datafile-1-MB")
+    hash2=$(curl "${url}" | md5sum -)
+
+    echo "Testing if the copied object is same as source"
+    if [ "$hash1" != "$hash2" ]; then
+        return 1
+    fi
+
+    echo "Remove the object"
+    ${AWS} s3api delete-object --bucket "${bucketName}" --key "datafile-1-MB"
+
+    echo "Remove the bucket"
+    ${AWS} s3api delete-bucket --bucket "${bucketName}"
+}
+
+# Tests `aws s3 cp` by uploading a local file.
+copy_07() {
     local bucketName
     local objectName
 
@@ -201,7 +279,9 @@ copy_05() {
     ${AWS} s3 rb "s3://${bucketName}/"
 }
 
-sync_06() {
+# Tests `aws s3 sync` by mirroring all the
+# local content to remove bucket.
+sync_08() {
     local bucketName
     local objectName
 
@@ -223,6 +303,9 @@ sync_06() {
     ${AWS} s3api delete-bucket --bucket "${bucketName}"
 }
 
+# list objects negative test - tests for following conditions.
+# v1 API with max-keys=-1 and max-keys=0
+# v2 API with max-keys=-1 and max-keys=0
 listObjects_error_01() {
     echo "Running listObjects_03"
     local bucketName
@@ -266,6 +349,10 @@ listObjects_error_01() {
     ${AWS} s3api delete-bucket --bucket "${bucketName}"
 }
 
+# put object negative test - tests for following conditions.
+# - invalid object name.
+# - invalid Content-Md5
+# - invalid Content-Length
 putObject_error_02() {
     echo "Running putObject_error_02"
     local bucketName
@@ -301,14 +388,19 @@ putObject_error_02() {
     ${AWS} s3api delete-bucket --bucket "${bucketName}"
 }
 
+# main handler for all the tests.
 main() {
     # Success tests
     createBucket_01
     createObject_02
     listObjects_03
     multipart_04
-    copy_05
-    sync_06
+    copyObject_05
+    presignedObject_06
+
+    # Success cli ops.
+    copy_07
+    sync_08
 
     # Error tests
     listObjects_error_01

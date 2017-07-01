@@ -33,7 +33,6 @@ configure() {
 }
 
 main() {
-
     logfile=$1
     errfile=$2
 
