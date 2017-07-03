@@ -26,6 +26,14 @@ $ cd mint
 $ docker build -t minio/mint .
 ```
 
+### Build using Travis
+
+Each pull request when submitted to Github `travis-ci` runs build on mint to create new docker image `play.minio.io` our private docker registry. You can get your mint image associated with your pull request by just running `docker pull play.minio.io/mint:$PULL_REQUEST_SHA`
+
+```sh
+$ docker pull play.minio.io/mint:travis-f9f519cefc25f2eeb210847e782a47e466a6b79e
+```
+
 ### Options
 
 #### Env variables
@@ -37,7 +45,7 @@ Set environment variables to pass test target server details to the docker conta
 - `SECRET_KEY`     - Secret Key of the server. Defaults to Minio Play Secret Key.
 - `ENABLE_HTTPS`   - Set to 1 to send HTTPS requests on SSL enabled deployment. Defaults to 0.
 - `DATA_DIR`       - Data directory for SDK tests. Defaults to data directory created by `build/data/install.sh` script.
-- `SKIP_TESTS`     - `','` separated list of SDKs to ignore running. Empty by default. For example, to skip `minio-js` and `aws-cli` tests, use `export SKIP_TESTS=minio-js,aws-cli`. 
+- `SKIP_TESTS`     - `','` separated list of SDKs to ignore running. Empty by default. For example, to skip `minio-js` and `aws-cli` tests, use `export SKIP_TESTS=minio-js,aws-cli`.
 
 Note: With no env variables provided the tests are run on play.minio.io by default
 
@@ -46,7 +54,7 @@ Note: With no env variables provided the tests are run on play.minio.io by defau
 To run Mint image, use the `docker run` command. For example, to run Mint with Minio Play server as test target use the below command
 
 ```sh
-$ docker run -e SERVER_ENDPOINT=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA43P2F -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG -e ENABLE_HTTPS=1 minio/mint 
+$ docker run -e SERVER_ENDPOINT=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA43P2F -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG -e ENABLE_HTTPS=1 minio/mint
 ```
 
 After the tests are run, output is stored in `/mint/log` directory inside the container. You can access these logs via `docker cp` command. For example to store logs to `/tmp/logs` directory on your host, run
@@ -86,7 +94,7 @@ To add new SDK/CLI to Mint:
 
 All test data used by SDK tests will reside in `/mint/data/` directory on the container. To add additional test files, edit `build/data/install.sh` script
 
-| File name |  Size 
+| File name |  Size
 |:--- |:--- |
 | datafile-1-b | 1B |
 | datafile-10-kB   |10KB
