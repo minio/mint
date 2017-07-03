@@ -93,10 +93,10 @@ runCoreTest() {
 }
 
 # checks if an element is not present in an array
-containsElement () {
+doesntContainElement () {
     local e
-    for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 0; done
-    return 1
+    for e in "${@:2}"; do [[ "$e" == "$1" ]] && return 1; done
+    return 0
 }
 
 
@@ -115,7 +115,7 @@ coreMain() {
     for i in ${root_dir}/${test_dir}/*;
     do
         # if directory exists.
-        if [ -d "${i}" ] && [ ! $(containsElement "${i}" "${SDKS_TO_IGNORE[@]}") ]; then
+        if [[ -d "${i}" ]] && doesntContainElement "${i}" "${SDKS_TO_IGNORE[@]}"; then
             sdk="$(basename "$i")"
             echo -n "Running $sdk tests ... "
             # log start time
