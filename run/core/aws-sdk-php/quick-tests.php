@@ -9,6 +9,7 @@
 #      http://www.apache.org/licenses/LICENSE-2.0
 #
 #  Unless required by applicable law or agreed to in writing, software
+
 #  distributed under the License is distributed on an "AS IS" BASIS,
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
@@ -24,6 +25,7 @@ use GuzzleHttp\Psr7;
 
 // Constants
 const FILE_10KB = "datafile-10-kB";
+const FILE_5_MB = "datafile-5-MB";
 const HTTP_OK = "200";
 const HTTP_NOCONTENT = "204";
 
@@ -40,6 +42,21 @@ class ClientConfig {
             $this->endpoint = "http://" . $host;
         }
     }
+}
+
+function randomName(int $length=5):string {
+    $alphabet = array_rand(str_split('0123456789abcdefghijklmnopqrstuvwxyz'), 26);
+    $alphaLen = count($alphabet);
+    $rounds = floor($length / $alphaLen);
+    $remaining = $length % $alphaLen;
+    $bigalphabet = [];
+    for ($i = 0; $i < $rounds; $i++) {
+        $bigalphabet = array_merge($bigalphabet, $alphabet);
+    }
+    $bigalphabet = array_merge($bigalphabet, array_slice($alphabet, 0, $remaining));
+    $alphabet_soup = array_flip($bigalphabet);
+    shuffle($alphabet_soup);
+    return 'aws-sdk-php-bucket-' . join($alphabet_soup);
 }
 
 function getStatusCode($result):string {
@@ -82,7 +99,7 @@ function initSetup(S3Client $s3Client, $objects, $data_dir) {
                 'Body' => $stream,
             ]);
             if (getStatusCode($result) != HTTP_OK)
-                return new Exception("putObject API failed for " . $bucket . '/' . $object);
+                throw new Exception("putObject API failed for " . $bucket . '/' . $object);
         }
 
         finally {
@@ -91,6 +108,178 @@ function initSetup(S3Client $s3Client, $objects, $data_dir) {
                 $stream->close();
         }
     }
+}
+
+
+function testGetPutObject($s3Client, $bucket, $object) {
+    // Upload a 10KB file
+    $data_dir = $GLOBALS['data_dir'];
+    try {
+        $stream = Psr7\stream_for(fopen($data_dir . '/' . FILE_10KB, 'r'));
+        $result = $s3Client->putObject([
+            'Bucket' => $bucket,
+            'Key' => $object,
+            'Body' => $stream,
+        ]);
+    }
+    finally {
+        $stream->close();
+    }
+
+    if (getStatusCode($result) != HTTP_OK)
+        throw new Exception("putObject API failed for " . $bucket . '/' . $object);
+
+    // Download the same object and verify size
+    $result = $s3Client->getObject([
+        'Bucket' => $bucket,
+        'Key' => $object,
+    ]);
+    if (getStatusCode($result) != HTTP_OK)
+        throw new Exception("getObject API failed for " . $bucket . '/' . $object);
+
+    $body = $result['Body'];
+    $bodyLen = 0;
+    while (!$body->eof()) {
+        $bodyLen += strlen($body->read(4096));
+    }
+
+    if ($bodyLen != 10 * 1024) {
+        throw new Exception("Object downloaded has different content length than uploaded object "
+                            . $bucket . '/' . $object);
+    }
+}
+
+function testMultipartUpload($s3Client, $bucket, $object) {
+    $data_dir = $GLOBALS['data_dir'];
+    // Initiate multipart upload
+    $result = $s3Client->createMultipartUpload([
+        'Bucket' => $bucket,
+        'Key' => $object,
+    ]);
+    if (getStatusCode($result) != HTTP_OK)
+        throw new Exception('createMultipartupload API failed for ' .
+                            $bucket . '/' . $object);
+
+    // upload 2 parts
+    $uploadId = $result['UploadId'];
+    $parts = [];
+    try {
+        for ($i = 0; $i < 2; $i++) {
+            $stream = Psr7\stream_for(fopen($data_dir . '/' . FILE_5_MB, 'r'));
+            $result = $s3Client->uploadPart([
+                'Bucket' => $bucket,
+                'Key' => $object,
+                'UploadId' => $uploadId,
+                'ContentLength' => 5 * 1024 * 1024,
+                'Body' => $stream,
+                'PartNumber' => $i+1,
+            ]);
+            if (getStatusCode($result) != HTTP_OK) {
+                throw new Exception('uploadPart API failed for ' .
+                                    $bucket . '/' . $object);
+            }
+            array_push($parts, [
+                'ETag' => $result['ETag'],
+                'PartNumber' => $i+1,
+            ]);
+
+            $stream->close();
+            $stream = NULL;
+        }
+    }
+    finally {
+        if (!is_null($stream))
+            $stream->close();
+    }
+
+    // complete multipart upload
+    $result = $s3Client->completeMultipartUpload([
+        'Bucket' => $bucket,
+        'Key' => $object,
+        'UploadId' => $uploadId,
+        'MultipartUpload' => [
+            'Parts' => $parts,
+        ],
+    ]);
+    if (getStatusCode($result) != HTTP_OK) {
+        throw new Exception('completeMultipartupload API failed for ' .
+                            $bucket . '/' . $object);
+    }
+}
+
+function testAbortMultipartUpload($s3Client, $bucket, $object) {
+    $data_dir = $GLOBALS['data_dir'];
+    // Initiate multipart upload
+    $result = $s3Client->createMultipartUpload([
+        'Bucket' => $bucket,
+        'Key' => $object,
+    ]);
+    if (getStatusCode($result) != HTTP_OK)
+        throw new Exception('createMultipartupload API failed for ' .
+                            $bucket . '/' . $object);
+
+    // Abort multipart upload
+    $uploadId = $result['UploadId'];
+    $result = $s3Client->abortMultipartUpload([
+        'Bucket' => $bucket,
+        'Key' => $object,
+        'UploadId' => $uploadId,
+    ]);
+    if (getStatusCode($result) != HTTP_NOCONTENT)
+        throw new Exception('abortMultipartupload API failed for ' .
+                            $bucket . '/' . $object);
+
+}
+
+function testGetBucketLocation($s3Client, $bucket) {
+    $result = $s3Client->getBucketLocation(['Bucket' => $bucket]);
+    if (getStatusCode($result) != HTTP_OK)
+        throw new Exception('getBucketLocation API failed for ' .
+                            $bucket);
+}
+
+function testCopyObject($s3Client, $bucket, $object) {
+    $result = $s3Client->copyObject([
+        'Bucket' => $bucket,
+        'Key' => $object . '-copy',
+        'CopySource' => $bucket . '/' . $object,
+    ]);
+    if (getStatusCode($result) != HTTP_OK)
+        throw new Exception('copyObject API failed for ' .
+                            $bucket);
+
+    $s3Client->deleteObject([
+        'Bucket' => $bucket,
+        'Key' => $object . '-copy',
+    ]);
+}
+
+function testDeleteObjects($s3Client, $bucket, $object) {
+    $copies = [];
+    for ($i = 0; $i < 3; $i++) {
+        $copyKey = $object . '-copy' . strval($i);
+        $result = $s3Client->copyObject([
+            'Bucket' => $bucket,
+            'Key' => $copyKey,
+            'CopySource' => $bucket . '/' . $object,
+        ]);
+        if (getstatuscode($result) != http_ok)
+            throw new exception('copyobject api failed for ' .
+                                $bucket);
+        array_push($copies, ['Key' => $copyKey]);
+    }
+
+    print_r($copies);
+
+    $result = $s3Client->deleteObjects([
+        'Bucket' => $bucket,
+        'Delete' => [
+            'Objects' => $copies,
+        ],
+    ]);
+    if (getstatuscode($result) != http_ok)
+        throw new exception('deleteObjects api failed for ' .
+                            $bucket);
 }
 
 function cleanupSetup($s3Client, $objects) {
@@ -134,12 +323,25 @@ $s3Client = new S3Client([
 ]);
 
 $objects =  [
-    'bucket1' => 'obj1',
-    'bucket2' => 'obj2',
+    randomName() => 'obj1',
+    randomName() => 'obj2',
 ];
 
-initSetup($s3Client, $objects, $data_dir);
-testListBuckets($s3Client);
-testBucketExists($s3Client, array_keys($objects));
-cleanupSetup($s3Client, $objects);
+try {
+    initSetup($s3Client, $objects, $data_dir);
+    $firstBucket = array_keys($objects)[0];
+    $firstObject = $objects[$firstBucket];
+    testGetBucketLocation($s3Client, $firstBucket);
+    testListBuckets($s3Client);
+    testBucketExists($s3Client, array_keys($objects));
+    testGetPutObject($s3Client, $firstBucket, $firstObject);
+    testCopyObject($s3Client, $firstBucket, $firstObject);
+    testDeleteObjects($s3Client, $firstBucket, $firstObject);
+    testMultipartUpload($s3Client, $firstBucket, $firstObject);
+    testAbortMultipartUpload($s3Client, $firstBucket, $firstObject);
+}
+finally {
+    cleanupSetup($s3Client, $objects);
+}
+
 ?>
