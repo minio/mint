@@ -1542,41 +1542,43 @@ func testCopyObject() {
 		log.Fatal("Error:", err)
 	}
 
-	// Set copy conditions.
-	copyConds := minio.CopyConditions{}
+	// Copy Source
+	src := minio.NewSourceInfo(bucketName, objectName, nil)
 
-	// Start by setting wrong conditions
-	err = copyConds.SetModified(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
+	// All invalid conditions first.
+	 err = src.SetModifiedSinceCond(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
 	if err == nil {
 		log.Fatal("Error:", err)
 	}
-	err = copyConds.SetUnmodified(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
+	err = src.SetUnmodifiedSinceCond(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
 	if err == nil {
 		log.Fatal("Error:", err)
 	}
-	err = copyConds.SetMatchETag("")
+	err = src.SetMatchETagCond("")
 	if err == nil {
 		log.Fatal("Error:", err)
 	}
-	err = copyConds.SetMatchETagExcept("")
+	err = src.SetMatchETagExceptCond("")
 	if err == nil {
 		log.Fatal("Error:", err)
 	}
 
-	err = copyConds.SetModified(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
+	err = src.SetModifiedSinceCond(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		log.Fatal("Error:", err)
 	}
-	err = copyConds.SetMatchETag(objInfo.ETag)
+	err = src.SetMatchETagCond(objInfo.ETag)
 	if err != nil {
 		log.Fatal("Error:", err)
 	}
 
-	// Copy source.
-	copySource := bucketName + "/" + objectName
+	dst, err := minio.NewDestinationInfo(bucketName+"-copy", objectName+"-copy", nil, nil)
+	 if err != nil {
+		 log.Fatal(err)
+	 }
 
 	// Perform the Copy
-	err = c.CopyObject(bucketName+"-copy", objectName+"-copy", copySource, copyConds)
+	err = c.CopyObject(dst, src)
 	if err != nil {
 		log.Fatal("Error:", err, bucketName+"-copy", objectName+"-copy")
 	}
@@ -1606,18 +1608,18 @@ func testCopyObject() {
 	}
 
 	// CopyObject again but with wrong conditions
-	copyConds = minio.CopyConditions{}
-	err = copyConds.SetUnmodified(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
+	src = minio.NewSourceInfo(bucketName, objectName, nil)
+ 	err = src.SetUnmodifiedSinceCond(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		log.Fatal("Error:", err)
 	}
-	err = copyConds.SetMatchETagExcept(objInfo.ETag)
+	err = src.SetMatchETagExceptCond(objInfo.ETag)
 	if err != nil {
 		log.Fatal("Error:", err)
 	}
 
 	// Perform the Copy which should fail
-	err = c.CopyObject(bucketName+"-copy", objectName+"-copy", copySource, copyConds)
+	err = c.CopyObject(dst, src)
 	if err == nil {
 		log.Fatal("Error:", err, bucketName+"-copy", objectName+"-copy should fail")
 	}
@@ -2418,6 +2420,132 @@ func logTrace() {
 	log.Info(fmt.Sprintf("Running %s at line:%d", f.Name(), line))
 }
 
+func testComposeObjectErrorCases() {
+
+		// Instantiate new minio client object.
+	c, err := minio.NewV4(
+		os.Getenv("SERVER_ENDPOINT"),
+		os.Getenv("ACCESS_KEY"),
+		os.Getenv("SECRET_KEY"),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
+	)
+	if err != nil {
+		log.Fatal("Error:", err)
+	}
+
+	// Enable tracing, write to stderr.
+	// c.TraceOn(os.Stderr)
+
+	// Set user agent.
+	c.SetAppInfo("Minio-go-FunctionalTest", "0.1.0")
+
+	// Generate a new random bucket name.
+	bucketName := randString(60, rand.NewSource(time.Now().UnixNano()), "minio-go-test")
+
+	// Make a new bucket in 'us-east-1' (source bucket).
+	err = c.MakeBucket(bucketName, "us-east-1")
+	if err != nil {
+		log.Fatal("Error:", err, bucketName)
+	}
+
+	// Test that more than 10K source objects cannot be
+	// concatenated.
+	srcArr := [10001]minio.SourceInfo{}
+	srcSlice := srcArr[:]
+	dst, err := minio.NewDestinationInfo(bucketName, "object", nil, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := c.ComposeObject(dst, srcSlice); err == nil {
+		log.Fatal("Error was expected.")
+	} else if err.Error() != "There must be as least one and upto 10000 source objects." {
+		log.Fatal("Got unexpected error: ", err)
+	}
+
+	// Create a source with invalid offset spec and check that
+	// error is returned:
+	// 1. Create the source object.
+	const badSrcSize = 5 * 1024 * 1024
+	buf := bytes.Repeat([]byte("1"), badSrcSize)
+	_, err = c.PutObject(bucketName, "badObject", bytes.NewReader(buf), "")
+	if err != nil {
+		log.Fatal("Error:", err)
+	}
+	// 2. Set invalid range spec on the object (going beyond
+	// object size)
+	badSrc := minio.NewSourceInfo(bucketName, "badObject", nil)
+	err = badSrc.SetRange(1, badSrcSize)
+	if err != nil {
+		log.Fatal("Error:", err)
+	}
+	// 3. ComposeObject call should fail.
+	if err := c.ComposeObject(dst, []minio.SourceInfo{badSrc}); err == nil {
+		log.Fatal("Error was expected.")
+	} else if !strings.Contains(err.Error(), "has invalid segment-to-copy") {
+		log.Fatal("Got unexpected error: ", err)
+	}
+}
+
+func testComposeMultipleSources() {
+	// Instantiate new minio client object
+	c, err := minio.NewV4(
+		os.Getenv("SERVER_ENDPOINT"),
+		os.Getenv("ACCESS_KEY"),
+		os.Getenv("SECRET_KEY"),
+		mustParseBool(os.Getenv("ENABLE_HTTPS")),
+	)
+
+	if err != nil {
+		log.Fatal("Error:", err)
+	}
+
+	// Generate a new random bucket name.
+	bucketName := randString(60, rand.NewSource(time.Now().UnixNano()), "minio-go-test")
+	// Make a new bucket in 'us-east-1' (source bucket).
+	err = c.MakeBucket(bucketName, "us-east-1")
+	if err != nil {
+		log.Fatal("Error:", err, bucketName)
+	}
+
+	// Upload a small source object
+	const srcSize = 1024 * 1024 * 5
+	buf := bytes.Repeat([]byte("1"), srcSize)
+	_, err = c.PutObject(bucketName, "srcObject", bytes.NewReader(buf), "binary/octet-stream")
+	if err != nil {
+		log.Fatal("Error:", err)
+	}
+
+	// We will append 10 copies of the object.
+	srcs := []minio.SourceInfo{}
+	for i := 0; i < 10; i++ {
+		srcs = append(srcs, minio.NewSourceInfo(bucketName, "srcObject", nil))
+	}
+	// make the last part very small
+	err = srcs[9].SetRange(0, 0)
+	if err != nil {
+		log.Fatal("unexpected error:", err)
+	}
+
+	dst, err := minio.NewDestinationInfo(bucketName, "dstObject", nil, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = c.ComposeObject(dst, srcs)
+	if err != nil {
+		log.Fatal("Error:", err)
+	}
+
+	objProps, err := c.StatObject(bucketName, "dstObject")
+	if err != nil {
+		log.Fatal("Error:", err)
+	}
+
+	if objProps.Size != 9*srcSize+1 {
+		log.Fatal("Size mismatched! Expected:", 10000*srcSize, "but got:", objProps.Size)
+	}
+}
+
 func main() {
 	log.Info("Running functional tests for minio-go sdk....")
 	testMakeBucketError()
@@ -2443,5 +2571,7 @@ func main() {
 	testFunctional()
 	testGetObjectObjectModified()
 	testPutObjectUploadSeekedObject()
+	testComposeMultipleSources()
+	testComposeObjectErrorCases()
 	log.Info("Functional tests complete for minio-go sdk")
 }
