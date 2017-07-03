@@ -1546,7 +1546,7 @@ func testCopyObject() {
 	src := minio.NewSourceInfo(bucketName, objectName, nil)
 
 	// All invalid conditions first.
-	 err = src.SetModifiedSinceCond(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
+	err = src.SetModifiedSinceCond(time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC))
 	if err == nil {
 		log.Fatal("Error:", err)
 	}
@@ -1573,9 +1573,9 @@ func testCopyObject() {
 	}
 
 	dst, err := minio.NewDestinationInfo(bucketName+"-copy", objectName+"-copy", nil, nil)
-	 if err != nil {
-		 log.Fatal(err)
-	 }
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Perform the Copy
 	err = c.CopyObject(dst, src)
@@ -1609,7 +1609,7 @@ func testCopyObject() {
 
 	// CopyObject again but with wrong conditions
 	src = minio.NewSourceInfo(bucketName, objectName, nil)
- 	err = src.SetUnmodifiedSinceCond(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
+	err = src.SetUnmodifiedSinceCond(time.Date(2014, time.April, 0, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		log.Fatal("Error:", err)
 	}
@@ -2422,7 +2422,7 @@ func logTrace() {
 
 func testComposeObjectErrorCases() {
 
-		// Instantiate new minio client object.
+	// Instantiate new minio client object.
 	c, err := minio.NewV4(
 		os.Getenv("SERVER_ENDPOINT"),
 		os.Getenv("ACCESS_KEY"),
