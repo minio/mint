@@ -51,6 +51,8 @@ Then navigate to `/tmp/logs` directory to access the test logs.
 Following SDKs/CLI tools are available:
 
 - awscli
+- aws-sdk-php
+- aws-sdk-ruby
 - mc
 - minio-go
 - minio-java
