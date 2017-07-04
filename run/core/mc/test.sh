@@ -20,36 +20,42 @@ create_random_string() {
     echo "$random_str"
 }
 
-# Create a bucket and check if it exists on server
-createBuckets_01(){
-    local bucketName
+remove_bucket() {
+    ./mc rm --force --recursive "target/$1"
+    rm -rf /tmp/*
+}
 
+# Create a bucket and check if it exists on server
+makeBucket(){
+    # Make bucket
+    local bucketName
     bucketName=$(create_random_string)
 
-    # Make bucket
+     # Make bucket
     ./mc mb "target/${bucketName}" 
 
-    # list buckets
-    echo "Testing if the bucket was created" 
-    ./mc ls target 
+    # mc returns status 0 if bucket is created
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
 
-    # remove bucket
+    # remove bucket and cleanup
     echo "Removing the bucket" 
-    ./mc rm "target/${bucketName}" 
+    remove_bucket "${bucketName}"
 }
 
 # Upload an object, download it and check if it matches the uploaded object
-createObject_02(){
+putObject(){
+    # Make bucket
     local bucketName
-
     bucketName=$(create_random_string)
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
 
     # save md5 hash
     hash1=$(echo $(md5sum "$DATA_DIR"/datafile-1-MB | awk '{print $1}'))
     
-    # create a bucket
-    echo "Creating a bucket" 
-    ./mc mb "target/${bucketName}" 
 
     # upload the file
     echo "Uploading the 1MB temp file" 
@@ -68,26 +74,22 @@ createObject_02(){
         return 1
     fi
 
-    # remove bucket
-    echo "Removing the bucket and its contents" 
-    ./mc rm --force --recursive "target/${bucketName}" 
-
-    # remove local file
-    rm /tmp/datafile-1-MB
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
 }
 
 # Upload an object > 64MB (MC uses multipart for more than 64MB), download it and check if it matches the uploaded object
-createObjectMultipart_03(){
+putObjectMultipart(){
+    # Make bucket
     local bucketName
-
     bucketName=$(create_random_string)
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
 
     # save md5 hash
     hash1=$(echo $(md5sum "$DATA_DIR"/datafile-65-MB | awk '{print $1}'))
-    
-    # create a bucket
-    echo "Creating a bucket" 
-    ./mc mb "target/${bucketName}" 
 
     # upload the file
     echo "Uploading a 65MB temp file" 
@@ -106,44 +108,40 @@ createObjectMultipart_03(){
         return 1
     fi
 
-    # remove bucket
-    echo "Removing the bucket and its contents" 
-    ./mc rm --force --recursive "target/${bucketName}" 
-
-    # remove local file
-    rm /tmp/datafile-65-MB
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
 }
 
 # Tests `mc mirror` by mirroring all the local content to remove bucket.
-mirrorObject_04() {
+mirrorObject() {
+    # Make bucket
     local bucketName
-
     bucketName=$(create_random_string)
 
-    # create a bucket
-    echo "Creating a bucket" 
+     # Make bucket
     ./mc mb "target/${bucketName}" 
 
     echo "Upload a set of files"
     ./mc mirror -q "$DATA_DIR" "target/${bucketName}"   
 
-    # remove bucket
-    echo "Removing the bucket and its contents" 
-    ./mc rm --force --recursive "target/${bucketName}" 
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
 }
 
 # Tests for presigned URL upload success case, presigned URL
 # is correct and accessible - we calculate md5sum of
 # the object and validate it against a local files md5sum.
-presignedUploadObject_05() {
+presignedUploadObject() {
+    # Make bucket
     local bucketName
-
     bucketName=$(create_random_string)
-    fileName="${DATA_DIR}/datafile-1-MB"
 
-    # create a bucket
-    echo "Creating a bucket" 
+     # Make bucket
     ./mc mb "target/${bucketName}" 
+
+    fileName="${DATA_DIR}/datafile-1-MB"
 
     # save md5 hash
     hash1=$(echo $(md5sum "$fileName" | awk '{print $1}'))
@@ -168,26 +166,23 @@ presignedUploadObject_05() {
         return 1
     fi
 
-    # remove bucket
-    echo "Removing the bucket and its contents" 
-    ./mc rm --force --recursive "target/${bucketName}" 
-
-    # remove local file
-    rm /tmp/datafile-1-MB
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
 }
 
 # Tests for presigned URL download success case, presigned URL
 # is correct and accessible - we calculate md5sum of
 # the object and validate it against a local files md5sum.
-presignedDownloadObject_06(){
+presignedDownloadObject(){
+    # Make bucket
     local bucketName
-
     bucketName=$(create_random_string)
-    fileName="${DATA_DIR}/datafile-1-MB"
 
-    # create a bucket
-    echo "Creating a bucket" 
+     # Make bucket
     ./mc mb "target/${bucketName}" 
+
+    fileName="${DATA_DIR}/datafile-1-MB"
 
     # save md5 hash
     hash1=$(echo $(md5sum "$fileName" | awk '{print $1}'))
@@ -212,18 +207,65 @@ presignedDownloadObject_06(){
         return 1
     fi
 
-    # remove bucket
-    echo "Removing the bucket and its contents" 
-    ./mc rm --force --recursive "target/${bucketName}" 
-
-    # remove local file
-    rm /tmp/datafile-1-MB
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
 }
 
-# Run tests
-createBuckets_01
-createObject_02
-createObjectMultipart_03
-mirrorObject_04
-presignedUploadObject_05
-presignedDownloadObject_06
+# Upload an object, with invalid object name
+putObjectError(){
+    # Make bucket
+    local bucketName
+    bucketName=$(create_random_string)
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
+
+    # upload the file
+    echo "Uploading file with invalid object name" 
+    ./mc cp "$DATA_DIR"/datafile-1-MB "target/${bucketName}//2123123\123" 
+
+    # mc returns status 1 if case of invalid object name
+    if [ $? -ne 1 ]; then
+        return 1
+    fi
+
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
+}
+
+# Create a bucket and check if it exists on server
+makeBucketError(){
+    # Make bucket
+    local bucketName
+    bucketName="Abcd"
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
+
+    # mc returns status 1 if bucket is created
+    if [ $? -ne 1 ]; then
+        return 1
+    fi
+
+}
+
+# main handler for all the tests.
+main() {
+    # Succes tests
+    makeBucket
+    putObject
+    putObjectMultipart
+    mirrorObject
+    presignedUploadObject
+    presignedDownloadObject
+
+    # TODO Add Policy tests once supported on GCS
+
+    # Error tests
+    putObjectError
+    makeBucketError
+}
+
+main
