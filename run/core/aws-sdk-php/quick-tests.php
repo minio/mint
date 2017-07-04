@@ -263,7 +263,7 @@ function testDeleteObjects($s3Client, $bucket, $object) {
             'Key' => $copyKey,
             'CopySource' => $bucket . '/' . $object,
         ]);
-        if (getstatuscode($result) != http_ok)
+        if (getstatuscode($result) != HTTP_OK)
             throw new exception('copyobject api failed for ' .
                                 $bucket);
         array_push($copies, ['Key' => $copyKey]);
@@ -277,7 +277,7 @@ function testDeleteObjects($s3Client, $bucket, $object) {
             'Objects' => $copies,
         ],
     ]);
-    if (getstatuscode($result) != http_ok)
+    if (getstatuscode($result) != HTTP_OK)
         throw new exception('deleteObjects api failed for ' .
                             $bucket);
 }
