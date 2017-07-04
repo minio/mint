@@ -24,7 +24,7 @@ installDeps() {
 }
 
 cleanupDeps() {
-    apt-get purge -yq curl git
+    apt-get purge -yq git
     apt-get autoremove -yq
 }
 

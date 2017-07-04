@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -16,56 +16,256 @@
 #
 
 create_random_string() {
-    bucketName=$(cat /dev/urandom | tr -dc 'a-z0-9' | fold -w 32 | head -n 1)
+    random_str=$(tr -dc 'a-z0-9' < /dev/urandom  | fold -w 32 | head -n 1)
+    echo "$random_str"
 }
 
-createBuckets_01(){
-    create_random_string
-    echo "Running createBuckets_01" 
+remove_bucket() {
+    ./mc rm --force --recursive "target/$1"
+    rm -rf /tmp/*
+}
 
+# Create a bucket and check if it exists on server
+makeBucket(){
     # Make bucket
+    local bucketName
+    bucketName=$(create_random_string)
+
+     # Make bucket
     ./mc mb "target/${bucketName}" 
 
-    echo "Testing if the bucket was created" 
-    # list buckets
-    ./mc ls target 
-
-    echo "Removing the bucket" 
-    # remove bucket
-    ./mc rm "target/${bucketName}" 
-}
-
-createFile_02(){
-    create_random_string
-    echo "Running createFile_02" 
-
-    # save md5 hash
-    hash1=$(md5sum "$DATA_DIR"/datafile-1-MB | awk '{print $1}')
-    
-    # create a bucket
-    echo "Creating a bucket" 
-    ./mc mb "target/${bucketName}" 
-
-    # copy the file
-    echo "Uploading the 1MB temp file" 
-    ./mc cp "$DATA_DIR"/datafile-1-MB "target/${bucketName}" 
-
-    echo "Download the file" 
-    ./mc cp "target/${bucketName}/datafile-1-MB" /tmp/datafile-1-MB-downloaded 
-    
-    #save md5 hash of downloaded file
-    hash2=$(md5sum /tmp/datafile-1-MB-downloaded | awk '{print $1}')
-
-    echo "Testing if the downloaded file is same as local file" 
-    if [ "${hash1}" -ne "${hash2}" ]; then
+    # mc returns status 0 if bucket is created
+    if [ $? -ne 0 ]; then
         return 1
     fi
 
+    # remove bucket and cleanup
     echo "Removing the bucket" 
-    # remove bucket
-    ./mc rm --force --recursive "target/${bucketName}" 
+    remove_bucket "${bucketName}"
 }
 
-# Run tests
-createBuckets_01
-createFile_02
+# Upload an object, download it and check if it matches the uploaded object
+putObject(){
+    # Make bucket
+    local bucketName
+    bucketName=$(create_random_string)
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
+
+    # save md5 hash
+    hash1=$(echo $(md5sum "$DATA_DIR"/datafile-1-MB | awk '{print $1}'))
+    
+
+    # upload the file
+    echo "Uploading the 1MB temp file" 
+    ./mc cp "$DATA_DIR"/datafile-1-MB "target/${bucketName}" 
+
+    echo "Download the file"      
+    if [ $(basename $(./mc cp --json "target/${bucketName}/datafile-1-MB" /tmp | jq -r .target)) != "datafile-1-MB" ]; then
+        return 1
+    fi
+
+    # calculate the md5 hash of downloaded file
+    hash2=$(echo $(md5sum /tmp/datafile-1-MB | awk '{print $1}'))
+
+    echo "Testing if the downloaded file is same as local file" 
+    if [ "$hash1" != "$hash2" ]; then 
+        return 1
+    fi
+
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
+}
+
+# Upload an object > 64MB (MC uses multipart for more than 64MB), download it and check if it matches the uploaded object
+putObjectMultipart(){
+    # Make bucket
+    local bucketName
+    bucketName=$(create_random_string)
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
+
+    # save md5 hash
+    hash1=$(echo $(md5sum "$DATA_DIR"/datafile-65-MB | awk '{print $1}'))
+
+    # upload the file
+    echo "Uploading a 65MB temp file" 
+    ./mc cp "$DATA_DIR"/datafile-65-MB "target/${bucketName}" 
+
+    echo "Download the file" 
+    if [ $(basename $(./mc cp --json "target/${bucketName}/datafile-65-MB" /tmp | jq -r .target)) != "datafile-65-MB" ]; then
+        return 1
+    fi 
+    
+    # calculate the md5 hash of downloaded file
+    hash2=$(echo $(md5sum /tmp/datafile-65-MB | awk '{print $1}'))
+
+    echo "Testing if the downloaded file is same as local file" 
+    if [ "$hash1" != "$hash2" ]; then
+        return 1
+    fi
+
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
+}
+
+# Tests `mc mirror` by mirroring all the local content to remove bucket.
+mirrorObject() {
+    # Make bucket
+    local bucketName
+    bucketName=$(create_random_string)
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
+
+    echo "Upload a set of files"
+    ./mc mirror -q "$DATA_DIR" "target/${bucketName}"   
+
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
+}
+
+# Tests for presigned URL upload success case, presigned URL
+# is correct and accessible - we calculate md5sum of
+# the object and validate it against a local files md5sum.
+presignedUploadObject() {
+    # Make bucket
+    local bucketName
+    bucketName=$(create_random_string)
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
+
+    fileName="${DATA_DIR}/datafile-1-MB"
+
+    # save md5 hash
+    hash1=$(echo $(md5sum "$fileName" | awk '{print $1}'))
+
+    # create presigned URL object
+    echo "Create presigned file upload" 
+    url=$(./mc share --json upload "target/${bucketName}/$(basename "$fileName")" | jq -r .share)
+    
+    # upload the file
+    $(echo $url | sed "s@<FILE>@$fileName@g")
+
+    echo "Download the file"      
+    if [ $(basename $(./mc cp --json "target/${bucketName}/datafile-1-MB" /tmp | jq -r .target)) != "datafile-1-MB" ]; then
+        return 1
+    fi
+
+    # calculate the md5 hash of downloaded file
+    hash2=$(echo $(md5sum /tmp/datafile-1-MB | awk '{print $1}'))
+
+    echo "Testing if the downloaded file is same as local file" 
+    if [ "$hash1" != "$hash2" ]; then
+        return 1
+    fi
+
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
+}
+
+# Tests for presigned URL download success case, presigned URL
+# is correct and accessible - we calculate md5sum of
+# the object and validate it against a local files md5sum.
+presignedDownloadObject(){
+    # Make bucket
+    local bucketName
+    bucketName=$(create_random_string)
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
+
+    fileName="${DATA_DIR}/datafile-1-MB"
+
+    # save md5 hash
+    hash1=$(echo $(md5sum "$fileName" | awk '{print $1}'))
+
+    # upload the file
+    echo "Uploading a 1MB temp file" 
+    ./mc cp "${fileName}" "target/${bucketName}" 
+
+    # create presigned URL download
+    echo "Create presigned file download URL" 
+    url=$(./mc share --json download "target/${bucketName}/$(basename "$fileName")" | jq -r .share)
+    
+    # download the file
+    echo "Download the file"
+    curl "$url" -o /tmp/"$(basename "$fileName")"
+
+    # calculate the md5 hash of downloaded file
+    hash2=$(echo $(md5sum /tmp/"$(basename "$fileName")" | awk '{print $1}'))
+
+    echo "Testing if the downloaded file is same as local file" 
+    if [ "$hash1" != "$hash2" ]; then
+        return 1
+    fi
+
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
+}
+
+# Upload an object, with invalid object name
+putObjectError(){
+    # Make bucket
+    local bucketName
+    bucketName=$(create_random_string)
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
+
+    # upload the file
+    echo "Uploading file with invalid object name" 
+    ./mc cp "$DATA_DIR"/datafile-1-MB "target/${bucketName}//2123123\123" 
+
+    # mc returns status 1 if case of invalid object name
+    if [ $? -ne 1 ]; then
+        return 1
+    fi
+
+    # remove bucket and cleanup
+    echo "Removing the bucket" 
+    remove_bucket "${bucketName}"
+}
+
+# Create a bucket and check if it exists on server
+makeBucketError(){
+    # Make bucket
+    local bucketName
+    bucketName="Abcd"
+
+     # Make bucket
+    ./mc mb "target/${bucketName}" 
+
+    # mc returns status 1 if bucket is created
+    if [ $? -ne 1 ]; then
+        return 1
+    fi
+
+}
+
+# main handler for all the tests.
+main() {
+    # Succes tests
+    makeBucket
+    putObject
+    putObjectMultipart
+    mirrorObject
+    presignedUploadObject
+    presignedDownloadObject
+
+    # TODO Add Policy tests once supported on GCS
+
+    # Error tests
+    putObjectError
+    makeBucketError
+}
+
+main
