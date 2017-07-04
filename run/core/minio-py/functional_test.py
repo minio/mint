@@ -91,7 +91,7 @@ def put_small_object_from_stream_test(client,bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "SmallFile"
+    testfile = data_dir + "/" + "datafile-1-MB"
 
     # Put a file
     file_stat = os.stat(testfile)
@@ -143,7 +143,7 @@ def put_small_object_from_file_test(client,bucket_name,object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "SmallFile"
+    testfile = data_dir + "/" + "datafile-1-MB"
     file_stat = os.stat(testfile)
     # Fput a file
     client.fput_object(bucket_name, object_name, testfile)
@@ -173,7 +173,7 @@ def copy_object_test(client,bucket_name,dest_object_name, src_object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "SmallFile"
+    testfile = data_dir + "/" + "datafile-1-MB"
 
     # Put a file
     file_stat = os.stat(testfile)
@@ -189,7 +189,7 @@ def copy_object_with_conditions_test(client,bucket_name, dest_object_name, src_o
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "SmallFile"
+    testfile = data_dir + "/" + "datafile-1-MB"
 
     object_name = uuid.uuid4().__str__()
     # Put a file
@@ -216,7 +216,7 @@ def stat_object_test(client,bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "SmallFile"
+    testfile = data_dir + "/" + "datafile-1-MB"
     # Put a file
     client.fput_object(bucket_name,object_name,testfile)
     file_stat = os.stat(testfile)
