@@ -1,0 +1,10 @@
+language: bash
+sudo: true
+services:
+- docker
+script:
+- docker build -f Dockerfile.dev -t play.minio.io/mint:travis-$TRAVIS_PULL_REQUEST_SHA .
+matrix:
+  fast_finish: true
+after_success:
+- docker push play.minio.io/mint:travis-$TRAVIS_PULL_REQUEST_SHA
