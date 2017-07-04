@@ -23,7 +23,8 @@ _init() {
 
 # Install Ruby dependencies
 installDeps() {
-    gem install aws-sdk
+  gem install aws-sdk
+  gem install colorize
 }
 
 main() {
