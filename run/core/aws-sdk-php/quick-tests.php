@@ -29,6 +29,10 @@ const FILE_5_MB = "datafile-5-MB";
 const HTTP_OK = "200";
 const HTTP_NOCONTENT = "204";
 
+/**
+ * ClientConfig abstracts configuration details to connect to a
+ * S3-like service
+ */
 class ClientConfig {
     public $creds;
     public $endpoint;
@@ -44,6 +48,15 @@ class ClientConfig {
     }
 }
 
+ /**
+  * randomName returns a string of random characters picked from 0-9,a-z.
+  *
+  * By default it returns a random name of length 5.
+  *
+  * @param int $length - length of random name.
+  *
+  * @return void
+  */
 function randomName(int $length=5):string {
     $alphabet = array_rand(str_split('0123456789abcdefghijklmnopqrstuvwxyz'), 26);
     $alphaLen = count($alphabet);
@@ -59,12 +72,42 @@ function randomName(int $length=5):string {
     return 'aws-sdk-php-bucket-' . join($alphabet_soup);
 }
 
+ /**
+  * getStatusCode returns HTTP status code of the given result.
+  *
+  * @param $result - AWS\S3 result object
+  *
+  * @return string - HTTP status code. E.g, "400" for Bad Request.
+  */
 function getStatusCode($result):string {
     return $result->toArray()['@metadata']['statusCode'];
 }
 
-// Helper function to execute tests that throw an exception
-// @param
+ /**
+  * runExceptionalTests executes a collection of tests that will throw
+  * a known exception.
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $apiCall Name of the S3Client API method to call
+  *
+  * @param $exceptionMatcher Name of Aws\S3\Exception\S3Exception
+  * method to fetch exception details
+  *
+  * @param $exceptionParamMap Associative array of exception names to
+  * API parameters. E.g,
+  * $apiCall = 'headBucket'
+  * $exceptionMatcher = 'getStatusCode'
+  * $exceptionParamMap = [
+  * // Invalid bucket name
+  *     '400' => ['Bucket' => $bucket['Name'] . '--'],
+  *
+  *      // Non existent bucket
+  *      '404' => ['Bucket' => $bucket['Name'] . '-non-existent'],
+  * ];
+  *
+  * @return string - HTTP status code. E.g, "400" for Bad Request.
+  */
 function runExceptionalTests($s3Client, $apiCall, $exceptionMatcher, $exceptionParamMap) {
     foreach($exceptionParamMap as $exn => $params) {
         $exceptionCaught = false;
@@ -89,7 +132,13 @@ function runExceptionalTests($s3Client, $apiCall, $exceptionMatcher, $exceptionP
     }
 }
 
-// Test for Listing all S3 Bucket
+ /**
+  * testListBuckets tests ListBuckets S3 API
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @return void
+  */
 function testListBuckets(S3Client $s3Client) {
     $buckets = $s3Client->listBuckets();
     foreach ($buckets['Buckets'] as $bucket){
@@ -97,7 +146,13 @@ function testListBuckets(S3Client $s3Client) {
     }
 }
 
-// Test for createBucket, headBucket
+ /**
+  * testBucketExists tests HEAD Bucket S3 API
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @return void
+  */
 function testBucketExists(S3Client $s3Client) {
     // List all buckets
     $buckets = $s3Client->listBuckets();
@@ -119,9 +174,18 @@ function testBucketExists(S3Client $s3Client) {
     runExceptionalTests($s3Client, 'headBucket', 'getStatusCode', $params);
 }
 
-// initializes setup with creating $objects using data inside $data_dir
-// Also tests createBucket, putObject
-function initSetup(S3Client $s3Client, $objects, $data_dir) {
+ /**
+  * initSetup creates buckets and objects necessary for the functional
+  * tests to run
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $objects Associative array of buckets and objects
+  *
+  * @return void
+  */
+function initSetup(S3Client $s3Client, $objects) {
+    $data_dir = $GLOBALS['data_dir'];
     foreach($objects as $bucket => $object) {
         $s3Client->createBucket(['Bucket' => $bucket]);
         try {
@@ -147,6 +211,17 @@ function initSetup(S3Client $s3Client, $objects, $data_dir) {
 }
 
 
+ /**
+  * testGetPutObject tests GET/PUT object S3 API
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket bucket on which GET/PUT operations are performed
+  *
+  * @param $object object to be downloaded/uploaded
+  *
+  * @return void
+  */
 function testGetPutObject($s3Client, $bucket, $object) {
     // Upload a 10KB file
     $data_dir = $GLOBALS['data_dir'];
@@ -185,6 +260,18 @@ function testGetPutObject($s3Client, $bucket, $object) {
     }
 }
 
+ /**
+  * testMultipartUploadFailure tests MultipartUpload failures
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket bucket on objects are uploaded using
+  * MultipartUpload API
+  *
+  * @param $object object to be uploaded
+  *
+  * @return void
+  */
 function testMultipartUploadFailure($s3Client, $bucket, $object) {
     $data_dir = $GLOBALS['data_dir'];
     // Initiate multipart upload
@@ -250,6 +337,18 @@ function testMultipartUploadFailure($s3Client, $bucket, $object) {
     runExceptionalTests($s3Client, 'completeMultipartUpload', 'getAwsErrorCode', $params);
 }
 
+ /**
+  * testMultipartUpload tests MultipartUpload S3 APIs
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket bucket on objects are uploaded using
+  * MultipartUpload API
+  *
+  * @param $object object to be uploaded
+  *
+  * @return void
+  */
 function testMultipartUpload($s3Client, $bucket, $object) {
     $data_dir = $GLOBALS['data_dir'];
     // Initiate multipart upload
@@ -308,6 +407,18 @@ function testMultipartUpload($s3Client, $bucket, $object) {
     }
 }
 
+ /**
+  * testAbortMultipartUpload tests aborting of a multipart upload
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket bucket on objects are uploaded using
+  * MultipartUpload API
+  *
+  * @param $object object to be uploaded
+  *
+  * @return void
+  */
 function testAbortMultipartUpload($s3Client, $bucket, $object) {
     $data_dir = $GLOBALS['data_dir'];
     // Initiate multipart upload
@@ -343,6 +454,15 @@ function testAbortMultipartUpload($s3Client, $bucket, $object) {
 
 }
 
+ /**
+  * testGetBucketLocation tests GET bucket location S3 API
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket bucket whose location is to be determined
+  *
+  * @return void
+  */
 function testGetBucketLocation($s3Client, $bucket) {
     // Valid test
     $result = $s3Client->getBucketLocation(['Bucket' => $bucket]);
@@ -361,6 +481,18 @@ function testGetBucketLocation($s3Client, $bucket) {
     runExceptionalTests($s3Client, 'getBucketLocation', 'getAwsErrorCode', $params);
 }
 
+ /**
+  * testCopyObject tests copy object S3 API
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket bucket from where object is copied from and copied
+  * into
+  *
+  * @param $object object to be copied
+  *
+  * @return void
+  */
 function testCopyObject($s3Client, $bucket, $object) {
     $result = $s3Client->copyObject([
         'Bucket' => $bucket,
@@ -395,6 +527,18 @@ function testCopyObject($s3Client, $bucket, $object) {
     runExceptionalTests($s3Client, 'copyObject', 'getAwsErrorCode', $params);
 }
 
+ /**
+  * testDeleteObjects tests Delete Objects S3 API
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket bucket from where objects are deleted
+  * into
+  *
+  * @param $object whose copies are deleted in one batch
+  *
+  * @return void
+  */
 function testDeleteObjects($s3Client, $bucket, $object) {
     $copies = [];
     for ($i = 0; $i < 3; $i++) {
@@ -421,6 +565,16 @@ function testDeleteObjects($s3Client, $bucket, $object) {
                             $bucket);
 }
 
+ /**
+  * cleanpupSetup removes all buckets and objects created during the
+  * functional test
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $objects Associative array of buckets to objects
+  *
+  * @return void
+  */
 function cleanupSetup($s3Client, $objects) {
     // Delete all objects
     foreach ($objects as $bucket => $object) {
@@ -470,7 +624,7 @@ $objects =  [
 ];
 
 try {
-    initSetup($s3Client, $objects, $data_dir);
+    initSetup($s3Client, $objects);
     $firstBucket = array_keys($objects)[0];
     $firstObject = $objects[$firstBucket];
     testGetBucketLocation($s3Client, $firstBucket);
