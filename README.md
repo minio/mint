@@ -30,7 +30,7 @@ Note: With no env variables provided the tests are run on play.minio.io by defau
 
 ## Run Mint
 
-Docker is need to run mint. Install and setup Docker by following the steps [here](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/). 
+Docker is needed to run mint. Install and setup Docker by following the steps [here](https://docs.docker.com/engine/installation/linux/docker-ce/ubuntu/). 
 
 To run Mint image, use the `docker run` command. For example, to run Mint with Minio Play server as test target use the below command
 
