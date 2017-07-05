@@ -17,7 +17,7 @@
 #
 
 run() {
-	python3 ./functional_test.py $1 
+	python3 ./functional_test.py 
 }
 
 main () {
@@ -26,7 +26,8 @@ main () {
     
     # run the tests
     rc=0
-    run $logfile 2>>$errfile 1>>$logfile || { echo "minio-py run failed."; exit 1;}
+    run 2>>"$errfile" 1>>"$logfile" || { echo "minio-py run failed."; exit 1;}
+    return $rc
 }
 
 # invoke the script

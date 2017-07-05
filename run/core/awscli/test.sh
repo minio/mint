@@ -287,14 +287,13 @@ sync_08() {
 
     bucketName=$(create_random_string)
     objectName=$(create_random_string)
-    data_dir="${DATA_DIR}"
 
     echo "Running sync_06"
     # Create a bucket.
     ${AWS} s3api create-bucket --bucket "${bucketName}"
 
     echo "Upload a set of files"
-    ${AWS} s3 sync "$data_dir" "s3://${bucketName}/"
+    ${AWS} s3 sync "$DATA_DIR" "s3://${bucketName}/"
 
     echo "Remove bucket contents recursively"
     ${AWS} s3 rm --recursive "s3://${bucketName}/"
@@ -337,8 +336,7 @@ listObjects_error_01() {
     fi
 
     # Server returns success with no keys when max-keys=0
-    ${AWS} s3api list-objects-v2 --bucket "${bucketName}" --prefix "${baseFileName}" --max-keys=0
-    if [ $? -ne 0 ]; then
+    if [ "$(${AWS} s3api list-objects-v2 --bucket "${bucketName}" --prefix "${baseFileName}" --max-keys=0)" -ne 0 ]; then
         return 1
     fi
 

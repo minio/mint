@@ -22,13 +22,13 @@ run() {
 
 setupMCTarget() {
         
-    [ $ENABLE_HTTPS -eq "1" ] && scheme="https" || scheme="http" 
+    [ "$ENABLE_HTTPS" -eq "1" ] && scheme="https" || scheme="http" 
 
     target_address=$scheme://$SERVER_ENDPOINT
     
     echo "Adding mc host alias target $target_address"
 
-    ./mc config host add target $target_address $ACCESS_KEY $SECRET_KEY
+    ./mc config host add target "$target_address" "$ACCESS_KEY" "$SECRET_KEY"
 }
 
 main() {
@@ -40,10 +40,10 @@ main() {
     rc=0
     
     # setup MC alias target to point to SERVER_ENDPOINT
-    setupMCTarget >>$logfile  2>&1 || { echo 'mc setup failed' ; exit 1; }
+    setupMCTarget >>"$logfile"  2>&1 || { echo 'mc setup failed' ; exit 1; }
 
-    run 2>>$errfile 1>>$logfile || { echo 'mc run failed.'; rc=1; } 
-    grep -e '<ERROR>' $logfile >> $errfile
+    run 2>>"$errfile" 1>>"$logfile" || { echo 'mc run failed.'; rc=1; } 
+    grep -e '<ERROR>' "$logfile" >> "$errfile"
     return $rc
 }
 

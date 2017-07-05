@@ -15,6 +15,8 @@
 #  limitations under the License.
 #
 
+set -e
+
 run() {
     chmod +x aws-stub-tests.rb
     ruby aws-stub-tests.rb
@@ -26,7 +28,10 @@ main () {
     
     # run the tests
     rc=0
-    run $logfile 2>>$errfile 1>>$logfile || { echo "aws-sdk-ruby run failed."; exit 1;}
+
+    # run the tests
+    run 2>>"$errfile" 1>>"$logfile" || { echo "aws-sdk-ruby run failed."; exit 1;}
+    return $rc
 }
 
 # invoke the script

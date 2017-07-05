@@ -31,11 +31,8 @@ makeBucket(){
     local bucketName
     bucketName=$(create_random_string)
 
-     # Make bucket
-    ./mc mb "target/${bucketName}" 
-
     # mc returns status 0 if bucket is created
-    if [ $? -ne 0 ]; then
+    if [ "$(./mc mb "target/${bucketName}")" -ne 0 ]; then
         return 1
     fi
 
@@ -54,7 +51,7 @@ putObject(){
     ./mc mb "target/${bucketName}" 
 
     # save md5 hash
-    hash1=$(echo $(md5sum "$DATA_DIR"/datafile-1-MB | awk '{print $1}'))
+    hash1=$(md5sum "$DATA_DIR"/datafile-1-MB | awk '{print $1}')
     
 
     # upload the file
@@ -62,12 +59,12 @@ putObject(){
     ./mc cp "$DATA_DIR"/datafile-1-MB "target/${bucketName}" 
 
     echo "Download the file"      
-    if [ $(basename $(./mc cp --json "target/${bucketName}/datafile-1-MB" /tmp | jq -r .target)) != "datafile-1-MB" ]; then
+    if [ "$(basename "$(./mc cp --json "target/${bucketName}/datafile-1-MB" /tmp | jq -r .target)")" != "datafile-1-MB" ]; then
         return 1
     fi
 
     # calculate the md5 hash of downloaded file
-    hash2=$(echo $(md5sum /tmp/datafile-1-MB | awk '{print $1}'))
+    hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
 
     echo "Testing if the downloaded file is same as local file" 
     if [ "$hash1" != "$hash2" ]; then 
@@ -89,19 +86,19 @@ putObjectMultipart(){
     ./mc mb "target/${bucketName}" 
 
     # save md5 hash
-    hash1=$(echo $(md5sum "$DATA_DIR"/datafile-65-MB | awk '{print $1}'))
+    hash1=$(md5sum "$DATA_DIR"/datafile-65-MB | awk '{print $1}')
 
     # upload the file
     echo "Uploading a 65MB temp file" 
     ./mc cp "$DATA_DIR"/datafile-65-MB "target/${bucketName}" 
 
     echo "Download the file" 
-    if [ $(basename $(./mc cp --json "target/${bucketName}/datafile-65-MB" /tmp | jq -r .target)) != "datafile-65-MB" ]; then
+    if [ "$(basename "$(./mc cp --json "target/${bucketName}/datafile-65-MB" /tmp | jq -r .target)")" != "datafile-65-MB" ]; then
         return 1
     fi 
     
     # calculate the md5 hash of downloaded file
-    hash2=$(echo $(md5sum /tmp/datafile-65-MB | awk '{print $1}'))
+    hash2=$(md5sum /tmp/datafile-65-MB | awk '{print $1}')
 
     echo "Testing if the downloaded file is same as local file" 
     if [ "$hash1" != "$hash2" ]; then
@@ -144,22 +141,24 @@ presignedUploadObject() {
     fileName="${DATA_DIR}/datafile-1-MB"
 
     # save md5 hash
-    hash1=$(echo $(md5sum "$fileName" | awk '{print $1}'))
+    hash1=$(md5sum "$fileName" | awk '{print $1}')
 
     # create presigned URL object
     echo "Create presigned file upload" 
     url=$(./mc share --json upload "target/${bucketName}/$(basename "$fileName")" | jq -r .share)
     
     # upload the file
-    $(echo $url | sed "s@<FILE>@$fileName@g")
+    curlUrl=$($url | sed "s@<FILE>@$fileName@g")
+
+    eval "$curlUrl"
 
     echo "Download the file"      
-    if [ $(basename $(./mc cp --json "target/${bucketName}/datafile-1-MB" /tmp | jq -r .target)) != "datafile-1-MB" ]; then
+    if [ "$(basename "$(./mc cp --json "target/${bucketName}/datafile-1-MB" /tmp | jq -r .target)")" != "datafile-1-MB" ]; then
         return 1
     fi
 
     # calculate the md5 hash of downloaded file
-    hash2=$(echo $(md5sum /tmp/datafile-1-MB | awk '{print $1}'))
+    hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
 
     echo "Testing if the downloaded file is same as local file" 
     if [ "$hash1" != "$hash2" ]; then
@@ -185,7 +184,7 @@ presignedDownloadObject(){
     fileName="${DATA_DIR}/datafile-1-MB"
 
     # save md5 hash
-    hash1=$(echo $(md5sum "$fileName" | awk '{print $1}'))
+    hash1=$(md5sum "$fileName" | awk '{print $1}')
 
     # upload the file
     echo "Uploading a 1MB temp file" 
@@ -200,7 +199,7 @@ presignedDownloadObject(){
     curl "$url" -o /tmp/"$(basename "$fileName")"
 
     # calculate the md5 hash of downloaded file
-    hash2=$(echo $(md5sum /tmp/"$(basename "$fileName")" | awk '{print $1}'))
+    hash2=$(md5sum /tmp/"$(basename "$fileName")" | awk '{print $1}')
 
     echo "Testing if the downloaded file is same as local file" 
     if [ "$hash1" != "$hash2" ]; then
