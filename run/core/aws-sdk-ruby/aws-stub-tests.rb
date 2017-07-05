@@ -21,72 +21,72 @@ require 'colorize'
 
 class AWS_SDK_Ruby_Test
 
-	def print_title(title)
+  def print_title(title)
     # Prints the title for the test
-		puts "=================================================="
-		msg = "\n*** " + title + "\n"
-		print msg.blue
-	end
+    puts '=================================================='
+    msg = "\n*** " + title + "\n"
+    print msg.blue
+  end
 
 
-	def print_log(log_msg, arg="")
+  def print_log(log_msg, arg='')
     # Prints a progress log message for
-		# the on-going test WITHOUT a new line.
+    # the on-going test WITHOUT a new line.
     # It accepts an arg to print out at the end
     # of the progress message
-	  msg = "\t" + log_msg + "%s"
-		printf(msg.light_black, arg)
-	end
+    msg = "\t" + log_msg + "%s"
+    printf(msg.light_black, arg)
+  end
 
 
-	def print_logn(log_msg, arg="")
-		# Prints a progress log message for
-		# the on-going test WITH a new line.
+  def print_logn(log_msg, arg='')
+    # Prints a progress log message for
+    # the on-going test WITH a new line.
     # It accepts an arg to print out at the end
     # of the progress message
-	  msg = "\t" + log_msg + "%s" + "\n"
-		printf(msg.light_black, arg)
-	end
+    msg = "\t" + log_msg + "%s" + "\n"
+    printf(msg.light_black, arg)
+  end
 
 
-	def print_status(result, e="")
+  def print_status(result, e='')
     # Prints result/status of the test, as "PASS" or "FAIL".
     # It adds the captured error message
     # if the result/status is a "FAIL".
-		e = e.nil? ? nil.to_s : "ERROR: " + e.to_s + "\n"
-		msg = "*** " + result + "\n" + e
-		if result == "PASS"
-			printf(msg.green)
-		else
-			printf(msg.red)
-		end
-	end
+    e = e.nil? ? nil.to_s : "ERROR: " + e.to_s + "\n"
+    msg = "*** " + result + "\n" + e
+    if result == "PASS"
+      printf(msg.green)
+    else
+      printf(msg.red)
+    end
+  end
 
 
-	def create_bucket(s3Resource)
+  def create_bucket(s3Resource)
     # Tests if a bucket can be created for s3
     # client instance, "s3Resource".
-		bucket_name = SecureRandom.hex(6)
-		bucket = s3Resource.create_bucket(bucket: bucket_name)
+    bucket_name = SecureRandom.hex(6)
+    bucket = s3Resource.create_bucket(bucket: bucket_name)
 
-		return bucket if bucket.exists?
-		raise "Create bucket failure"
-	rescue => e
-		puts "ERROR: ", e
-	end
+    return bucket if bucket.exists?
+    raise "Create bucket failure"
+  rescue => e
+    puts "ERROR: ", e
+  end
 
 
-	def delete_bucket(bucket)
+  def delete_bucket(bucket)
     # Tests if a bucket object, "bucket", can be deleted/removed
-		if bucket.exists?
-			bucket.objects.each do |obj|
-			  obj.delete obj.key
-			end
-			bucket.delete
-		end
-	rescue => e
-		puts "ERROR: Failed to delete bucket:", e
-	end
+    if bucket.exists?
+      bucket.objects.each do |obj|
+        obj.delete obj.key
+      end
+      bucket.delete
+    end
+  rescue => e
+    puts "ERROR: Failed to delete bucket:", e
+  end
 
 
   def list_buckets_test(s3Resource, s3Client)
@@ -100,12 +100,12 @@ class AWS_SDK_Ruby_Test
       i = j = 0
       s3Resource.buckets.limit(1000).each do |b|
         i += 1
-    	end
+      end
       print_log("Buckets (Resource) found:", i)
       print_logn("- Success!")
       s3Client.list_buckets.buckets.each do |b|
         j += 1
-    	end
+      end
       print_log("Buckets (Client) found:", j)
       print_logn("- Success!")
       state = "PASS"
@@ -118,91 +118,91 @@ class AWS_SDK_Ruby_Test
 
 
 
-	def make_remove_bucket_test(s3Resource)
+  def make_remove_bucket_test(s3Resource)
     # Tests if a bucket can be made/created.
     # If successful, it also tests, if the
     # same created bucket can be removed/deleted.
-		print_title "Make/Remove Bucket Test"
-		begin
-			print_log("Making a bucket")
-			bucket = create_bucket(s3Resource)
-			if bucket.exists?
-				state = "PASS"
-			else
-				state = "FAIL"
-			end
-			print_logn("- Success!")
-			print_log("Deleting the bucket")
-			delete_bucket(bucket)
-			if !bucket.exists?
-				state = "PASS"
-			else
-				state = "FAIL"
-			end
-			print_logn("- Success!")
-		rescue => e
-				state = "FAIL"
-		end
-		print_status(state, e)
-	end
+    print_title "Make/Remove Bucket Test"
+    begin
+      print_log("Making a bucket")
+      bucket = create_bucket(s3Resource)
+      if bucket.exists?
+        state = "PASS"
+      else
+        state = "FAIL"
+      end
+      print_logn("- Success!")
+      print_log("Deleting the bucket")
+      delete_bucket(bucket)
+      if !bucket.exists?
+        state = "PASS"
+      else
+        state = "FAIL"
+      end
+      print_logn("- Success!")
+    rescue => e
+        state = "FAIL"
+    end
+    print_status(state, e)
+  end
 
 
-	def upload_object_test(s3Resource, data_dir)
+  def upload_object_test(s3Resource, data_dir)
     # Tests if an file object can be uploaded
     # to s3 using s3 client, "s3Resource" at
     # the location, "data_dir"
     # It cleans up after the test is done.
-		file = data_dir + '/datafile-1-MB'
-		print_title "Upload Object Test"
-		begin
-			name = File.basename(file)
-			# Create the object to upload
-			bucket = create_bucket(s3Resource)
-			obj = bucket.object(name)
-			# Upload it
-			print_log("Uploading a 1MB file")
-			obj.upload_file(file)
-			print_logn("- Success!")
-			state = "PASS"
-		rescue => e
-			state = "FAIL"
-		end
-		# Clean-up
-		print_log "Clean-up"
-		delete_bucket(bucket)
-		print_logn("- Success!")
-		print_status(state, e)
-	end
+    file = data_dir + '/datafile-1-MB'
+    print_title "Upload Object Test"
+    begin
+      name = File.basename(file)
+      # Create the object to upload
+      bucket = create_bucket(s3Resource)
+      obj = bucket.object(name)
+      # Upload it
+      print_log("Uploading a 1MB file")
+      obj.upload_file(file)
+      print_logn("- Success!")
+      state = "PASS"
+    rescue => e
+      state = "FAIL"
+    end
+    # Clean-up
+    print_log "Clean-up"
+    delete_bucket(bucket)
+    print_logn("- Success!")
+    print_status(state, e)
+  end
 
-	def download_object_test(s3Resource,data_dir)
+  def download_object_test(s3Resource,data_dir)
     # Tests if a file object can be uplaoded.
     # To achieve this goal, it first downloads
     #  the file object, and then uploads it.
     # It cleans up after the test is done.
-		file = data_dir + '/datafile-1-MB'
-		destination = '/tmp' + '/datafile-1-MB'
-		print_title "Download Object Test"
-		begin
-			name = File.basename(file)
-			bucket = create_bucket(s3Resource)
-			obj = bucket.object(name)
-			print_log("First uploading a 1MB file")
-			obj.upload_file(file)
-			print_logn("- Success!")
-			# Get the item's content and save it to a file
-			print_log("Downloading the same object into your local /tmp directory")
-			obj.get(response_target: destination)
-			print_logn("- Success!")
-			state = "PASS"
-		rescue => e
-			state = "FAIL"
-		end
-		print_log("Clean-up")
-		delete_bucket(bucket)
-		system("rm #{destination}")
-		print_logn("- Success!")
-		print_status(state, e)
-	end
+    file = data_dir + '/datafile-1-MB'
+    destination = '/tmp' + '/datafile-1-MB'
+    print_title "Download Object Test"
+    begin
+      name = File.basename(file)
+      bucket = create_bucket(s3Resource)
+      obj = bucket.object(name)
+      print_log("First uploading a 1MB file")
+      obj.upload_file(file)
+      print_logn("- Success!")
+      # Get the item's content and save it to a file
+      print_log("Downloading the same object into your local /tmp directory")
+      obj.get(response_target: destination)
+      print_logn("- Success!")
+      state = "PASS"
+    rescue => e
+      state = "FAIL"
+    end
+    print_log("Clean-up")
+    delete_bucket(bucket)
+    system("rm #{destination}")
+    print_logn("- Success!")
+    print_status(state, e)
+  end
 end
 
 # Set variables necessary to create an s3 client instance.
@@ -227,12 +227,7 @@ enable_https = ENV['ENABLE_HTTPS']
 
 # Add "https://" to "endpoint" if environment
 # variable "ENABLE_HTTPS" is turned on
-
-if enable_https == "1"
-    endpoint = 'https://' + endpoint
-else
-    endpoint = 'http://' + endpoint
-end
+endpoint = enable_https == "1" ? 'https://' + endpoint : 'http://' + endpoint
 
 # Create s3 client instances, "s3Resource" and "s3Client"
 s3Resource = Aws::S3::Resource.new(region: region, endpoint: endpoint, access_key_id: access_key_id,
