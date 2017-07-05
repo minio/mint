@@ -19,9 +19,10 @@ require 'aws-sdk'
 require 'securerandom'
 require 'colorize'
 
-class AWS_SDK_Ruby
+class AWS_SDK_Ruby_Test
 
 	def print_title(title)
+    # Prints the title for the test
 		puts "=================================================="
 		msg = "\n*** " + title + "\n"
 		print msg.blue
@@ -29,20 +30,29 @@ class AWS_SDK_Ruby
 
 
 	def print_log(log_msg, arg="")
-		# print a log message without a new line
+    # Prints a progress log message for
+		# the on-going test WITHOUT a new line.
+    # It accepts an arg to print out at the end
+    # of the progress message
 	  msg = "\t" + log_msg + "%s"
 		printf(msg.light_black, arg)
 	end
 
 
 	def print_logn(log_msg, arg="")
-		# print a log message with a new line
+		# Prints a progress log message for
+		# the on-going test WITH a new line.
+    # It accepts an arg to print out at the end
+    # of the progress message
 	  msg = "\t" + log_msg + "%s" + "\n"
 		printf(msg.light_black, arg)
 	end
 
 
 	def print_status(result, e="")
+    # Prints result/status of the test, as "PASS" or "FAIL".
+    # It adds the captured error message
+    # if the result/status is a "FAIL".
 		e = e.nil? ? nil.to_s : "ERROR: " + e.to_s + "\n"
 		msg = "*** " + result + "\n" + e
 		if result == "PASS"
@@ -54,6 +64,8 @@ class AWS_SDK_Ruby
 
 
 	def create_bucket(s3Resource)
+    # Tests if a bucket can be created for s3
+    # client instance, "s3Resource".
 		bucket_name = SecureRandom.hex(6)
 		bucket = s3Resource.create_bucket(bucket: bucket_name)
 
@@ -65,6 +77,7 @@ class AWS_SDK_Ruby
 
 
 	def delete_bucket(bucket)
+    # Tests if a bucket object, "bucket", can be deleted/removed
 		if bucket.exists?
 			bucket.objects.each do |obj|
 			  obj.delete obj.key
@@ -77,6 +90,11 @@ class AWS_SDK_Ruby
 
 
   def list_buckets_test(s3Resource, s3Client)
+    # Tests if existing bucket objects for
+    # s3 client instances (s3Resource and s3Client)
+    # can be looped through (list functionality)
+    # It also logs/pritns the total number of bucket objects
+    # found for each client instance.
     print_title "List buckets Test"
     begin
       i = j = 0
@@ -101,6 +119,9 @@ class AWS_SDK_Ruby
 
 
 	def make_remove_bucket_test(s3Resource)
+    # Tests if a bucket can be made/created.
+    # If successful, it also tests, if the
+    # same created bucket can be removed/deleted.
 		print_title "Make/Remove Bucket Test"
 		begin
 			print_log("Making a bucket")
@@ -127,6 +148,10 @@ class AWS_SDK_Ruby
 
 
 	def upload_object_test(s3Resource, data_dir)
+    # Tests if an file object can be uploaded
+    # to s3 using s3 client, "s3Resource" at
+    # the location, "data_dir"
+    # It cleans up after the test is done.
 		file = data_dir + '/datafile-1-MB'
 		print_title "Upload Object Test"
 		begin
@@ -150,6 +175,10 @@ class AWS_SDK_Ruby
 	end
 
 	def download_object_test(s3Resource,data_dir)
+    # Tests if a file object can be uplaoded.
+    # To achieve this goal, it first downloads
+    #  the file object, and then uploads it.
+    # It cleans up after the test is done.
 		file = data_dir + '/datafile-1-MB'
 		destination = '/tmp' + '/datafile-1-MB'
 		print_title "Download Object Test"
@@ -176,12 +205,28 @@ class AWS_SDK_Ruby
 	end
 end
 
-region = ENV['SERVER_REGION'] ||= 'SERVER_REGION not set'
-endpoint =  ENV['SERVER_ENDPOINT'] ||= 'SERVER_ENDPOINT not set'
+# Set variables necessary to create an s3 client instance.
+# Get them from the environment variables
+
+# Region information, eg. "us-east-1"
+region = ENV['SERVER_REGION'] ||= 'SERVER_REGION is not set'
+
+# Minio server, eg. "play.minio.io:9000"
+endpoint =  ENV['SERVER_ENDPOINT'] ||= 'SERVER_ENDPOINT is not set'
+
 access_key_id = ENV['ACCESS_KEY'] ||= 'ACESS_KEY is not set'
 secret_access_key = ENV['SECRET_KEY'] ||= 'SECRET_KEY is not set'
+
+# The location where the bucket and file
+# objects are going to be created.
 data_dir = ENV['DATA_DIR'] ||= 'DATA_DIR is not set'
+
+# "1/0" value to decide if "HTTPS"
+# needs to be used on or not.
 enable_https = ENV['ENABLE_HTTPS']
+
+# Add "https://" to "endpoint" if environment
+# variable "ENABLE_HTTPS" is turned on
 
 if enable_https == "1"
     endpoint = 'https://' + endpoint
@@ -189,13 +234,14 @@ else
     endpoint = 'http://' + endpoint
 end
 
-# Set up AWS Client
+# Create s3 client instances, "s3Resource" and "s3Client"
 s3Resource = Aws::S3::Resource.new(region: region, endpoint: endpoint, access_key_id: access_key_id,
 secret_access_key: secret_access_key, force_path_style: true)
 s3Client = Aws::S3::Client.new(region: region, endpoint: endpoint, access_key_id: access_key_id,
 secret_access_key: secret_access_key, force_path_style: true)
 
-aws = AWS_SDK_Ruby.new
+# Create the test class instance and call the tests
+aws = AWS_SDK_Ruby_Test.new
 aws.list_buckets_test(s3Resource, s3Client)
 aws.make_remove_bucket_test(s3Resource)
 aws.upload_object_test(s3Resource, data_dir)
