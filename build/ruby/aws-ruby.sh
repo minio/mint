@@ -18,13 +18,13 @@
 set -e
 
 _init() {
-     ruby --version
+    ruby --version
 }
 
 # Install Ruby dependencies
 installDeps() {
-  gem install aws-sdk
-  gem install colorize
+    gem install aws-sdk
+    gem install colorize
 }
 
 main() {
