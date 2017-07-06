@@ -1,7 +1,6 @@
-#!/usr/bin/env bash
-#!/usr/bin/expect -f
+#!/bin/bash
 #
-#  Minio Cloud Storage, (C) 2017 Minio, Inc.
+#  Mint (C) 2017 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -17,7 +16,7 @@
 #
 
 run() {
-	python3 ./functional_test.py 
+    /usr/bin/minio-py-functional
 }
 
 main () {
@@ -31,5 +30,4 @@ main () {
 }
 
 # invoke the script
-
 main "$@"

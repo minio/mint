@@ -19,7 +19,7 @@ set -e
 
 _init() {
     MINIO_PY_SDK_PATH="/mint/run/core/minio-py"
-    MINIO_PY_SDK_VERSION="2.2.2"
+    MINIO_PY_SDK_VERSION="2.2.4"
 }
 
 installDeps() {
@@ -27,8 +27,17 @@ installDeps() {
     pip3 install minio==$MINIO_PY_SDK_VERSION
 }
 
+installFunctionalTest() {
+    curl https://raw.githubusercontent.com/minio/minio-py/${MINIO_PY_SDK_VERSION}/tests/functional/tests.py > /usr/bin/minio-py-functional
+    # This is needed until we make a new minio-py release.
+    sed -i 's/DATA_DIR/MINT_DATA_DIR/g' /usr/bin/minio-py-functional
+    chmod +x /usr/bin/minio-py-functional
+    sync
+}
+
 main() {
     installDeps
+    installFunctionalTest
 }
 
 _init "$@" && main

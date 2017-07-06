@@ -2,6 +2,8 @@ FROM ubuntu:16.04
 
 ENV DEBIAN_FRONTEND noninteractive
 
+ENV LANG C.UTF-8
+
 ENV GOROOT /usr/local/go
 
 ENV GOPATH /usr/local
