@@ -21,6 +21,9 @@ set -e
 install() {
     apt-get install -yq python3
     apt-get install -yq python3-pip
+    # python3 installation doesn't create /usr/bin/python symlink,
+    # create this pro-actively.
+    update-alternatives --install /usr/bin/python python /usr/bin/python3.5 1
 }
 
 # Remove python dependencies
