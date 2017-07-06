@@ -28,6 +28,7 @@ const FILE_10KB = "datafile-10-kB";
 const FILE_5_MB = "datafile-5-MB";
 const HTTP_OK = "200";
 const HTTP_NOCONTENT = "204";
+const TEST_METADATA = ['Param-1' => 'val-1'];
 
 /**
  * ClientConfig abstracts configuration details to connect to a
@@ -174,6 +175,168 @@ function testBucketExists(S3Client $s3Client) {
     runExceptionalTests($s3Client, 'headBucket', 'getStatusCode', $params);
 }
 
+
+ /**
+  * testHeadObject tests HeadObject S3 API
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $objects Associative array of buckets and objects
+  *
+  * @return void
+  */
+function testHeadObject($s3Client, $objects) {
+    foreach($objects as $bucket => $object) {
+        $result = $s3Client->headObject(['Bucket' => $bucket, 'Key' => $object]);
+        if (getStatusCode($result) != HTTP_OK)
+            throw new Exception('headObject API failed for ' .
+                                $bucket . '/' . $object);
+        if ($result['Metadata'] != TEST_METADATA) {
+            throw new Exception("headObject API Metadata didn't match for " .
+                                $bucket . '/' . $object);
+        }
+    }
+
+    // Run failure tests
+    $params = [
+        '404' => ['Bucket' => $bucket, 'Key' => $object . '-non-existent']
+    ];
+    runExceptionalTests($s3Client, 'headObject', 'getStatusCode', $params);
+}
+
+ /**
+  * testListObjects tests ListObjectsV1 and V2 S3 APIs
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $objects Associative array of buckets and objects
+  *
+  * @return void
+  */
+function testListObjects($s3Client, $bucket, $object) {
+    try {
+        for ($i = 0; $i < 5; $i++) {
+            $copyKey = $object . '-copy-' . strval($i);
+            $result = $s3Client->copyObject([
+                'Bucket' => $bucket,
+                'Key' => $copyKey,
+                'CopySource' => $bucket . '/' . $object,
+            ]);
+            if (getStatusCode($result) != HTTP_OK)
+                throw new Exception("copyObject API failed for " . $bucket . '/' . $object);
+        }
+
+        $paginator = $s3Client->getPaginator('ListObjects', ['Bucket' => $bucket]);
+        foreach ($paginator->search('Contents[].Key') as $key) {
+            echo 'key = ' . $key . "\n";
+        }
+
+        $paginator = $s3Client->getPaginator('ListObjectsV2', ['Bucket' => $bucket]);
+        foreach ($paginator->search('Contents[].Key') as $key) {
+            echo 'key = ' . $key . "\n";
+        }
+
+        $prefix = 'obj';
+        $result = $s3Client->listObjects(['Bucket' => $bucket, 'Prefix' => $prefix]);
+        if (getStatusCode($result) != HTTP_OK || $result['Prefix'] != $prefix)
+            throw new Exception("listObject API failed for " . $bucket . '/' . $object);
+
+        $maxKeys = 1;
+        $result = $s3Client->listObjects(['Bucket' => $bucket, 'MaxKeys' => $maxKeys]);
+        if (getStatusCode($result) != HTTP_OK || count($result['Contents']) != $maxKeys)
+            throw new Exception("listObject API failed for " . $bucket . '/' . $object);
+
+        $params = [
+            'InvalidArgument' => ['Bucket' => $bucket, 'MaxKeys' => -1],
+            'NoSuchBucket' => ['Bucket' => $bucket . '-non-existent']
+        ];
+        runExceptionalTests($s3Client, 'listObjects', 'getAwsErrorCode', $params);
+
+    } finally {
+        $s3Client->deleteObjects([
+            'Bucket' => $bucket,
+            'Delete' => [
+                'Objects' => array_map(function($a, $b) {
+                    return ['Key' =>  $a . '-copy-' . strval($b)];
+                }, array_fill(0, 5, $object), range(0,4))
+            ],
+        ]);
+    }
+}
+
+ /**
+  * testListMultipartUploads tests ListMultipartUploads, ListParts and
+  * UploadPartCopy S3 APIs
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket Name of bucket
+  *
+  * @param $object Name of object to be copied
+  *
+  * @return void
+  */
+function testListMultipartUploads($s3Client, $bucket, $object) {
+    $data_dir = $GLOBALS['MINT_DATA_DIR'];
+    // Initiate multipart upload
+    $result = $s3Client->createMultipartUpload([
+        'Bucket' => $bucket,
+        'Key' => $object . '-copy',
+    ]);
+    if (getStatusCode($result) != HTTP_OK)
+        throw new Exception('createMultipartupload API failed for ' .
+                            $bucket . '/' . $object);
+
+    // upload 5 parts
+    $uploadId = $result['UploadId'];
+    $parts = [];
+    try {
+        for ($i = 0; $i < 5; $i++) {
+            $result = $s3Client->uploadPartCopy([
+                'Bucket' => $bucket,
+                'Key' => $object . '-copy',
+                'UploadId' => $uploadId,
+                'PartNumber' => $i+1,
+                'CopySource' => $bucket . '/' . $object,
+            ]);
+            if (getStatusCode($result) != HTTP_OK) {
+                throw new Exception('uploadPart API failed for ' .
+                                    $bucket . '/' . $object);
+            }
+            array_push($parts, [
+                'ETag' => $result['ETag'],
+                'PartNumber' => $i+1,
+            ]);
+        }
+
+        // ListMultipartUploads and ListParts may return empty
+        // responses in the case of minio gateway gcs and minio server
+        // FS mode. So, the following tests don't make assumptions on
+        // result response.
+        $paginator = $s3Client->getPaginator('ListMultipartUploads',
+                                             ['Bucket' => $bucket]);
+        foreach ($paginator->search('Uploads[].{Key: Key, UploadId: UploadId}') as $keyHash) {
+            echo 'key = ' . $keyHash['Key'] . ' uploadId = ' . $keyHash['UploadId'] . "\n";
+        }
+
+        $paginator = $s3Client->getPaginator('ListParts', [
+            'Bucket' => $bucket,
+            'Key' => $object . '-copy',
+            'UploadId' => $uploadId,
+        ]);
+        foreach ($paginator->search('Parts[].{PartNumber: PartNumber, ETag: ETag}') as $partsHash) {
+            echo 'partNumber = ' . $partsHash['PartNumber'] . ' ETag = ' . $partsHash['ETag'] . "\n";
+        }
+
+    } finally {
+        $s3Client->abortMultipartUpload([
+            'Bucket' => $bucket,
+            'Key' => $object . '-copy',
+            'UploadId' => $uploadId
+        ]);
+    }
+}
+
  /**
   * initSetup creates buckets and objects necessary for the functional
   * tests to run
@@ -188,6 +351,7 @@ function initSetup(S3Client $s3Client, $objects) {
     $MINT_DATA_DIR = $GLOBALS['MINT_DATA_DIR'];
     foreach($objects as $bucket => $object) {
         $s3Client->createBucket(['Bucket' => $bucket]);
+        $stream = NULL;
         try {
             if (!file_exists($MINT_DATA_DIR . '/' . FILE_10KB))
                 throw new Exception('File not found ' . $MINT_DATA_DIR . '/' . FILE_10KB);
@@ -197,6 +361,7 @@ function initSetup(S3Client $s3Client, $objects) {
                 'Bucket' => $bucket,
                 'Key' => $object,
                 'Body' => $stream,
+                'Metadata' => TEST_METADATA,
             ]);
             if (getStatusCode($result) != HTTP_OK)
                 throw new Exception("putObject API failed for " . $bucket . '/' . $object);
@@ -451,7 +616,6 @@ function testAbortMultipartUpload($s3Client, $bucket, $object) {
         ],
     ];
     runExceptionalTests($s3Client, 'abortMultipartUpload', 'getAwsErrorCode', $params);
-
 }
 
  /**
@@ -591,6 +755,32 @@ function cleanupSetup($s3Client, $objects) {
     }
 }
 
+
+ /**
+  * runTestFunction helper function to wrap a test function and log
+  * success or failure accordingly.
+  *
+  * @param myfunc name of test function to be run
+  *
+  * @param args parameters to be passed to test function
+  *
+  * @return void
+  */
+function runTestFunction($myfunc, ...$args) {
+    static $counter = 1;
+
+    printf("%d. Testing %s\n\n", $counter, $myfunc);
+    try {
+        $myfunc(...$args);
+    } catch (Exception $e) {
+        printf("%d. %s failed at %d %s", $counter, $myfunc, $e->getLine(), $e->getFile());
+        throw $e;
+    } finally {
+        $counter++;
+    }
+    echo "\nPASSED " . $myfunc . "\n\n";
+}
+
 // Get client configuration from environment variables
 $access_key = getenv("ACCESS_KEY");
 $secret_key = getenv("SECRET_KEY");
@@ -627,15 +817,18 @@ try {
     initSetup($s3Client, $objects);
     $firstBucket = array_keys($objects)[0];
     $firstObject = $objects[$firstBucket];
-    testGetBucketLocation($s3Client, $firstBucket);
-    testListBuckets($s3Client);
-    testBucketExists($s3Client, array_keys($objects));
-    testGetPutObject($s3Client, $firstBucket, $firstObject);
-    testCopyObject($s3Client, $firstBucket, $firstObject);
-    testDeleteObjects($s3Client, $firstBucket, $firstObject);
-    testMultipartUpload($s3Client, $firstBucket, $firstObject);
-    testMultipartUploadFailure($s3Client, $firstBucket, $firstObject);
-    testAbortMultipartUpload($s3Client, $firstBucket, $firstObject);
+    runTestFunction('testGetBucketLocation', $s3Client, $firstBucket);
+    runTestFunction('testListBuckets', $s3Client);
+    runTestFunction('testListObjects', $s3Client, $firstBucket, $firstObject);
+    runTestFunction('testListMultipartUploads', $s3Client, $firstBucket, $firstObject);
+    runTestFunction('testBucketExists', $s3Client, array_keys($objects));
+    runTestFunction('testHeadObject', $s3Client, $objects);
+    runTestFunction('testGetPutObject', $s3Client, $firstBucket, $firstObject);
+    runTestFunction('testCopyObject', $s3Client, $firstBucket, $firstObject);
+    runTestFunction('testDeleteObjects', $s3Client, $firstBucket, $firstObject);
+    runTestFunction('testMultipartUpload', $s3Client, $firstBucket, $firstObject);
+    runTestFunction('testMultipartUploadFailure', $s3Client, $firstBucket, $firstObject);
+    runTestFunction('testAbortMultipartUpload', $s3Client, $firstBucket, $firstObject);
 }
 finally {
     cleanupSetup($s3Client, $objects);
