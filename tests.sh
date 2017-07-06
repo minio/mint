@@ -21,13 +21,11 @@ log_dir="log"
 error_file_name="error.log"
 log_file_name="output.log"
 
-# Utility methods
-
 # Prints message after an error
 printMsg() {
     echo ""
-    echo "Use 'docker ps -a' to find container-id"
-    echo "Export run logs from the container using 'docker cp container-id:/mint/log /tmp/mint-logs'"
+    echo "Use 'docker ps -a' to find container-id" 
+    echo "Export run logs from the container using 'docker cp ${container_id:0:12}:/mint/log /tmp/mint-logs'"
 }
 
 # Setup environment variables for the run.
@@ -48,7 +46,7 @@ _init() {
     fi
 
     if [ -z "$ENABLE_HTTPS" ]; then
-        ENABLE_HTTPS=0
+        export ENABLE_HTTPS=0
     fi
 
     # mode is set via env vars
@@ -64,6 +62,14 @@ _init() {
     if [ -z "$MINT_DATA_DIR" ]; then
         export MINT_DATA_DIR="/mint/data"
     fi
+
+    # check if any tests are ignored
+    if [ -n "$SKIP_TESTS" ]; then
+        IFS=',' read -ra sdks_to_ignore <<< "${SKIP_TESTS}"
+    fi
+
+    # Set Docker Container ID
+    container_id=$(basename "$(cat /proc/1/cpuset)") 
 }
 
 # Run the current SDK Test
@@ -99,28 +105,22 @@ doesntContainElement () {
     return 0
 }
 
-
 # Cycle through the sdk directories and run sdk/cli tests
 coreMain() {
     local test_dir
 
     test_dir="run/core"
 
-    # check if any tests are ignored
-    if [ -z "${SKIP_TESTS}" ]; then
-        IFS=',' read -ra SDKS_TO_IGNORE <<< "${SKIP_TESTS}"
-    fi
-
     # read the SDKs to run
     for i in ${root_dir}/${test_dir}/*;
     do
-        # if directory exists.
-        if [[ -d "${i}" ]] && doesntContainElement "${i}" "${SDKS_TO_IGNORE[@]}"; then
-            sdk="$(basename "$i")"
+        sdk="$(basename "$i")"
+        # if "i" is a directory
+        if [[ -d "${i}" ]] && doesntContainElement "$sdk" "${sdks_to_ignore[@]}"; then
             echo -n "Running $sdk tests ... "
             # log start time
             start=$(date +%s)
-            runCoreTest "$i" "$MINT_MODE" || { printMsg; exit 2; }
+            runCoreTest "$i" || { printMsg; exit 2; }
             # log end time
             end=$(date +%s)
             # get diif
@@ -128,7 +128,8 @@ coreMain() {
             echo "Finished in $(humantime ${diff})"
         fi
     done
-    echo "Mint ran all core tests successfully. To view logs, use 'docker cp container-id:/mint/log /tmp/mint-logs'"
+
+    echo "Mint ran all core tests successfully. To view logs, use 'docker cp ${container_id:0:12}:/mint/log /tmp/mint-logs'"
 }
 
 function humantime {
