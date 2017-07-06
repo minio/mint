@@ -51,7 +51,7 @@ createObject_02(){
     bucketName=$(create_random_string)
 
     # save md5 hash
-    hash1=$(md5sum "${DATA_DIR}/datafile-1-MB" | awk '{print $1}')
+    hash1=$(md5sum "${MINT_DATA_DIR}/datafile-1-MB" | awk '{print $1}')
 
     # create a bucket
     echo "Create a bucket"
@@ -59,7 +59,7 @@ createObject_02(){
 
     # copy the file
     echo "Upload an object"
-    ${AWS} s3api put-object --body "${DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB"
+    ${AWS} s3api put-object --body "${MINT_DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB"
 
     echo "Download the file"
     ${AWS} s3api get-object --bucket "${bucketName}" --key "datafile-1-MB" "/tmp/datafile-1-MB-downloaded"
@@ -92,7 +92,7 @@ listObjects_03() {
     echo "Create a bucket"
     ${AWS} s3api create-bucket --bucket "${bucketName}"
 
-    fileName="${DATA_DIR}/datafile-1-MB"
+    fileName="${MINT_DATA_DIR}/datafile-1-MB"
     baseFileName="$(basename "${fileName}")"
 
     # upload a file
@@ -139,8 +139,8 @@ multipart_04() {
 
     bucketName=$(create_random_string)
     objectName=$(create_random_string)
-    fileName1="${DATA_DIR}/datafile-5-MB"
-    fileName2="${DATA_DIR}/datafile-1-MB"
+    fileName1="${MINT_DATA_DIR}/datafile-5-MB"
+    fileName2="${MINT_DATA_DIR}/datafile-1-MB"
 
     # create a bucket
     echo "Create a bucket"
@@ -192,7 +192,7 @@ copyObject_05() {
     bucketName=$(create_random_string)
 
     # save md5 hash
-    hash1=$(md5sum "${DATA_DIR}/datafile-1-MB" | awk '{print $1}')
+    hash1=$(md5sum "${MINT_DATA_DIR}/datafile-1-MB" | awk '{print $1}')
 
     # create a bucket
     echo "Create a bucket"
@@ -200,7 +200,7 @@ copyObject_05() {
 
     # upload an object
     echo "Upload an object"
-    ${AWS} s3api put-object --body "${DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB"
+    ${AWS} s3api put-object --body "${MINT_DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB"
 
     # copy object server side
     echo "Copy server side object"
@@ -235,11 +235,11 @@ presignedObject_06() {
     ${AWS} s3api create-bucket --bucket "${bucketName}"
 
     # save md5 hash
-    hash1=$(md5sum "${DATA_DIR}/datafile-1-MB" | awk '{print $1}')
+    hash1=$(md5sum "${MINT_DATA_DIR}/datafile-1-MB" | awk '{print $1}')
 
     # upload an object
     echo "Upload an object"
-    ${AWS} s3api put-object --body "${DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB"
+    ${AWS} s3api put-object --body "${MINT_DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB"
 
     url=$(${AWS} s3 presign "s3://${bucketName}/datafile-1-MB")
     hash2=$(curl "${url}" | md5sum -)
@@ -263,7 +263,7 @@ copy_07() {
 
     bucketName=$(create_random_string)
     objectName=$(create_random_string)
-    fileName="${DATA_DIR}/datafile-65-MB"
+    fileName="${MINT_DATA_DIR}/datafile-65-MB"
 
     echo "Running copy_05"
     # Create a bucket.
@@ -293,7 +293,7 @@ sync_08() {
     ${AWS} s3api create-bucket --bucket "${bucketName}"
 
     echo "Upload a set of files"
-    ${AWS} s3 sync "$DATA_DIR" "s3://${bucketName}/"
+    ${AWS} s3 sync "$MINT_DATA_DIR" "s3://${bucketName}/"
 
     echo "Remove bucket contents recursively"
     ${AWS} s3 rm --recursive "s3://${bucketName}/"
@@ -312,7 +312,7 @@ listObjects_error_01() {
     local baseFileName
 
     bucketName=$(create_random_string)
-    fileName="${DATA_DIR}/datafile-1-MB"
+    fileName="${MINT_DATA_DIR}/datafile-1-MB"
     baseFileName="$(basename "${fileName}")"
 
     # create a bucket
@@ -358,26 +358,26 @@ putObject_error_02() {
     bucketName=$(create_random_string)
 
     # save md5 hash
-    hash1=$(md5sum "${DATA_DIR}/datafile-1-MB" | awk '{print $1}')
+    hash1=$(md5sum "${MINT_DATA_DIR}/datafile-1-MB" | awk '{print $1}')
 
     # create a bucket
     echo "Create a bucket"
     ${AWS} s3api create-bucket --bucket "${bucketName}"
 
     # upload an object failure with invalid object name.
-    ${AWS} s3api put-object --body "${DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "/2123123\123"
+    ${AWS} s3api put-object --body "${MINT_DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "/2123123\123"
     if [ $? -ne 255 ]; then
         return 1
     fi
 
     # upload an object without content-md5.
-    ${AWS} s3api put-object --body "${DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB" --content-md5 "invalid"
+    ${AWS} s3api put-object --body "${MINT_DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB" --content-md5 "invalid"
     if [ $? -ne 255 ]; then
         return 1
     fi
 
     # upload an object without content-length.
-    ${AWS} s3api put-object --body "${DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB" --content-length -1
+    ${AWS} s3api put-object --body "${MINT_DATA_DIR}/datafile-1-MB" --bucket "${bucketName}" --key "datafile-1-MB" --content-length -1
     if [ $? -ne 255 ]; then
         return 1
     fi

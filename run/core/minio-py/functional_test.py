@@ -26,7 +26,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 ENABLE_HTTPS  = os.getenv('ENABLE_HTTPS')
 is_s3 = SERVER_ENDPOINT.startswith("s3.amazonaws")
 _http = None
-data_dir = "/mint/data" if os.getenv('DATA_DIR') == None else os.getenv('DATA_DIR')
+MINT_DATA_DIR = "/mint/data" if os.getenv('MINT_DATA_DIR') == None else os.getenv('MINT_DATA_DIR')
 
 def generate_random_string(length=20):
     return ''.join(choice(ascii_uppercase) for i in range(length)).lower()
@@ -91,7 +91,7 @@ def put_small_object_from_stream_test(client,bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "datafile-1-MB"
+    testfile = MINT_DATA_DIR + "/" + "datafile-1-MB"
 
     # Put a file
     file_stat = os.stat(testfile)
@@ -107,7 +107,7 @@ def put_large_object_from_stream_test(client,bucket_name, object_name):
     found = client.bucket_exists(bucket_name)
     assert found == True
 
-    largefile = data_dir + "/" + "datafile-6-MB"
+    largefile = MINT_DATA_DIR + "/" + "datafile-6-MB"
     # Put a file
     file_stat = os.stat(largefile)
     with open(largefile, 'rb') as file_data:
@@ -121,7 +121,7 @@ def put_object(client, bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "datafile-100-kB"
+    testfile = MINT_DATA_DIR + "/" + "datafile-100-kB"
 
     file_stat = os.stat(testfile)
 
@@ -143,7 +143,7 @@ def put_small_object_from_file_test(client,bucket_name,object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "datafile-1-MB"
+    testfile = MINT_DATA_DIR + "/" + "datafile-1-MB"
     file_stat = os.stat(testfile)
     # Fput a file
     client.fput_object(bucket_name, object_name, testfile)
@@ -157,7 +157,7 @@ def put_large_object_from_file_test(client,bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True, logger.error(bucket_name + " missing on server")
-    largefile = data_dir + "/" + "datafile-6-MB"
+    largefile = MINT_DATA_DIR + "/" + "datafile-6-MB"
     # Put a file
     file_stat = os.stat(largefile)
     if is_s3:
@@ -173,7 +173,7 @@ def copy_object_test(client,bucket_name,dest_object_name, src_object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "datafile-1-MB"
+    testfile = MINT_DATA_DIR + "/" + "datafile-1-MB"
 
     # Put a file
     file_stat = os.stat(testfile)
@@ -189,7 +189,7 @@ def copy_object_with_conditions_test(client,bucket_name, dest_object_name, src_o
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "datafile-1-MB"
+    testfile = MINT_DATA_DIR + "/" + "datafile-1-MB"
 
     object_name = uuid.uuid4().__str__()
     # Put a file
@@ -216,7 +216,7 @@ def stat_object_test(client,bucket_name, object_name):
     _log_test()
     found = client.bucket_exists(bucket_name)
     assert found == True
-    testfile = data_dir + "/" + "datafile-1-MB"
+    testfile = MINT_DATA_DIR + "/" + "datafile-1-MB"
     # Put a file
     client.fput_object(bucket_name,object_name,testfile)
     file_stat = os.stat(testfile)

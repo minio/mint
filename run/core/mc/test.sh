@@ -51,12 +51,12 @@ putObject(){
     ./mc mb "target/${bucketName}" 
 
     # save md5 hash
-    hash1=$(md5sum "$DATA_DIR"/datafile-1-MB | awk '{print $1}')
+    hash1=$(md5sum "$MINT_DATA_DIR"/datafile-1-MB | awk '{print $1}')
     
 
     # upload the file
     echo "Uploading the 1MB temp file" 
-    ./mc cp "$DATA_DIR"/datafile-1-MB "target/${bucketName}" 
+    ./mc cp "$MINT_DATA_DIR"/datafile-1-MB "target/${bucketName}" 
 
     echo "Download the file"      
     if [ "$(basename "$(./mc cp --json "target/${bucketName}/datafile-1-MB" /tmp | jq -r .target)")" != "datafile-1-MB" ]; then
@@ -86,11 +86,11 @@ putObjectMultipart(){
     ./mc mb "target/${bucketName}" 
 
     # save md5 hash
-    hash1=$(md5sum "$DATA_DIR"/datafile-65-MB | awk '{print $1}')
+    hash1=$(md5sum "$MINT_DATA_DIR"/datafile-65-MB | awk '{print $1}')
 
     # upload the file
     echo "Uploading a 65MB temp file" 
-    ./mc cp "$DATA_DIR"/datafile-65-MB "target/${bucketName}" 
+    ./mc cp "$MINT_DATA_DIR"/datafile-65-MB "target/${bucketName}" 
 
     echo "Download the file" 
     if [ "$(basename "$(./mc cp --json "target/${bucketName}/datafile-65-MB" /tmp | jq -r .target)")" != "datafile-65-MB" ]; then
@@ -120,7 +120,7 @@ mirrorObject() {
     ./mc mb "target/${bucketName}" 
 
     echo "Upload a set of files"
-    ./mc mirror -q "$DATA_DIR" "target/${bucketName}"   
+    ./mc mirror -q "$MINT_DATA_DIR" "target/${bucketName}"   
 
     # remove bucket and cleanup
     echo "Removing the bucket" 
@@ -138,7 +138,7 @@ presignedUploadObject() {
      # Make bucket
     ./mc mb "target/${bucketName}" 
 
-    fileName="${DATA_DIR}/datafile-1-MB"
+    fileName="${MINT_DATA_DIR}/datafile-1-MB"
 
     # save md5 hash
     hash1=$(md5sum "$fileName" | awk '{print $1}')
@@ -181,7 +181,7 @@ presignedDownloadObject(){
      # Make bucket
     ./mc mb "target/${bucketName}" 
 
-    fileName="${DATA_DIR}/datafile-1-MB"
+    fileName="${MINT_DATA_DIR}/datafile-1-MB"
 
     # save md5 hash
     hash1=$(md5sum "$fileName" | awk '{print $1}')
@@ -222,7 +222,7 @@ putObjectError(){
 
     # upload the file
     echo "Uploading file with invalid object name" 
-    ./mc cp "$DATA_DIR"/datafile-1-MB "target/${bucketName}//2123123\123" 
+    ./mc cp "$MINT_DATA_DIR"/datafile-1-MB "target/${bucketName}//2123123\123" 
 
     # mc returns status 1 if case of invalid object name
     if [ $? -ne 1 ]; then
