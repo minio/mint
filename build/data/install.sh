@@ -18,22 +18,22 @@
 set -e
 
 _init() {
-    data_dir="/mint/data"
+    MINT_DATA_DIR="/mint/data"
 }
 
 createDataFiles() {
     # if no data directory passed from out side, create data directory and populate. else use the data directory from outside
-    if [ ! -d $data_dir ]; then
-        mkdir $data_dir
+    if [ ! -d $MINT_DATA_DIR ]; then
+        mkdir $MINT_DATA_DIR
         for COUNT in 1 5 6 11 65; do
-            dd if=/dev/zero of="$data_dir"/datafile-"$COUNT"-MB bs=1M count=$COUNT
+            dd if=/dev/zero of="$MINT_DATA_DIR"/datafile-"$COUNT"-MB bs=1M count=$COUNT
         done
 
-        dd if=/dev/zero of="$data_dir"/datafile-1-b bs=1 count=1
-        dd if=/dev/zero of="$data_dir"/datafile-10-kB bs=1024 count=10
-        dd if=/dev/zero of="$data_dir"/datafile-33-kB bs=1024 count=33
-        dd if=/dev/zero of="$data_dir"/datafile-100-kB bs=1024 count=100
-        dd if=/dev/zero of="$data_dir"/datafile-1.03-MB bs=1024 count=1056
+        dd if=/dev/zero of="$MINT_DATA_DIR"/datafile-1-b bs=1 count=1
+        dd if=/dev/zero of="$MINT_DATA_DIR"/datafile-10-kB bs=1024 count=10
+        dd if=/dev/zero of="$MINT_DATA_DIR"/datafile-33-kB bs=1024 count=33
+        dd if=/dev/zero of="$MINT_DATA_DIR"/datafile-100-kB bs=1024 count=100
+        dd if=/dev/zero of="$MINT_DATA_DIR"/datafile-1.03-MB bs=1024 count=1056
     fi
 }
 

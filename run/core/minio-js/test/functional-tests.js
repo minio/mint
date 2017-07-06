@@ -52,8 +52,8 @@ describe('functional tests', function() {
         playConfig.secure = false
     }
 
-    if (process.env['DATA_DIR']) {
-        dataDir = process.env['DATA_DIR']
+    if (process.env['MINT_DATA_DIR']) {
+        dataDir = process.env['MINT_DATA_DIR']
     } else {
         dataDir = "/mint/data"
     }

@@ -61,8 +61,8 @@ _init() {
         mkdir -p "$log_dir"
     fi
 
-    if [ -z "$DATA_DIR" ]; then
-        export DATA_DIR="/mint/data"
+    if [ -z "$MINT_DATA_DIR" ]; then
+        export MINT_DATA_DIR="/mint/data"
     fi
 }
 

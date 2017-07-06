@@ -53,7 +53,7 @@ public class FunctionalTest {
   private static String region;
   private static String mode;
   private static MinioClient client = null;
-  private static String dataDir=System.getenv("DATA_DIR");
+  private static String dataDir=System.getenv("MINT_DATA_DIR");
   private static String FileOfSize1b=dataDir + "/datafile-1-b";
 
   private static String FileOfSize6mb=dataDir + "/datafile-6-MB";

@@ -50,7 +50,7 @@ const (
 )
 
 func getFilePath(filename string) string {
-	var dir = os.Getenv("DATA_DIR")
+	var dir = os.Getenv("MINT_DATA_DIR")
 	if dir == "" {
 		dir = "/mint/data"
 	}

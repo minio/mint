@@ -147,12 +147,12 @@ class AWS_SDK_Ruby_Test
   end
 
 
-  def upload_object_test(s3Resource, data_dir)
+  def upload_object_test(s3Resource, MINT_DATA_DIR)
     # Tests if an file object can be uploaded
     # to s3 using s3 client, "s3Resource" at
-    # the location, "data_dir"
+    # the location, "MINT_DATA_DIR"
     # It cleans up after the test is done.
-    file = data_dir + '/datafile-1-MB'
+    file = MINT_DATA_DIR + '/datafile-1-MB'
     print_title "Upload Object Test"
     begin
       name = File.basename(file)
@@ -174,12 +174,12 @@ class AWS_SDK_Ruby_Test
     print_status(state, e)
   end
 
-  def download_object_test(s3Resource,data_dir)
+  def download_object_test(s3Resource,MINT_DATA_DIR)
     # Tests if a file object can be uplaoded.
     # To achieve this goal, it first downloads
     #  the file object, and then uploads it.
     # It cleans up after the test is done.
-    file = data_dir + '/datafile-1-MB'
+    file = MINT_DATA_DIR + '/datafile-1-MB'
     destination = '/tmp' + '/datafile-1-MB'
     print_title "Download Object Test"
     begin
@@ -219,7 +219,7 @@ secret_access_key = ENV['SECRET_KEY'] ||= 'SECRET_KEY is not set'
 
 # The location where the bucket and file
 # objects are going to be created.
-data_dir = ENV['DATA_DIR'] ||= 'DATA_DIR is not set'
+MINT_DATA_DIR = ENV['MINT_DATA_DIR'] ||= 'MINT_DATA_DIR is not set'
 
 # "1/0" value to decide if "HTTPS"
 # needs to be used on or not.
@@ -239,5 +239,5 @@ secret_access_key: secret_access_key, force_path_style: true)
 aws = AWS_SDK_Ruby_Test.new
 aws.list_buckets_test(s3Resource, s3Client)
 aws.make_remove_bucket_test(s3Resource)
-aws.upload_object_test(s3Resource, data_dir)
-aws.download_object_test(s3Resource, data_dir)
+aws.upload_object_test(s3Resource, MINT_DATA_DIR)
+aws.download_object_test(s3Resource, MINT_DATA_DIR)
