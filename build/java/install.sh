@@ -16,6 +16,9 @@
 #
 
 # install java dependencies.
+
+set -e 
+
 install() {
     apt-get update && apt-get install -yq default-jre default-jdk
 }

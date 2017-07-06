@@ -27,8 +27,8 @@ main() {
     # run the tests
     rc=0
 
-    run 2>>$errfile 1>>$logfile || { echo 'minio-go run failed.'; rc=1; }
-    grep -e 'FAIL' $logfile >> $errfile
+    run 2>>"$errfile" 1>>"$logfile" || { echo 'minio-go run failed.'; rc=1; }
+    grep -e 'FAIL' "$logfile" >> "$errfile"
     return $rc
 }
 

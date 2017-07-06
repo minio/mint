@@ -26,7 +26,7 @@ main () {
     
     # run the tests
     rc=0
-    run 2>>$errfile 1>>$logfile || { echo "minio-js run failed.";rc=1;}
+    run 2>>"$errfile" 1>>"$logfile" || { echo "minio-js run failed.";rc=1;}
     return $rc
 }
 

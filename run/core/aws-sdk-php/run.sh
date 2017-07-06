@@ -15,6 +15,8 @@
 #  limitations under the License.
 #
 
+set -e
+
 run() {
     php ./quick-tests.php
 }
@@ -24,7 +26,11 @@ main () {
     errfile=$2
 
     # run the tests
-    run $logfile 2>>$errfile 1>>$logfile || { echo "aws-sdk-php run failed."; exit 1;}
+    rc=0
+
+    # run the tests
+    run 2>>"$errfile" 1>>"$logfile" || { echo "aws-sdk-php run failed."; exit 1;}
+    return $rc
 }
 
 # invoke the script
