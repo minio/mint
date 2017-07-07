@@ -713,7 +713,7 @@ function testDeleteObjects($s3Client, $bucket, $object) {
             'CopySource' => $bucket . '/' . $object,
         ]);
         if (getstatuscode($result) != HTTP_OK)
-            throw new exception('copyobject api failed for ' .
+            throw new Exception('copyobject API failed for ' .
                                 $bucket);
         array_push($copies, ['Key' => $copyKey]);
     }
@@ -725,12 +725,41 @@ function testDeleteObjects($s3Client, $bucket, $object) {
         ],
     ]);
     if (getstatuscode($result) != HTTP_OK)
-        throw new exception('deleteObjects api failed for ' .
+        throw new Exception('deleteObjects api failed for ' .
                             $bucket);
 }
 
  /**
-  * cleanpupSetup removes all buckets and objects created during the
+  *  testBucketPolicy tests GET/PUT Bucket policy S3 APIs
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket bucket on which policy is being set
+  *
+  * @return void
+  */
+function testBucketPolicy($s3Client, $bucket) {
+    // Taken from policy set using `mc policy download`
+    $downloadPolicy = sprintf('{"Version":"2012-10-17","Statement":[{"Action":["s3:GetBucketLocation","s3:ListBucket"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s"],"Sid":""},{"Action":["s3:GetObject"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s/*"],"Sid":""}]}', $bucket, $bucket);
+
+    $result = $s3Client->putBucketPolicy([
+        'Bucket' => $bucket,
+        'Policy' => $downloadPolicy
+    ]);
+    if (getstatuscode($result) != HTTP_NOCONTENT)
+        throw new Exception('putBucketPolicy API failed for ' .
+                            $bucket);
+    $result = $s3Client->getBucketPolicy(['Bucket' => $bucket]);
+    if (getstatuscode($result) != HTTP_OK)
+        throw new Exception('putBucketPolicy API failed for ' .
+                            $bucket);
+
+    if ($result['Policy'] != $downloadPolicy)
+        throw new Exception('bucket policy we got is not we set');
+}
+
+ /**
+  * cleanupSetup removes all buckets and objects created during the
   * functional test
   *
   * @param $s3Client AWS\S3\S3Client object
@@ -829,6 +858,7 @@ try {
     runTestFunction('testMultipartUpload', $s3Client, $firstBucket, $firstObject);
     runTestFunction('testMultipartUploadFailure', $s3Client, $firstBucket, $firstObject);
     runTestFunction('testAbortMultipartUpload', $s3Client, $firstBucket, $firstObject);
+    runTestFunction('testBucketPolicy', $s3Client, $firstBucket);
 }
 finally {
     cleanupSetup($s3Client, $objects);
