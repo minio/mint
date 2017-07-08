@@ -83,6 +83,13 @@ $ cd mint
 $ docker build -t minio/mint .
 ```
 
+Developers can also customize `Dockerfile.dev` to generate smaller build images. For example, removing the following lines from `Dockerfile.dev` will avoid shipping Golang SDK tests in the image hence a faster build and tests execution time.
+
+```docker
+COPY build/go/ /mint/build/go/
+RUN /mint/build/go/install.sh
+```
+
 ### Build using Travis
 
 Each pull request when submitted to Github `travis-ci` runs build on mint to create new docker image on `play.minio.io`, our private docker registry. You can get the `mint` image associated with your pull request by just running `docker pull play.minio.io/mint:$PULL_REQUEST_SHA`
