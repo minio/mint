@@ -153,11 +153,11 @@ class AWS_SDK_Ruby_Test
 
   def listBuckets(s3)
     # Returns an array of bucket names on S3 client, "s3"
-    bucket_list = []
+    bucket_name_list = []
     s3.buckets.each do |b|
-      bucket_list.push(b.name)
+      bucket_name_list.push(b.name)
     end
-    return bucket_list
+    return bucket_name_list
   rescue => e
     puts "\nERROR: Failed to get the list of buckets", e
   end
@@ -199,7 +199,7 @@ class AWS_SDK_Ruby_Test
   #
   # Test case methods
   #
-  def listBucketsTest(s3, bucket_list)
+  def listBucketsTest(s3, bucket_name_list)
     # Tests listBuckets api command and prints out
     # the total number of buckets found
     print_title "List Buckets Test"
@@ -208,9 +208,9 @@ class AWS_SDK_Ruby_Test
       print_log("Buckets found:", prev_total_buckets.to_s)
       print_logn("- Success!")
 
-      new_buckets = bucket_list.length
+      new_buckets = bucket_name_list.length
       print_log("Making " + new_buckets.to_s + " new buckets")
-      bucket_list.each do |b|
+      bucket_name_list.each do |b|
         makeBucket(s3, b)
         print_logn("- Success!")
       end
@@ -228,7 +228,7 @@ class AWS_SDK_Ruby_Test
     rescue => e
       state = "FAIL"
     end
-    cleanUp(s3, bucket_list)
+    cleanUp(s3, bucket_name_list)
     print_status(state, e)
   end
 
@@ -499,7 +499,7 @@ secret_access_key: secret_access_key, force_path_style: true)
 aws = AWS_SDK_Ruby_Test.new
 bucket_name1 = SecureRandom.hex(6)
 bucket_name2 = SecureRandom.hex(6)
-bucket_list = [bucket_name1, bucket_name2]
+bucket_name_list = [bucket_name1, bucket_name2]
 file_name1 = 'datafile-1-MB'
 file_new_name = 'datafile-1-MB-copy'
 file_name_list = ['datafile-1-MB', 'datafile-5-MB', 'datafile-6-MB']
@@ -507,7 +507,7 @@ file_name_list = ['datafile-1-MB', 'datafile-5-MB', 'datafile-6-MB']
 file_list = file_name_list.map{ |f| File.join(data_dir, f)}
 destination = '/tmp'
 
-aws.listBucketsTest(s3Resource, bucket_list)
+aws.listBucketsTest(s3Resource, bucket_name_list)
 aws.listObjectsTest(s3Resource, bucket_name1, file_list)
 aws.makeBucketTest(s3Resource, bucket_name1)
 aws.bucketExistsNegativeTest(s3Resource, bucket_name1)
