@@ -12,9 +12,36 @@ ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
 
 WORKDIR /mint
 
-COPY . /mint
+RUN apt-get update && apt-get install -yq git jq curl
 
-RUN apt-get update && apt-get install -yq git jq && \
-    /mint/build/install.sh
+COPY run /mint/run
+
+COPY build/data/ /mint/build/data/
+RUN /mint/build/data/install.sh
+
+COPY build/cli/ /mint/build/cli/
+RUN /mint/build/cli/install.sh
+
+COPY build/go/ /mint/build/go/
+RUN /mint/build/go/install.sh
+
+COPY build/java/ /mint/build/java/
+RUN /mint/build/java/install.sh
+
+COPY build/py/ /mint/build/py/
+RUN /mint/build/py/install.sh
+
+COPY build/js/ /mint/build/js/
+RUN /mint/build/js/install.sh
+
+COPY build/php/ /mint/build/php/
+RUN /mint/build/php/install.sh
+
+COPY build/ruby/ /mint/build/ruby/
+RUN /mint/build/ruby/install.sh
+
+COPY run.sh /mint/run.sh
+COPY tests.sh /mint/tests.sh
 
 CMD ["/mint/run.sh", "/mint/tests.sh"]
+
