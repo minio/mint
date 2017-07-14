@@ -20,7 +20,7 @@ run() {
     ENDPOINT_URL=$scheme://"$SERVER_ENDPOINT"
 
     MINIO_JAVA_SDK_PATH="/mint/run/core/minio-java"
-    MINIO_JAVA_SDK_VERSION="3.0.5"
+    MINIO_JAVA_SDK_VERSION="3.0.6"
 
     java -cp "$MINIO_JAVA_SDK_PATH/minio-${MINIO_JAVA_SDK_VERSION}-all.jar:." FunctionalTest "$ENDPOINT_URL" "$ACCESS_KEY" "$SECRET_KEY" "$SERVER_REGION"
 }
