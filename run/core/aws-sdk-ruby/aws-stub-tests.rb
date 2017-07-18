@@ -21,7 +21,7 @@ require 'colorize'
 require 'net/http'
 require 'multipart_body'
 
-class AWS_SDK_Ruby_Test
+class AwsSdkRubyTest
     #
     # Helper methods
     #
@@ -51,12 +51,12 @@ class AWS_SDK_Ruby_Test
     end
 
     def print_status(result, e='')
-        # Prints result/status of the test, as "PASS" or "FAIL".
+        # Prints result/status of the test, as 'PASS' or 'FAIL'.
         # It adds the captured error message
-        # if the result/status is a "FAIL".
+        # if the result/status is a 'FAIL'.
         e = e.nil? ? nil.to_s : "ERROR: " + e.to_s + "\n"
         msg = "*** " + result + "\n" + e
-        if result == "PASS"
+        if result == 'PASS'
             printf(msg.green)
         else
             printf(msg.red)
@@ -75,10 +75,10 @@ class AWS_SDK_Ruby_Test
                 removeBucket(s3, b)
             end
         end
-        print_logn("- Success!")
+        print_logn('Success!')
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to clean-up bucket: " + bucket_name
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to clean-up bucket: " + bucket_name
         raise e
     end
 
@@ -92,8 +92,8 @@ class AWS_SDK_Ruby_Test
                s3.bucket(bucket_name) :
                s3.create_bucket(bucket: bucket_name)
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to create bucket: " + bucket_name
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to create bucket: " + bucket_name
         raise e
     end
 
@@ -101,8 +101,8 @@ class AWS_SDK_Ruby_Test
         # Deletes/removes bucket, "bucket_name" on S3 client, "s3"
         s3.bucket(bucket_name).delete
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to delete bucket: " + bucket_name
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to delete bucket: " + bucket_name
         raise e
     end
 
@@ -112,8 +112,8 @@ class AWS_SDK_Ruby_Test
         file_name = File.basename(file)
         s3.bucket(bucket_name).object(file_name).upload_file(file)
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to create file: " + file_name
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to create file: " + file_name
         raise e
     end
 
@@ -124,8 +124,8 @@ class AWS_SDK_Ruby_Test
         dest = File.join(destination, file_name)
         s3.bucket(bucket_name).object(file_name).get(response_target: dest)
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to get (download) file: " + file_name
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to get (download) file: " + file_name
         raise e
     end
 
@@ -140,8 +140,8 @@ class AWS_SDK_Ruby_Test
         target_obj = target.object(target_file_name)
         source_obj.copy_to(target_obj)
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to copy file: " + source_file_name
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to copy file: " + source_file_name
         raise e
     end
 
@@ -152,8 +152,8 @@ class AWS_SDK_Ruby_Test
         # it quitely returns without any error message
         s3.bucket(bucket_name).object(file_name).delete
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to delete file: " + file_name
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to delete file: " + file_name
         raise e
     end
 
@@ -166,8 +166,8 @@ class AWS_SDK_Ruby_Test
             obj.delete obj.key
         end
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to Failed to clean-up bucket: " +
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to Failed to clean-up bucket: " +
                               bucket_name + ", file: " + file_name
         raise e
     end
@@ -180,8 +180,8 @@ class AWS_SDK_Ruby_Test
         end
         return bucket_name_list
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to get the list of buckets"
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to get the list of buckets"
         raise e
     end
 
@@ -194,8 +194,8 @@ class AWS_SDK_Ruby_Test
         end
         return object_list
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to get the list of files in bucket " +
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to get the list of files in bucket " +
                 bucket_name
         raise e
     end
@@ -203,8 +203,8 @@ class AWS_SDK_Ruby_Test
     def statObject(s3, bucket_name, file_name)
         return s3.bucket(bucket_name).object(file_name).exists?
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed toget stat for " +
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed toget stat for " +
                               file_name + " in " + bucket_name
         raise e
     end
@@ -214,8 +214,8 @@ class AWS_SDK_Ruby_Test
         # false otherwise
         return s3.bucket(bucket_name).exists?
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to check if bucket, " +
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to check if bucket, " +
                               bucket_name + ", exists"
         raise e
     end
@@ -225,8 +225,8 @@ class AWS_SDK_Ruby_Test
         obj = s3.bucket(bucket_name).object(file_name)
         return obj.presigned_url(:get, expires_in: 600)
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to create presigned GET url for '" +
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to create presigned GET url for '" +
                         file_name + "' file in bucket, " + "'" + bucket_name
         raise e
     end
@@ -236,8 +236,8 @@ class AWS_SDK_Ruby_Test
         obj = s3.bucket(bucket_name).object(file_name)
         return obj.presigned_url(:put, expires_in: 600)
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to create presigned PUT url for '" +
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to create presigned PUT url for '" +
                         file_name + "' file in bucket, " + "'" + bucket_name
         raise e
     end
@@ -248,8 +248,8 @@ class AWS_SDK_Ruby_Test
         return obj.presigned_post(:expires => Time.now + expires_in_sec,
                                   :content_length_range => 1..max_byte_size)
     rescue => e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to create presigned POST url for '" +
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to create presigned POST url for '" +
                         file_name + "' file in bucket, " + "'" + bucket_name
         raise e
     end
@@ -260,214 +260,245 @@ class AWS_SDK_Ruby_Test
     rescue => e
         puts "\nERROR: Failed to get bucket policy for bucket, '" +
                 bucket_name + "'", e
-        print_logn("- Failure!")
-        print_status "FAIL", "Failed to get bucket policy for bucket, '" +
+        print_logn('Failure!')
+        print_status 'FAIL', "Failed to get bucket policy for bucket, '" +
                               bucket_name
         raise e
+    end
+
+    def create_s3_resource
+        # Set variables necessary to create an s3 client instance.
+        # Get them from the environment variables
+
+        # Region information, eg. "us-east-1"
+        region = ENV['SERVER_REGION'] ||= 'SERVER_REGION is not set'
+        # Minio server, eg. "play.minio.io:9000"
+        endpoint =  ENV['SERVER_ENDPOINT'] ||= 'SERVER_ENDPOINT is not set'
+        access_key_id = ENV['ACCESS_KEY'] ||= 'ACESS_KEY is not set'
+        secret_access_key = ENV['SECRET_KEY'] ||= 'SECRET_KEY is not set'
+        enable_https = ENV['ENABLE_HTTPS']
+        endpoint = enable_https == "1" ?
+                                'https://' + endpoint :
+                                'http://' + endpoint
+        # Create s3 client instances, "s3Resource" and "s3Client"
+        return Aws::S3::Resource.new(region: region,
+                                     endpoint: endpoint,
+                                     access_key_id: access_key_id,
+                                     secret_access_key: secret_access_key,
+                                     force_path_style: true)
     end
 
     #
     # Test case methods
     #
-    def listBucketsTest(s3, bucket_name_list)
-        # Tests listBuckets api command and prints out
-        # the total number of buckets found
+    def listBucketsTest(bucket_name_list)
+        # Tests listBuckets api command
+        # Creates new buckets from bucket_name_list
+        # and prints out total number of buckets found
         print_title "List Buckets Test"
         begin
+            s3 = create_s3_resource
             prev_total_buckets = listBuckets(s3).length
             print_log("Buckets found:", prev_total_buckets.to_s)
-            print_logn("- Success!")
+            print_logn('- Success!')
 
             new_buckets = bucket_name_list.length
             print_log("Making " + new_buckets.to_s + " new buckets")
             bucket_name_list.each do |b|
                 makeBucket(s3, b)
-                print_logn("- Success!")
+                print_logn('Success!')
             end
             new_total_buckets = prev_total_buckets + new_buckets
             print_log("Total buckets found now:", new_total_buckets.to_s)
  
             if new_total_buckets == prev_total_buckets + new_buckets
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Expected total number of buckets and actual number do not match"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, bucket_name_list)
         print_status(state, e)
     end
 
-    def makeBucketTest(s3, bucket_name)
+    def makeBucketTest(bucket_name)
         # Tests makeBucket api commands.
         print_title "Make Bucket Test"
         begin
+            s3 = create_s3_resource
             print_log("Making a bucket")
             makeBucket(s3, bucket_name)
 
             if bucketExists?(s3, bucket_name)
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Bucket expected to be created does not exist"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
     end
 
-    def bucketExistsNegativeTest(s3, bucket_name)
+    def bucketExistsNegativeTest(bucket_name)
         # Tests bucketExists api commands.
         print_title "Bucket Exists Test"
         begin
+            s3 = create_s3_resource
             print_log("Checking a non-existing bucket")
             if !bucketExists?(s3, bucket_name)
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "bucketExists? api command failed
                     to return 'false' for non-existing bucket"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
     end
 
-    def removeBucketTest(s3, bucket_name)
+    def removeBucketTest(bucket_name)
         # Tests removeBucket api commands.
         print_title "Remove Bucket Test"
         begin
+            s3 = create_s3_resource
             print_log("Making a bucket")
             makeBucket(s3, bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Deleting the bucket")
             removeBucket(s3, bucket_name)
 
             if !bucketExists?(s3, bucket_name)
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Bucket expected to be removed still exists"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
     end
 
-    def putObjectTest(s3, bucket_name, file)
+    def putObjectTest(bucket_name, file)
         # Tests putObject api command
         # by uploading a file
         print_title "Put (Upload) Object Test"
         begin
+            s3 = create_s3_resource
             print_log("Making a bucket")
             makeBucket(s3, bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Uploading file")
             putObject(s3, bucket_name, file)
 
             if statObject(s3, bucket_name, File.basename(file))
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Status for the created object returned 'false'"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
     end
 
-    def removeObjectTest(s3, bucket_name, file)
+    def removeObjectTest(bucket_name, file)
         # Tests removeObject api command
         # by uploading and removing a file
         print_title "Remove Object Test"
         begin
+            s3 = create_s3_resource
             print_log("Making a bucket")
             makeBucket(s3, bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Uploading file")
             putObject(s3, bucket_name, file)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Removing file")
             removeObject(s3, bucket_name, File.basename(file))
 
             if !statObject(s3, bucket_name, File.basename(file))
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Status for the removed object returned 'true'"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
     end
 
-    def getObjectTest(s3, bucket_name, file, destination)
+    def getObjectTest(bucket_name, file, destination)
         # Tests getObject api command
         print_title "Get (Download) Object Test"
         begin
+            s3 = create_s3_resource
             file_name = File.basename(file)
             print_log("Making a bucket")
             makeBucket(s3, bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Uploading file: ", file_name)
             putObject(s3, bucket_name, file)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Downloading file into destination: ", destination)
             getObject(s3, bucket_name, file, destination)
 
             if system("ls -l #{destination} > /dev/null")
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Downloaded object does not exist at " + destination
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
     end
 
-    def listObjectsTest(s3, bucket_name, file_list)
+    def listObjectsTest(bucket_name, file_list)
         # Tests listObjects api command and prints out
         # the total number of files/objects found
         print_title "List Objects Test"
         begin
+            s3 = create_s3_resource
             print_log("Making a bucket")
             makeBucket(s3, bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             # Put all objects into the bucket
             file_list.each do |f|
@@ -483,41 +514,42 @@ class AWS_SDK_Ruby_Test
 
             # Compare expected and actual values
             if expected_no == actual_no
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Expected and actual number of listed files/objects do not match!"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
     end
 
-    def copyObjectTest(s3, source_bucket_name, target_bucket_name,
+    def copyObjectTest(source_bucket_name, target_bucket_name,
                        data_dir, source_file_name, target_file_name="")
         # Tests copyObject api command
         # Target file name parameter, "target_file_name", is optional.
         # It is assumed to be the source file name if not provided
         print_title "Copy Object Test"
         begin
+            s3 = create_s3_resource
             target_file_name = source_file_name if target_file_name.empty?
             print_log("Making source bucket: ", source_bucket_name)
             bucket = makeBucket(s3, source_bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Making target bucket: ", target_bucket_name)
             bucket = makeBucket(s3, target_bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_logn("Uploading file: ", source_file_name)
             print_log("... into source bucket: ", source_bucket_name)
             putObject(s3, source_bucket_name,
                       File.join(data_dir, source_file_name))
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_logn("Copying file: ", source_file_name)
             print_logn("... from source bucket: ", source_bucket_name)
@@ -528,34 +560,35 @@ class AWS_SDK_Ruby_Test
 
             # Check if copy worked fine
             if statObject(s3, target_bucket_name, target_file_name)
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Copied file could not be found in the expected location"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [source_bucket_name, target_bucket_name])
         print_status(state, e)
     end
 
-    def presignedGetObjectTest(s3, bucket_name, data_dir, file_name)
+    def presignedGetObjectTest(bucket_name, data_dir, file_name)
         # Tests presignedGetObject api command
         print_title "Presigned Get Object Test"
         begin
+            s3 = create_s3_resource
             print_log("Making bucket: ", bucket_name)
             makeBucket(s3, bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             file = File.join(data_dir, file_name)
             # Get check sum value without the file name
             cksum_orig = `cksum #{file}`.split[0..1]
             print_log("Uploading file: ", file)
             putObject(s3, bucket_name, file)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Creating url for Presigned Get: ", file_name)
             get_url = presignedGet(s3, bucket_name, file_name)
@@ -569,27 +602,28 @@ class AWS_SDK_Ruby_Test
             # Check if check sum values for the orig file
             # and the downloaded file match
             if cksum_orig == cksum_new
-                print_logn("- Success!")
-                state = "PASS"
+                print_logn('Success!')
+                state = 'PASS'
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Check sum values do NOT match"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
     end
 
-    def presignedPutObjectTest(s3, bucket_name, data_dir, file_name)
+    def presignedPutObjectTest(bucket_name, data_dir, file_name)
         # Tests presignedPutObject api command
         print_title "Presigned put Object Test"
         begin
+            s3 = create_s3_resource
             print_log("Making bucket: ", bucket_name)
             makeBucket(s3, bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             file = File.join(data_dir, file_name)
             # Get check sum value and
@@ -599,7 +633,7 @@ class AWS_SDK_Ruby_Test
             print_log("Creating Presigned Put url for: ", file)
             # Generate presigned Put URL and parse it
             uri = URI.parse(presignedPut(s3, bucket_name, file_name))
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Uploading/Putting file using Presigned Put url")
             request = Net::HTTP::Put.new(uri.request_uri, 'x-amz-acl' => 'public-read')
@@ -608,44 +642,45 @@ class AWS_SDK_Ruby_Test
             http = Net::HTTP.new(uri.host, uri.port)
             http.use_ssl = true
             http.request(request)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Checking if uploaded file/object exists")
             if statObject(s3, bucket_name, file_name)
-                print_logn("- Success!")
+                print_logn('Success!')
                 getObject(s3, bucket_name, file_name, '/tmp')
                 cksum_new = `cksum /tmp/#{file_name}`.split[0..1]
                 # Check if check sum values of the orig file
                 # and the downloaded file match
                 print_log("Checking check sum values of original and uploaded files match")
                 if cksum_orig == cksum_new
-                    print_logn("- Success!")
-                    state = "PASS"
+                    print_logn('Success!')
+                    state = 'PASS'
                 else
-                    print_logn("- Failure!")
+                    print_logn('Failure!')
                     e = "Check sum values do NOT match"
-                    state = "FAIL"
+                    state = 'FAIL'
                 end
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Expected to be created object does NOT exist"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
     end
 
-    def presignedPostObjectTest(s3, bucket_name, data_dir,
+    def presignedPostObjectTest(bucket_name, data_dir,
                                 file_name, expires_in, size_limit)
         # Tests presignedPostObject api command
         print_title "Presigned POST Object Test"
         begin
+            s3 = create_s3_resource
             print_log("Making bucket: ", bucket_name)
             makeBucket(s3, bucket_name)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             # Get check sum value and split it
             # into parts to get rid of the file name
@@ -655,7 +690,7 @@ class AWS_SDK_Ruby_Test
             print_log("Creating Presigned Post url for: ", file)
             post = presignedPost(s3, bucket_name, file_name,
                                  expires_in, size_limit)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             # Prepare multi parts array for POST command request
             file_part = Part.new :name => 'file',
@@ -682,33 +717,33 @@ class AWS_SDK_Ruby_Test
             request.content_type = "multipart/form-data; boundary=#{boundary}"
             # Send the request
             e = http.request(request)
-            print_logn("- Success!")
+            print_logn('Success!')
 
             print_log("Checking if uploaded file/object exists")
             if statObject(s3, bucket_name, file_name)
-                print_logn("- Success!")
+                print_logn('Success!')
                 getObject(s3, bucket_name, file_name, '/tmp')
                 cksum_new = `cksum /tmp/#{file_name}`.split[0..1]
                 print_log("Comparing checkSum values of original and uploaded files")
                 # Check if check sum values of the orig file
                 # and the downloaded file match
                 if cksum_orig == cksum_new
-                    print_logn("- Success!")
-                    state = "PASS"
+                    print_logn('Success!')
+                    state = 'PASS'
                     # FIXME: HTTP No Content error, status code=204 is returned as error
                     e = nil
                 else
-                    print_logn("- Failure!")
+                    print_logn('Failure!')
                     e = "Check sum values do NOT match"
-                    state = "FAIL"
+                    state = 'FAIL'
                 end
             else
-                print_logn("- Failure!")
+                print_logn('Failure!')
                 e = "Expected to be created object does NOT exist"
-                state = "FAIL"
+                state = 'FAIL'
             end
         rescue => e
-            state = "FAIL"
+            state = 'FAIL'
         end
         cleanUp(s3, [bucket_name])
         print_status(state, e)
@@ -717,30 +752,9 @@ class AWS_SDK_Ruby_Test
 end
 
 # MAIN CODE
-# Set variables necessary to create an s3 client instance.
-# Get them from the environment variables
-
-# Region information, eg. "us-east-1"
-region = ENV['SERVER_REGION'] ||= 'SERVER_REGION is not set'
-# Minio server, eg. "play.minio.io:9000"
-endpoint =  ENV['SERVER_ENDPOINT'] ||= 'SERVER_ENDPOINT is not set'
-access_key_id = ENV['ACCESS_KEY'] ||= 'ACESS_KEY is not set'
-secret_access_key = ENV['SECRET_KEY'] ||= 'SECRET_KEY is not set'
-# The location where the bucket and file
-# objects are going to be created.
-data_dir = ENV['MINT_DATA_DIR'] ||= 'MINT_DATA_DIR is not set'
-# "1/0" value to decide if "HTTPS"
-# needs to be used on or not.
-enable_https = ENV['ENABLE_HTTPS']
-# Add "https://" to "endpoint" if environment
-# variable "ENABLE_HTTPS" is set to 1
-endpoint = enable_https == "1" ? 'https://' + endpoint : 'http://' + endpoint
-# Create s3 client instances, "s3Resource" and "s3Client"
-s3Resource = Aws::S3::Resource.new(region: region, endpoint: endpoint, access_key_id: access_key_id,
-secret_access_key: secret_access_key, force_path_style: true)
 
 # Create test Class instance and call the tests
-aws = AWS_SDK_Ruby_Test.new
+aws = AwsSdkRubyTest.new
 bucket_name1 = SecureRandom.hex(6)
 bucket_name2 = SecureRandom.hex(6)
 bucket_name_list = [bucket_name1, bucket_name2]
@@ -748,19 +762,22 @@ file_name1 = 'datafile-1-MB'
 file_new_name = 'datafile-1-MB-copy'
 file_name_list = ['datafile-1-MB', 'datafile-5-MB', 'datafile-6-MB']
 # Add data_dir in front of each file name in file_name_list
+# The location where the bucket and file
+# objects are going to be created.
+data_dir = ENV['MINT_DATA_DIR'] ||= 'MINT_DATA_DIR is not set'
 file_list = file_name_list.map{ |f| File.join(data_dir, f)}
 destination = '/tmp'
 
-aws.listBucketsTest(s3Resource, bucket_name_list)
-aws.listObjectsTest(s3Resource, bucket_name1, file_list)
-aws.makeBucketTest(s3Resource, bucket_name1)
-aws.bucketExistsNegativeTest(s3Resource, bucket_name1)
-aws.removeBucketTest(s3Resource, bucket_name1)
-aws.putObjectTest(s3Resource, bucket_name1, File.join(data_dir, file_name1))
-aws.removeObjectTest(s3Resource, bucket_name1, File.join(data_dir, file_name1))
-aws.getObjectTest(s3Resource, bucket_name1, File.join(data_dir, file_name1), destination)
-aws.copyObjectTest(s3Resource, bucket_name1, bucket_name2, data_dir, file_name1)
-aws.copyObjectTest(s3Resource, bucket_name1, bucket_name2, data_dir, file_name1, file_new_name)
-aws.presignedGetObjectTest(s3Resource, bucket_name1, data_dir, file_name1)
-aws.presignedPutObjectTest(s3Resource, bucket_name1, data_dir, file_name1)
-aws.presignedPostObjectTest(s3Resource, bucket_name1, data_dir, file_name1, 60, 3*1024*1024)
+aws.listBucketsTest(bucket_name_list)
+aws.listObjectsTest(bucket_name1, file_list)
+aws.makeBucketTest(bucket_name1)
+aws.bucketExistsNegativeTest(bucket_name1)
+aws.removeBucketTest(bucket_name1)
+aws.putObjectTest(bucket_name1, File.join(data_dir, file_name1))
+aws.removeObjectTest(bucket_name1, File.join(data_dir, file_name1))
+aws.getObjectTest(bucket_name1, File.join(data_dir, file_name1), destination)
+aws.copyObjectTest(bucket_name1, bucket_name2, data_dir, file_name1)
+aws.copyObjectTest(bucket_name1, bucket_name2, data_dir, file_name1, file_new_name)
+aws.presignedGetObjectTest(bucket_name1, data_dir, file_name1)
+aws.presignedPutObjectTest(bucket_name1, data_dir, file_name1)
+aws.presignedPostObjectTest(bucket_name1, data_dir, file_name1, 60, 3*1024*1024)
