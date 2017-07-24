@@ -373,6 +373,12 @@ function initSetup(S3Client $s3Client, $objects) {
                 $stream->close();
         }
     }
+
+    // Create an empty bucket for bucket policy + delete tests
+    $result = $s3Client->createBucket(['Bucket' => $GLOBALS['emptyBucket']]);
+    if (getStatusCode($result) != HTTP_OK)
+        throw new Exception("createBucket API failed for " . $bucket);
+
 }
 
 
@@ -756,6 +762,63 @@ function testBucketPolicy($s3Client, $bucket) {
 
     if ($result['Policy'] != $downloadPolicy)
         throw new Exception('bucket policy we got is not we set');
+
+    // Delete the bucket, make the bucket (again) and check if policy is none
+    // Ref: https://github.com/minio/minio/issues/4714
+    $result = $s3Client->deleteBucket(['Bucket' => $bucket]);
+    if (getstatuscode($result) != HTTP_NOCONTENT)
+        throw new Exception('deleteBucket API failed for ' .
+                            $bucket);
+
+    $result = $s3Client->createBucket(['Bucket' => $bucket]);
+    if (getstatuscode($result) != HTTP_OK)
+        throw new Exception('createBucket API failed for ' .
+                            $bucket);
+
+    $params = [
+        '404' => ['Bucket' => $bucket]
+    ];
+    runExceptionalTests($s3Client, 'getBucketPolicy', 'getStatusCode', $params);
+
+    try {
+        $MINT_DATA_DIR = $GLOBALS['MINT_DATA_DIR'];
+        // Create an object to test anonymous GET object
+        $object = 'test-anon';
+        if (!file_exists($MINT_DATA_DIR . '/' . FILE_10KB))
+            throw new Exception('File not found ' . $MINT_DATA_DIR . '/' . FILE_10KB);
+
+        $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_10KB, 'r'));
+        $result = $s3Client->putObject([
+                'Bucket' => $bucket,
+                'Key' => $object,
+                'Body' => $stream,
+        ]);
+        if (getstatuscode($result) != HTTP_OK)
+            throw new Exception('createBucket API failed for ' .
+                                $bucket);
+
+        $anonConfig = new ClientConfig("", "", $GLOBALS['endpoint'], $GLOBALS['secure']);
+        $anonymousClient = new S3Client([
+            'credentials' => false,
+            'endpoint' => $anonConfig->endpoint,
+            'use_path_style_endpoint' => true,
+            'region' => 'us-east-1',
+            'version' => '2006-03-01'
+        ]);
+        runExceptionalTests($anonymousClient, 'getObject', 'getStatusCode', [
+            '403' => [
+                'Bucket' => $bucket,
+                'Key' => $object,
+            ]
+        ]);
+
+    } finally {
+        // close data file
+        if (!is_null($stream))
+            $stream->close();
+        $s3Client->deleteObject(['Bucket' => $bucket, 'Key' => $object]);
+    }
+
 }
 
  /**
@@ -774,8 +837,10 @@ function cleanupSetup($s3Client, $objects) {
         $s3Client->deleteObject(['Bucket' => $bucket, 'Key' => $object]);
     }
 
-    // Delete the buckets
-    foreach (array_keys($objects) as $bucket) {
+    // Delete the buckets incl. emptyBucket
+    $allBuckets = array_keys($objects);
+    array_push($allBuckets, $GLOBALS['emptyBucket']);
+    foreach ($allBuckets as $bucket) {
         // Delete the bucket
         $s3Client->deleteBucket(['Bucket' => $bucket]);
 
@@ -811,10 +876,10 @@ function runTestFunction($myfunc, ...$args) {
 }
 
 // Get client configuration from environment variables
-$access_key = getenv("ACCESS_KEY");
-$secret_key = getenv("SECRET_KEY");
-$endpoint = getenv("SERVER_ENDPOINT");
-$secure = getenv("ENABLE_HTTPS");
+$GLOBALS['access_key'] = getenv("ACCESS_KEY");
+$GLOBALS['secret_key'] = getenv("SECRET_KEY");
+$GLOBALS['endpoint'] = getenv("SERVER_ENDPOINT");
+$GLOBALS['secure'] = getenv("ENABLE_HTTPS");
 
 /**
  * @global string $GLOBALS['MINT_DATA_DIR']
@@ -825,8 +890,8 @@ $GLOBALS['MINT_DATA_DIR'] = getenv("MINT_DATA_DIR");
 
 
 // Create config object
-$config = new ClientConfig($access_key, $secret_key, $endpoint, $secure);
-
+$config = new ClientConfig($GLOBALS['access_key'], $GLOBALS['secret_key'],
+                           $GLOBALS['endpoint'], $GLOBALS['secure']);
 
 // Create a S3Client
 $s3Client = new S3Client([
@@ -837,6 +902,8 @@ $s3Client = new S3Client([
     'version' => '2006-03-01'
 ]);
 
+// Used by initSetup
+$emptyBucket = randomName();
 $objects =  [
     randomName() => 'obj1',
     randomName() => 'obj2',
@@ -858,7 +925,7 @@ try {
     runTestFunction('testMultipartUpload', $s3Client, $firstBucket, $firstObject);
     runTestFunction('testMultipartUploadFailure', $s3Client, $firstBucket, $firstObject);
     runTestFunction('testAbortMultipartUpload', $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testBucketPolicy', $s3Client, $firstBucket);
+    runTestFunction('testBucketPolicy', $s3Client, $emptyBucket);
 }
 finally {
     cleanupSetup($s3Client, $objects);
