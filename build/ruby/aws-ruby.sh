@@ -25,6 +25,7 @@ _init() {
 installDeps() {
     gem install aws-sdk
     gem install colorize
+    gem install multipart_body
 }
 
 main() {

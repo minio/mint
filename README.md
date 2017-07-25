@@ -9,7 +9,7 @@ Collection of tests to detect overall correctness of Minio server.
 
 ## Roadmap
 
-- Minio-SDK functional tests are pulled from respective SDKs and tested.
+- `minio-js`, `minio-go`, `minio-dotnet` functional tests are pulled from respective SDKs instead of local test copy in Mint repo. `minio-py` & `minio-java` tests are already pulled from respective SDKs.
 - Add test cases under categories like correctness, stress/load, etc.
 - Add specific tests for distributed mode, shared-backend mode, gateway mode
 - Add other SDK/Client side tools to increase the test case variety
@@ -41,7 +41,7 @@ $ docker run -e SERVER_ENDPOINT=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA
 After the tests are run, output is stored in `/mint/log` directory inside the container. You can access these logs via `docker cp` command. For example to store logs to `/tmp/logs` directory on your host, run
 
 ```sh
-docker cp minio/mint:/mint/log /tmp/logs
+docker cp <container-id>:/mint/log /tmp/logs
 ```
 
 Then navigate to `/tmp/logs` directory to access the test logs.
@@ -63,15 +63,13 @@ Following SDKs/CLI tools are available:
 
 To add tests to an existing SDK folder:
 
-- Navigate to specific SDK test file in the path `apps/<sdk_name>/`.
-- Add test cases and update `main` method if applicable.
-- Refer test data section for using existing test data.
+- Add tests to respective SDK repository functional test.
 
-To add new SDK/CLI to Mint:
+To add new SDK/CLI tool to Mint:
 
-- Create new directory in `apps/` directory with corresponding tool name
+- Check if the environment for the programming language is already set in `build` directory, if not, add a new directory for the language and add set up steps (including SDK/CLI tool) in `install.sh` directory.
+- Create new directory in `run/core/<sdk_name>` directory with corresponding tool name.
 - Add a `run.sh` script. This script should set up the SDK/CLI tool and then execute the tests
-- Add an entry in `config.yaml` with name of folder, e.g test_folder
 
 ## Building Mint Docker image
 
@@ -80,7 +78,7 @@ To add new SDK/CLI to Mint:
 ```sh
 $ git clone https://github.com/minio/mint.git
 $ cd mint
-$ docker build -t minio/mint .
+$ docker build -t minio/mint . -f Dockerfile.dev
 ```
 
 Developers can also customize `Dockerfile.dev` to generate smaller build images. For example, removing the following lines from `Dockerfile.dev` will avoid shipping Golang SDK tests in the image hence a faster build and tests execution time.
@@ -92,7 +90,7 @@ RUN /mint/build/go/install.sh
 
 ### Build using Travis
 
-Each pull request when submitted to Github `travis-ci` runs build on mint to create new docker image on `play.minio.io`, our private docker registry. You can get the `mint` image associated with your pull request by just running `docker pull play.minio.io/mint:$PULL_REQUEST_SHA`
+Each pull request when submitted to Github `travis-ci` runs build on mint to create new docker image on `play.minio.io`, our private docker registry. You can get the `mint` image associated with your pull request by just running `docker pull play.minio.io/mint:$PULL_REQUEST_SHA`. For example
 
 ```sh
 $ docker pull play.minio.io/mint:travis-f9f519cefc25f2eeb210847e782a47e466a6b79e
