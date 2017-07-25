@@ -24,6 +24,8 @@ _init() {
 
 # Compile test files
 install() {
+    #TODO - Change this to release based URL once we make a minio-js release
+    curl https://raw.githubusercontent.com/minio/minio-js/master/src/test/functional/functional-tests.js > "${MINIO_JS_SDK_PATH}"/functional-tests.js
     npm --prefix "$MINIO_JS_SDK_PATH" install --save "minio@$MINIO_JS_SDK_VERSION"
     npm --prefix "$MINIO_JS_SDK_PATH" install
 }
