@@ -9,7 +9,7 @@ Collection of tests to detect overall correctness of Minio server.
 
 ## Roadmap
 
-- `minio-js`, `minio-go`, `minio-dotnet` functional tests are pulled from respective SDKs instead of local test copy in Mint repo. `minio-py` & `minio-java` tests are already pulled from respective SDKs.
+- `minio-go`, `minio-dotnet` functional tests should be pulled from respective SDKs instead of local test copy in Mint repo. `minio-py`, `minio-java`, & `minio-js` tests are pulled from respective SDKs.
 - Add test cases under categories like correctness, stress/load, etc.
 - Add specific tests for distributed mode, shared-backend mode, gateway mode
 - Add other SDK/Client side tools to increase the test case variety
