@@ -628,7 +628,9 @@ class AwsSdkRubyTest
       request.body = IO.read(File.join(data_dir, file_name))
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
+      if ENV['ENABLE_HTTPS'] == 1
+        http.use_ssl = true
+      end
       http.request(request)
       print_logn('Success!')
 
@@ -698,7 +700,9 @@ class AwsSdkRubyTest
       print_log('Uploading/Posting file using Presigned POSt url')
       # Create the HTTP objects
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
+      if ENV['ENABLE_HTTPS'] == 1
+        http.use_ssl = true
+      end
       request = Net::HTTP::Post.new(uri.request_uri)
       request.body = body_parts.to_s
       request.content_type = "multipart/form-data; boundary=#{boundary}"
