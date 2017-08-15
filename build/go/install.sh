@@ -18,8 +18,10 @@
 set -e
 
 _init() {
-    GO_VERSION="1.7.5"
+    GO_VERSION="1.8.3"
     GO_INSTALL_PATH="/usr/local"
+    MINIO_GO_RELEASE_TAG="v3.0.1"
+    MINIO_GO_SRC_PATH="$GO_INSTALL_PATH/src/github.com/minio/minio-go"
     MINIO_GO_PATH="/mint/run/core/minio-go"
 }
 
@@ -31,11 +33,13 @@ installGo() {
 installGoPkgs() {
     go get -u github.com/minio/minio-go/...
     go get -u github.com/sirupsen/logrus/...
+    cd $MINIO_GO_SRC_PATH
+    git checkout tags/"${MINIO_GO_RELEASE_TAG}"
 }
 
 # Build Minio Go tests
 buildGoTests() {
-    CGO_ENABLED=0 go build -o "${MINIO_GO_PATH}/minio-go" "${MINIO_GO_PATH}/minio-go-tests.go"
+    CGO_ENABLED=0 go build -o "${MINIO_GO_PATH}/minio-go" "${MINIO_GO_SRC_PATH}/functional_tests.go"
 }
 
 # Remove Go dependencies
