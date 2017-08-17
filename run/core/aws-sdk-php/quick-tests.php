@@ -736,6 +736,75 @@ function testDeleteObjects($s3Client, $bucket, $object) {
 }
 
  /**
+  * testAnonDeleteObjects tests Delete Objects S3 API for anonymous requests. 
+  * The test case checks this scenario: 
+  * http://docs.aws.amazon.com/AmazonS3/latest/API/multiobjectdeleteapi.html#multiobjectdeleteapi-examples
+  *
+  * @param $anonymousClient Anonymous AWS\S3\S3Client object
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $bucket bucket from where objects are deleted from
+  *
+  * @param $object whose copies are deleted in one batch
+  *
+  * @return void
+  */
+function testAnonDeleteObjects($anonymousClient, $s3Client, $bucket, $object) {
+    $copies = [];
+    for ($i = 0; $i < 3; $i++) {
+        $copyKey = $object . '-copy' . strval($i);
+        $result = $s3Client->copyObject([
+            'Bucket' => $bucket,
+            'Key' => $copyKey,
+            'CopySource' => $bucket . '/' . $object,
+        ]);
+        if (getstatuscode($result) != HTTP_OK)
+            throw new Exception('copyobject API failed for ' .
+                                $bucket);
+        array_push($copies, ['Key' => $copyKey]);
+    }
+
+    // Try anonymous delete. 
+    $result = $anonymousClient->deleteObjects([
+        'Bucket' => $bucket,
+        'Delete' => [
+            'Objects' => $copies,
+        ],
+    ]);
+    // Response code should be 200
+    if (getstatuscode($result) != HTTP_OK)
+        throw new Exception('deleteObjects returned incorrect response ' .
+            getStatusCode($result));
+
+    // Each object should have error code AccessDenied
+    for ($i = 0; $i < 3; $i++) {
+        if ($result["Errors"][$i]["Code"] != "AccessDenied") 
+            throw new Exception('Incorrect response deleteObjects anonymous 
+                                call for ' .$bucket);
+    }
+
+    // Delete objects after the test passed
+    $result = $s3Client->deleteObjects([
+        'Bucket' => $bucket,
+        'Delete' => [
+            'Objects' => $copies,
+        ],
+    ]);
+
+    if (getstatuscode($result) != HTTP_OK)
+        throw new Exception('deleteObjects api failed for ' .
+                            $bucket);
+
+    // Each object should have empty code in case of successful delete
+    for ($i = 0; $i < 3; $i++) {
+        if ($result["Errors"][$i]["Code"] != "") 
+            throw new Exception('Incorrect response deleteObjects anonymous 
+                                call for ' .$bucket);
+    }
+}
+
+ /**
   *  testBucketPolicy tests GET/PUT Bucket policy S3 APIs
   *
   * @param $s3Client AWS\S3\S3Client object
@@ -902,6 +971,18 @@ $s3Client = new S3Client([
     'version' => '2006-03-01'
 ]);
 
+// Create anonymous config object
+$anonConfig = new ClientConfig("", "", $GLOBALS['endpoint'], $GLOBALS['secure']);
+
+// Create anonymous S3 client
+$anonymousClient = new S3Client([
+    'credentials' => false,
+    'endpoint' => $anonConfig->endpoint,
+    'use_path_style_endpoint' => true,
+    'region' => 'us-east-1',
+    'version' => '2006-03-01'
+]);
+
 // Used by initSetup
 $emptyBucket = randomName();
 $objects =  [
@@ -922,6 +1003,7 @@ try {
     runTestFunction('testGetPutObject', $s3Client, $firstBucket, $firstObject);
     runTestFunction('testCopyObject', $s3Client, $firstBucket, $firstObject);
     runTestFunction('testDeleteObjects', $s3Client, $firstBucket, $firstObject);
+    runTestFunction('testAnonDeleteObjects', $anonymousClient, $s3Client, $firstBucket, $firstObject);
     runTestFunction('testMultipartUpload', $s3Client, $firstBucket, $firstObject);
     runTestFunction('testMultipartUploadFailure', $s3Client, $firstBucket, $firstObject);
     runTestFunction('testAbortMultipartUpload', $s3Client, $firstBucket, $firstObject);
