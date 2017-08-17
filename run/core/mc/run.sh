@@ -26,9 +26,9 @@ setupMCTarget() {
 
     target_address=$scheme://$SERVER_ENDPOINT
     
-    echo "Adding mc host alias target $target_address"
+    # echo "Adding mc host alias target $target_address"
 
-    ./mc config host add target "$target_address" "$ACCESS_KEY" "$SECRET_KEY"
+    ./mc config host add target "$target_address" "$ACCESS_KEY" "$SECRET_KEY" > /dev/null
 }
 
 main() {
@@ -43,9 +43,9 @@ main() {
     setupMCTarget >>"$logfile"  2>&1 || { echo 'mc setup failed' ; exit 1; }
 
     run 2>>"$errfile" 1>>"$logfile" || { echo 'mc run failed.'; rc=1; } 
-    grep -e '<ERROR>' "$logfile" >> "$errfile"
     return $rc
 }
 
 # invoke the script
 main "$@"
+
