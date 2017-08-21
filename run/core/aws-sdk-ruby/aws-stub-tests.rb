@@ -17,7 +17,6 @@
 
 require 'aws-sdk'
 require 'securerandom'
-require 'colorize'
 require 'net/http'
 require 'multipart_body'
 
@@ -29,91 +28,79 @@ class AwsSdkRubyTest
   region = ENV['SERVER_REGION'] ||= 'SERVER_REGION is not set'
   # Minio server, eg. "play.minio.io:9000"
   endpoint = ENV['SERVER_ENDPOINT'] ||= 'SERVER_ENDPOINT is not set'
-  access_key_id = ENV['ACCESS_KEY'] ||= 'ACESS_KEY is not set'
+  access_key_id = ENV['ACCESS_KEY'] ||= 'ACCESS_KEY is not set'
   secret_access_key = ENV['SECRET_KEY'] ||= 'SECRET_KEY is not set'
   enable_https = ENV['ENABLE_HTTPS']
-  endpoint = enable_https == '1' ?
-              'https://' + endpoint :
-              'http://' + endpoint
+  endpoint = enable_https == '1' ? 'https://' + endpoint : 'http://' + endpoint
   # Create s3 client instances, "s3Resource" and "s3Client"
   @@s3 = Aws::S3::Resource.new(region: region,
-                  endpoint: endpoint,
-                  access_key_id: access_key_id,
-                  secret_access_key: secret_access_key,
-                  force_path_style: true)
+                               endpoint: endpoint,
+                               access_key_id: access_key_id,
+                               secret_access_key: secret_access_key,
+                               force_path_style: true)
 
-  #
-  # Helper methods
-  #
-  def print_title(title)
-    # Prints the title of the test
-    puts '=================================================='
-    msg = "\n*** " + title + "\n"
-    print msg.blue
+  def initialize_log_output(meth, alert = nil)
+    # Initialize and return log content in log_output hash table
+
+    # Collect args in args_arr
+    args_arr = method(meth).parameters.flatten.map(&:to_s)
+                           .reject { |x| x == 'req' || x == 'opt' }
+    # Create and return log output content
+    { name: 'aws-sdk-ruby',
+      function: "#{meth}(#{args_arr.join(',')})",  # method name and arguments
+      args: args_arr,  # array of arg names. This'll be replaced with a
+                       # a arg/value pairs insdie the caller method
+      duration: 0,  # test runtime duration in seconds
+      alert: alert,
+      message: nil,
+      error: nil }
   end
 
-  def print_log(log_msg, arg = '')
-    # Prints a progress log message for
-    # the on-going test WITHOUT a new line.
-    # It accepts an arg to print out at the end
-    # of the progress message
-    msg = "\t" + log_msg + '%s'
-    printf(msg.light_black, arg)
+  def calculate_duration(t2, t1)
+    # Durations are in miliseconds, with precision of 2 decimal places
+    ((t2 - t1) * 1000).round(2)
   end
 
-  def print_logn(log_msg, arg = '')
-    # Prints a progress log message for
-    # the on-going test WITH a new line.
-    # It accepts an arg to print out at the end
-    # of the progress message
-    msg = "\t" + log_msg + '%s' + "\n"
-    printf(msg.light_black, arg)
+  def print_log(log_output, start_time)
+    # Calculate duration in miliseconds
+    log_output[:duration] = calculate_duration(Time.now, start_time)
+    # Get rid of the log_output fields if nil
+    puts log_output.delete_if{|k, value| value == nil}.to_json
+    # Exit at the first failure
+    exit if log_output[:status] == 'FAIL'
   end
 
-  def print_status(result, e = '')
-    # Prints result/status of the test, as 'PASS' or 'FAIL'.
-    # It adds the captured error message
-    # if the result/status is a 'FAIL'.
-    e = e.nil? ? nil.to_s : 'ERROR: ' + e.to_s + "\n"
-    msg = '*** ' + result + "\n" + e
-    if result == 'PASS'
-      printf(msg.green)
-    else
-      printf(msg.red)
-    end
-  end
-
-  def cleanUp(buckets)
-    # Removes objects and the bucket
-    # if bucket exists
-    print_log 'Clean-up'
+  def cleanUp(buckets, log_output)
+    # Removes objects and bucket if bucket exists
     bucket_name = ''
     buckets.each do |b|
       bucket_name = b
-      if bucketExists?(b)
-        removeObjects(b)
-        removeBucket(b)
+      if bucketExistsWrapper(b, log_output)
+        removeObjectsWrapper(b, log_output)
+        removeBucketWrapper(b, log_output)
       end
     end
-    print_logn('Success!')
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to clean-up bucket: ' + bucket_name
-    raise e
+    raise "Failed to clean-up bucket '#{bucket_name}': #{e}"
   end
 
   #
-  # API command methods
+  # API commands/methods
   #
   def makeBucket(bucket_name)
     # Creates a bucket, "bucket_name"
     # on S3 client , "s3".
-    return @@s3.bucket(bucket_name).exists? ?
-         @@s3.bucket(bucket_name) :
-         @@s3.create_bucket(bucket: bucket_name)
+    # Returns bucket_name if already exists
+    @@s3.bucket(bucket_name).exists? ? @@s3.bucket(bucket_name) : @@s3.create_bucket(bucket: bucket_name)
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to create bucket: ' + bucket_name
+    raise e
+  end
+
+  def makeBucketWrapper(bucket_name, log_output)
+    makeBucket(bucket_name)
+  rescue => e
+    log_output[:function] = "makeBucket(bucket_name)"
+    log_output[:args] = {'bucket_name': bucket_name}
     raise e
   end
 
@@ -121,8 +108,14 @@ class AwsSdkRubyTest
     # Deletes/removes bucket, "bucket_name" on S3 client, "s3"
     @@s3.bucket(bucket_name).delete
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to delete bucket: ' + bucket_name
+    raise e
+  end
+
+  def removeBucketWrapper(bucket_name, log_output)
+    removeBucket(bucket_name)
+  rescue => e
+    log_output[:function] = "removeBucket(bucket_name)"
+    log_output[:args] = {'bucket_name': bucket_name}
     raise e
   end
 
@@ -132,8 +125,15 @@ class AwsSdkRubyTest
     file_name = File.basename(file)
     @@s3.bucket(bucket_name).object(file_name).upload_file(file)
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to create file: ' + file_name
+    raise e
+  end
+
+  def putObjectWrapper(bucket_name, file, log_output)
+    putObject(bucket_name, file)
+  rescue => e
+    log_output[:function] = "putObject(bucket_name, file)"
+    log_output[:args] = {'bucket_name': bucket_name,
+                         'file': file}
     raise e
   end
 
@@ -144,8 +144,16 @@ class AwsSdkRubyTest
     dest = File.join(destination, file_name)
     @@s3.bucket(bucket_name).object(file_name).get(response_target: dest)
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to get (download) file: ' + file_name
+    raise e
+  end
+
+  def getObjectWrapper(bucket_name, file, destination, log_output)
+    getObject(bucket_name, file, destination)
+  rescue => e
+    log_output[:function] = "getObject(bucket_name, file)"
+    log_output[:args] = {'bucket_name': bucket_name,
+                         'file': file,
+                         'destination': destination}
     raise e
   end
 
@@ -160,20 +168,36 @@ class AwsSdkRubyTest
     target_obj = target.object(target_file_name)
     source_obj.copy_to(target_obj)
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to copy file: ' + source_file_name
     raise e
   end
 
-  def removeObject(bucket_name, file_name)
-    # Deletes file, "file_name", in bucket,
+  def copyObjectWrapper(source_bucket_name, target_bucket_name, source_file_name, target_file_name = '', log_output)
+    copyObject(source_bucket_name, target_bucket_name, source_file_name, target_file_name)
+  rescue => e
+    log_output[:function] = 'copyObject(source_bucket_name, target_bucket_name, source_file_name, target_file_name = '')'
+    log_output[:args] = {'source_bucket_name': source_bucket_name,
+                         'target_bucket_name': target_bucket_name,
+                         'source_file_name': source_file_name,
+                         'target_file_name': target_file_name}
+    raise e
+  end
+
+  def removeObject(bucket_name, file)
+    # Deletes file in bucket,
     # "bucket_name", on S3 client, "s3".
     # If file, "file_name" does not exist,
-    # it quitely returns without any error message
-    @@s3.bucket(bucket_name).object(file_name).delete
+    # it quietly returns without any error message
+    @@s3.bucket(bucket_name).object(file).delete
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to delete file: ' + file_name
+    raise e
+  end
+
+  def removeObjectWrapper(bucket_name, file_name, log_output)
+    removeObject(bucket_name, file_name)
+  rescue => e
+    log_output[:function] = "removeObject(bucket_name, file_name)"
+    log_output[:args] = {'bucket_name': bucket_name,
+                         'file_name': file_name}
     raise e
   end
 
@@ -186,9 +210,14 @@ class AwsSdkRubyTest
       obj.delete obj.key
     end
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to clean-up bucket: ' +
-                  bucket_name + ', file: ' + file_name
+    raise e
+  end
+
+  def removeObjectsWrapper(bucket_name, log_output)
+    removeObjects(bucket_name)
+  rescue => e
+    log_output[:function] = 'removeObjects(bucket_name)'
+    log_output[:args] = {'bucket_name': bucket_name}
     raise e
   end
 
@@ -200,8 +229,14 @@ class AwsSdkRubyTest
     end
     return bucket_name_list
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to get the list of buckets'
+    raise e
+  end
+
+  def listBucketsWrapper
+    listBuckets
+  rescue => e
+    log_output[:function] = 'listBuckets'
+    log_output[:args] = {}
     raise e
   end
 
@@ -214,18 +249,29 @@ class AwsSdkRubyTest
     end
     return object_list
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to get the list of files in bucket ' +
-                          bucket_name
+    raise e
+  end
+
+  def listObjectsWrapper(bucket_name, log_output)
+    listObjects(bucket_name)
+  rescue => e
+    log_output[:function] = 'listObjects(bucket_name)'
+    log_output[:args] = {'bucket_name': bucket_name}
     raise e
   end
 
   def statObject(bucket_name, file_name)
     return @@s3.bucket(bucket_name).object(file_name).exists?
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed toget stat for ' +
-                          file_name + ' in ' + bucket_name
+    raise e
+  end
+
+  def statObjectWrapper(bucket_name, file_name, log_output)
+    statObject(bucket_name, file_name)
+  rescue => e
+    log_output[:function] = 'statObject(bucket_name, file_name)'
+    log_output[:args] = {'bucket_name': bucket_name,
+                         'file_name': file_name}
     raise e
   end
 
@@ -234,9 +280,14 @@ class AwsSdkRubyTest
     # false otherwise
     return @@s3.bucket(bucket_name).exists?
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', 'Failed to check if bucket, ' +
-                bucket_name + ', exists'
+    raise e
+  end
+
+  def bucketExistsWrapper(bucket_name, log_output)
+    bucketExists?(bucket_name)
+  rescue => e
+    log_output[:function] = 'bucketExists?(bucket_name)'
+    log_output[:args] = {'bucket_name': bucket_name}
     raise e
   end
 
@@ -245,9 +296,15 @@ class AwsSdkRubyTest
     obj = @@s3.bucket(bucket_name).object(file_name)
     return obj.presigned_url(:get, expires_in: 600)
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', "Failed to create presigned GET url for '" +
-            file_name + "' file in bucket, " + "'" + bucket_name
+    raise e
+  end
+
+  def presignedGetWrapper(bucket_name, file_name, log_output)
+    presignedGet(bucket_name, file_name)
+  rescue => e
+    log_output[:function] = 'presignedGet(bucket_name, file_name)'
+    log_output[:args] = {'bucket_name': bucket_name,
+                         'file_name': file_name}
     raise e
   end
 
@@ -256,331 +313,339 @@ class AwsSdkRubyTest
     obj = @@s3.bucket(bucket_name).object(file_name)
     return obj.presigned_url(:put, expires_in: 600)
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', "Failed to create presigned PUT url for '" +
-            file_name + "' file in bucket, " + "'" + bucket_name
     raise e
+  end
+
+  def presignedPutWrapper(bucket_name, file_name, log_output)
+    presignedPut(bucket_name, file_name)
+  rescue => e
+    log_output[:function] = 'presignedPut(bucket_name, file_name)'
+    log_output[:args] = {'bucket_name': bucket_name,
+                         'file_name': file_name}
+   raise e
   end
 
   def presignedPost(bucket_name, file_name, expires_in_sec, max_byte_size)
     # Returns upload/post url
     obj = @@s3.bucket(bucket_name).object(file_name)
-    return obj.presigned_post(:expires => Time.now + expires_in_sec,
-                  :content_length_range => 1..max_byte_size)
+    return obj.presigned_post(expires: Time.now + expires_in_sec,
+                              content_length_range: 1..max_byte_size)
   rescue => e
-    print_logn('Failure!')
-    print_status 'FAIL', "Failed to create presigned POST url for '" +
-            file_name + "' file in bucket, " + "'" + bucket_name
     raise e
   end
 
-  def getBucketPolicy(bucket_name)
-    # Returns bucket policy
-    return @@s3.bucket(bucket_name).get_bucket_policy
+  def presignedPostWrapper(bucket_name, file_name, expires_in_sec, max_byte_size, log_output)
+    presignedPost(bucket_name, file_name, expires_in_sec, max_byte_size)
   rescue => e
-    puts "\nERROR: Failed to get bucket policy for bucket, '" +
-        bucket_name + "'", e
-    print_logn('Failure!')
-    print_status 'FAIL', "Failed to get bucket policy for bucket, '" +
-                bucket_name
+    log_output[:function] = 'presignedPost(bucket_name, file_name, expires_in_sec, max_byte_size)'
+    log_output[:args] = {'bucket_name': bucket_name,
+                         'file_name': file_name,
+                         'expires_in_sec': expires_in_sec,
+                         'max_byte_size': max_byte_size}
     raise e
   end
+
+  # To be addressed. S3 API 'get_bucket_policy' does not work!
+  # def getBucketPolicy(bucket_name)
+  #   # Returns bucket policy
+  #   return @@s3.bucket(bucket_name).get_bucket_policy
+  # rescue => e
+  #   raise e
+  # end
 
   #
   # Test case methods
   #
   def listBucketsTest(bucket_name_list)
-    # Tests listBuckets api command
-    # Creates new buckets from bucket_name_list
-    # and prints out total number of buckets found
-    print_title 'List Buckets Test'
-    begin
-      prev_total_buckets = listBuckets.length
-      print_log('Buckets found:', prev_total_buckets.to_s)
-      print_logn('- Success!')
+    # Tests listBuckets api command by creating
+    # new buckets from bucket_name_list
 
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('listBuckets')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
+    begin
+      start_time = Time.now
+      prev_total_buckets = listBucketsWrapper.length
       new_buckets = bucket_name_list.length
-      print_log('Making ' + new_buckets.to_s + ' new buckets')
       bucket_name_list.each do |b|
-        makeBucket(b)
-        print_logn('Success!')
+        makeBucketWrapper(b, log_output)
       end
       new_total_buckets = prev_total_buckets + new_buckets
-      print_log('Total buckets found now:', new_total_buckets.to_s)
-
-      if new_total_buckets == prev_total_buckets + new_buckets
-        print_logn('Success!')
-        state = 'PASS'
+      if new_total_buckets >= prev_total_buckets + new_buckets
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = 'Expected total number of buckets and actual number do not match'
-        state = 'FAIL'
+        log_output[:error] = 'Could not find expected number of buckets'
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp(bucket_name_list, log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp(bucket_name_list)
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def makeBucketTest(bucket_name)
-    # Tests makeBucket api commands.
-    print_title 'Make Bucket Test'
-    begin
-      # s3 = create_s3_resource
-      print_log('Making a bucket')
-      makeBucket(bucket_name)
+    # Tests makeBucket api command.
 
-      if bucketExists?(bucket_name)
-        print_logn('Success!')
-        state = 'PASS'
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('makeBucket')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
+    begin
+      start_time = Time.now
+      makeBucketWrapper(bucket_name, log_output)
+
+      if bucketExistsWrapper(bucket_name, log_output)
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = 'Bucket expected to be created does not exist'
-        state = 'FAIL'
+        log_output[:error] = 'Bucket expected to be created does not exist'
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def bucketExistsNegativeTest(bucket_name)
-    # Tests bucketExists api commands.
-    print_title 'Bucket Exists Test'
+    # Tests bucketExists api command.
+
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('bucketExists?')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
     begin
-      print_log('Checking a non-existing bucket')
-      if !bucketExists?(bucket_name)
-        print_logn('Success!')
-        state = 'PASS'
+      start_time = Time.now
+      if !bucketExistsWrapper(bucket_name, log_output)
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = "bucketExists? api command failed
-          to return 'false' for non-existing bucket"
-        state = 'FAIL'
+        log_output[:error] = "Failed to return 'false' for a non-existing bucket"
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def removeBucketTest(bucket_name)
-    # Tests removeBucket api commands.
-    print_title 'Remove Bucket Test'
+    # Tests removeBucket api command.
+
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('removeBucket')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
     begin
-      print_log('Making a bucket')
-      makeBucket(bucket_name)
-      print_logn('Success!')
-
-      print_log('Deleting the bucket')
-      removeBucket(bucket_name)
-
-      if !bucketExists?(bucket_name)
-        print_logn('Success!')
-        state = 'PASS'
+      start_time = Time.now
+      makeBucketWrapper(bucket_name, log_output)
+      removeBucketWrapper(bucket_name, log_output)
+      if !bucketExistsWrapper(bucket_name, log_output)
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = 'Bucket expected to be removed still exists'
-        state = 'FAIL'
+        log_output[:error] = 'Bucket expected to be removed still exists'
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def putObjectTest(bucket_name, file)
-    # Tests putObject api command
-    # by uploading a file
-    print_title 'Put (Upload) Object Test'
+    # Tests putObject api command by uploading a file
+
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('putObject')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
     begin
-      print_log('Making a bucket')
-      makeBucket(bucket_name)
-      print_logn('Success!')
-
-      print_log('Uploading file')
-      putObject(bucket_name, file)
-
-      if statObject(bucket_name, File.basename(file))
-        print_logn('Success!')
-        state = 'PASS'
+      start_time = Time.now
+      makeBucketWrapper(bucket_name, log_output)
+      putObjectWrapper(bucket_name, file, log_output)
+      if statObjectWrapper(bucket_name, File.basename(file), log_output)
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = "Status for the created object returned 'false'"
-        state = 'FAIL'
+        log_output[:error] = "Status for the created object returned 'false'"
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def removeObjectTest(bucket_name, file)
-    # Tests removeObject api command
-    # by uploading and removing a file
-    print_title 'Remove Object Test'
+    # Tests removeObject api command by uploading and removing a file
+
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('removeObject')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
     begin
-      print_log('Making a bucket')
-      makeBucket(bucket_name)
-      print_logn('Success!')
-
-      print_log('Uploading file')
-      putObject(bucket_name, file)
-      print_logn('Success!')
-
-      print_log('Removing file')
-      removeObject(bucket_name, File.basename(file))
-
-      if !statObject(bucket_name, File.basename(file))
-        print_logn('Success!')
-        state = 'PASS'
+      start_time = Time.now
+      makeBucketWrapper(bucket_name, log_output)
+      putObjectWrapper(bucket_name, file, log_output)
+      removeObjectWrapper(bucket_name, File.basename(file), log_output)
+      if !statObjectWrapper(bucket_name, File.basename(file), log_output)
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = "Status for the removed object returned 'true'"
-        state = 'FAIL'
+        log_output[:error] = "Status for the removed object returned 'true'"
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def getObjectTest(bucket_name, file, destination)
     # Tests getObject api command
-    print_title 'Get Object Test (Download)'
+
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('getObject')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
     begin
-      file_name = File.basename(file)
-      print_log('Making a bucket')
-      makeBucket(bucket_name)
-      print_logn('Success!')
-
-      print_log('Uploading file: ', file_name)
-      putObject(bucket_name, file)
-      print_logn('Success!')
-
-      print_log('Downloading file into destination: ', destination)
-      getObject(bucket_name, file, destination)
-
+      start_time = Time.now
+      makeBucketWrapper(bucket_name, log_output)
+      putObjectWrapper(bucket_name, file, log_output)
+      getObjectWrapper(bucket_name, file, destination, log_output)
       if system("ls -l #{destination} > /dev/null")
-        print_logn('Success!')
-        state = 'PASS'
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = 'Downloaded object does not exist at ' + destination
-        state = 'FAIL'
+        log_output[:error] = "Downloaded object does not exist at #{destination}"
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def listObjectsTest(bucket_name, file_list)
-    # Tests listObjects api command and prints out
-    # the total number of files/objects found
-    print_title 'List Objects Test'
-    begin
-      print_log('Making a bucket')
-      makeBucket(bucket_name)
-      print_logn('Success!')
+    # Tests listObjects api command
 
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('listObjects')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
+    begin
+      start_time = Time.now
+      makeBucketWrapper(bucket_name, log_output)
       # Put all objects into the bucket
       file_list.each do |f|
-        putObject(bucket_name, f)
+        putObjectWrapper(bucket_name, f, log_output)
       end
-
       # Total number of files uploaded
       expected_no = file_list.length
       # Actual number is what api returns
-      actual_no = listObjects(bucket_name).length
-      print_logn('Files/Objects expected: ', expected_no)
-      print_log('Files/Objects found: ', actual_no)
-
+      actual_no = listObjectsWrapper(bucket_name, log_output).length
       # Compare expected and actual values
       if expected_no == actual_no
-        print_logn('Success!')
-        state = 'PASS'
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = 'Expected and actual number of listed files/objects do not match!'
-        state = 'FAIL'
+        log_output[:error] = 'Expected and actual number of listed files/objects do not match!'
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def copyObjectTest(source_bucket_name, target_bucket_name,
-             data_dir, source_file_name, target_file_name = '')
+                     data_dir, source_file_name, target_file_name = '')
     # Tests copyObject api command
-    # Target file name parameter, "target_file_name", is optional.
-    # If not provided, it is assumed to be the same with source file name
-    print_title 'Copy Object Test'
+
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('copyObject')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
     begin
+      start_time = Time.now
       target_file_name = source_file_name if target_file_name.empty?
-      print_log('Making source bucket: ', source_bucket_name)
-      makeBucket(source_bucket_name)
-      print_logn('Success!')
-
-      print_log('Making target bucket: ', target_bucket_name)
-      makeBucket(target_bucket_name)
-      print_logn('Success!')
-
-      print_logn('Uploading file: ', source_file_name)
-      print_log('... into source bucket: ', source_bucket_name)
-      putObject(source_bucket_name,
-            File.join(data_dir, source_file_name))
-      print_logn('Success!')
-
-      print_logn('Copying file: ', source_file_name)
-      print_logn('... from source bucket: ', source_bucket_name)
-      print_logn('... as file: ', target_file_name)
-      print_log('... into target bucket: ', target_bucket_name)
-      copyObject(source_bucket_name, target_bucket_name,
-             source_file_name, target_file_name)
-
+      makeBucketWrapper(source_bucket_name, log_output)
+      makeBucketWrapper(target_bucket_name, log_output)
+      putObjectWrapper(source_bucket_name,
+                File.join(data_dir, source_file_name), log_output)
+      copyObjectWrapper(source_bucket_name, target_bucket_name,
+                 source_file_name, target_file_name, log_output)
       # Check if copy worked fine
-      if statObject(target_bucket_name, target_file_name)
-        print_logn('Success!')
-        state = 'PASS'
+      if statObjectWrapper(target_bucket_name, target_file_name, log_output)
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = 'Copied file could not be found in the expected location'
-        state = 'FAIL'
+        log_output[:error] = 'Copied file could not be found in the expected location'
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([source_bucket_name, target_bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([source_bucket_name, target_bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def presignedGetObjectTest(bucket_name, data_dir, file_name)
     # Tests presignedGetObject api command
-    print_title 'Presigned Get Object Test'
-    begin
-      print_log('Making bucket: ', bucket_name)
-      makeBucket(bucket_name)
-      print_logn('Success!')
 
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('presignedGet')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
+    begin
+      start_time = Time.now
+      makeBucketWrapper(bucket_name, log_output)
       file = File.join(data_dir, file_name)
       # Get check sum value without the file name
       cksum_orig = `cksum #{file}`.split[0..1]
-      print_log('Uploading file: ', file)
-      putObject(bucket_name, file)
-      print_logn('Success!')
-
-      print_log('Creating url for Presigned Get: ', file_name)
-      get_url = presignedGet(bucket_name, file_name)
+      putObjectWrapper(bucket_name, file, log_output)
+      get_url = presignedGetWrapper(bucket_name, file_name, log_output)
       # Download the file using the URL
       # generated by presignedGet api command
       `wget -O /tmp/#{file_name}, '#{get_url}' > /dev/null 2>&1`
@@ -591,153 +656,142 @@ class AwsSdkRubyTest
       # Check if check sum values for the orig file
       # and the downloaded file match
       if cksum_orig == cksum_new
-        print_logn('Success!')
-        state = 'PASS'
+        log_output[:status] = 'PASS'
       else
-        print_logn('Failure!')
-        e = 'Check sum values do NOT match'
-        state = 'FAIL'
+        log_output[:error] = 'Check sum values do NOT match'
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
   def presignedPutObjectTest(bucket_name, data_dir, file_name)
     # Tests presignedPutObject api command
-    print_title 'Presigned put Object Test'
-    begin
-      print_log('Making bucket: ', bucket_name)
-      makeBucket(bucket_name)
-      print_logn('Success!')
 
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('presignedPut')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
+    begin
+      start_time = Time.now
+      makeBucketWrapper(bucket_name, log_output)
       file = File.join(data_dir, file_name)
+
       # Get check sum value and
       # split to get rid of the file name
       cksum_orig = `cksum #{file}`.split[0..1]
 
-      print_log('Creating Presigned Put url for: ', file)
       # Generate presigned Put URL and parse it
-      uri = URI.parse(presignedPut(bucket_name, file_name))
-      print_logn('Success!')
-
-      print_log('Uploading/Putting file using Presigned Put url')
+      uri = URI.parse(presignedPutWrapper(bucket_name, file_name, log_output))
       request = Net::HTTP::Put.new(uri.request_uri, 'x-amz-acl' => 'public-read')
       request.body = IO.read(File.join(data_dir, file_name))
 
       http = Net::HTTP.new(uri.host, uri.port)
-      if ENV['ENABLE_HTTPS'] == 1
-        http.use_ssl = true
-      end
-      http.request(request)
-      print_logn('Success!')
+      http.use_ssl = true if ENV['ENABLE_HTTPS'] == '1'
 
-      print_log('Checking if uploaded file/object exists')
-      if statObject(bucket_name, file_name)
-        print_logn('Success!')
-        getObject(bucket_name, file_name, '/tmp')
+      http.request(request)
+
+      if statObjectWrapper(bucket_name, file_name, log_output)
+        getObjectWrapper(bucket_name, file_name, '/tmp', log_output)
         cksum_new = `cksum /tmp/#{file_name}`.split[0..1]
         # Check if check sum values of the orig file
         # and the downloaded file match
-        print_log('Checking check sum values of original and uploaded files match')
         if cksum_orig == cksum_new
-          print_logn('Success!')
-          state = 'PASS'
+          log_output[:status] = 'PASS'
         else
-          print_logn('Failure!')
-          e = 'Check sum values do NOT match'
-          state = 'FAIL'
+          log_output[:error] = 'Check sum values do NOT match'
+          log_output[:status] = 'FAIL'
         end
       else
-        print_logn('Failure!')
-        e = 'Expected to be created object does NOT exist'
-        state = 'FAIL'
+        log_output[:error] = 'Expected to be created object does NOT exist'
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 
-  def presignedPostObjectTest(bucket_name, data_dir,
-                file_name, expires_in, size_limit)
+  def presignedPostObjectTest(bucket_name, data_dir, file_name,
+                              expires_in_sec, max_byte_size)
     # Tests presignedPostObject api command
-    print_title 'Presigned POST Object Test'
+
+    # Initialize hash table, 'log_output'
+    log_output = initialize_log_output('presignedPost')
+    # Prepare arg/value hash table and set it in log_output
+    arg_value_hash = {}
+    log_output[:args].each { |x| arg_value_hash[:"#{x}"] = eval x.to_s }
+    log_output[:args] = arg_value_hash
+
     begin
-      print_log('Making bucket: ', bucket_name)
-      makeBucket(bucket_name)
-      print_logn('Success!')
+      start_time = Time.now
+      makeBucketWrapper(bucket_name, log_output)
+      file = File.join(data_dir, file_name)
 
       # Get check sum value and split it
       # into parts to get rid of the file name
-      file = File.join(data_dir, file_name)
       cksum_orig = `cksum #{file}`.split[0..1]
       # Create the presigned POST url
-      print_log('Creating Presigned Post url for: ', file)
-      post = presignedPost(bucket_name, file_name,
-                 expires_in, size_limit)
-      print_logn('Success!')
+      post = presignedPostWrapper(bucket_name, file_name,
+                                  expires_in_sec, max_byte_size, log_output)
 
       # Prepare multi parts array for POST command request
-      file_part = Part.new :name => 'file',
-              :body => IO.read(File.join(data_dir, file_name)),
-              :filename => file_name,
-              :content_type => 'application/octet-stream'
+      file_part = Part.new name: 'file',
+                           body: IO.read(File.join(data_dir, file_name)),
+                           filename: file_name,
+                           content_type: 'application/octet-stream'
       parts = [file_part]
       # Add POST fields into parts array
       post.fields.each do |field, value|
         parts.push(Part.new(field, value))
       end
-      boundary = "---------------------------#{rand(10000000000000000)}"
+      boundary = "---------------------------#{rand(10_000_000_000_000_000)}"
       body_parts = MultipartBody.new parts, boundary
 
       # Parse presigned Post URL
       uri = URI.parse(post.url)
 
-      print_log('Uploading/Posting file using Presigned POSt url')
       # Create the HTTP objects
       http = Net::HTTP.new(uri.host, uri.port)
-      if ENV['ENABLE_HTTPS'] == 1
-        http.use_ssl = true
-      end
+      http.use_ssl = true if ENV['ENABLE_HTTPS'] == '1'
       request = Net::HTTP::Post.new(uri.request_uri)
       request.body = body_parts.to_s
       request.content_type = "multipart/form-data; boundary=#{boundary}"
       # Send the request
-      e = http.request(request)
-      print_logn('Success!')
+      log_output[:error] = http.request(request)
 
-      print_log('Checking if uploaded file/object exists')
-      if statObject(bucket_name, file_name)
-        print_logn('Success!')
-        getObject(bucket_name, file_name, '/tmp')
+      if statObjectWrapper(bucket_name, file_name, log_output)
+        getObjectWrapper(bucket_name, file_name, '/tmp', log_output)
         cksum_new = `cksum /tmp/#{file_name}`.split[0..1]
-        print_log('Comparing checkSum values of original and uploaded files')
         # Check if check sum values of the orig file
         # and the downloaded file match
         if cksum_orig == cksum_new
-          print_logn('Success!')
-          state = 'PASS'
+          log_output[:status] = 'PASS'
           # FIXME: HTTP No Content error, status code=204 is returned as error
-          e = nil
+          log_output[:error] = nil
         else
-          print_logn('Failure!')
-          e = 'Check sum values do NOT match'
-          state = 'FAIL'
+          log_output[:error] = 'Check sum values do NOT match'
+          log_output[:status] = 'FAIL'
         end
       else
-        print_logn('Failure!')
-        e = 'Expected to be created object does NOT exist'
-        state = 'FAIL'
+        log_output[:error] = 'Expected to be created object does NOT exist'
+        log_output[:status] = 'FAIL'
       end
-    rescue => e
-      state = 'FAIL'
+      cleanUp([bucket_name], log_output)
+    rescue => log_output[:error]
+      log_output[:status] = 'FAIL'
     end
-    cleanUp([bucket_name])
-    print_status(state, e)
+
+    print_log(log_output, start_time)
   end
 end
 
@@ -761,7 +815,7 @@ destination = '/tmp'
 aws.listBucketsTest(bucket_name_list)
 aws.listObjectsTest(bucket_name1, file_list)
 aws.makeBucketTest(bucket_name1)
-aws.bucketExistsNegativeTest(bucket_name1)
+aws.bucketExistsNegativeTest('non-existing-bucket')
 aws.removeBucketTest(bucket_name1)
 aws.putObjectTest(bucket_name1, File.join(data_dir, file_name1))
 aws.removeObjectTest(bucket_name1, File.join(data_dir, file_name1))

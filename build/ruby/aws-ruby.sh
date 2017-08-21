@@ -24,7 +24,6 @@ _init() {
 # Install Ruby dependencies
 installDeps() {
     gem install aws-sdk
-    gem install colorize
     gem install multipart_body
 }
 
