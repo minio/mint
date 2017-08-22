@@ -14,258 +14,433 @@
 #  limitations under the License.
 #
 
-create_random_string() {
-    random_str=$(tr -dc 'a-z0-9' < /dev/urandom  | fold -w 32 | head -n 1)
-    echo "$random_str"
+MC_CMD='./mc'
+SERVER_ALIAS="target"
+HASH_1_MB=$(md5sum "${MINT_DATA_DIR}/datafile-1-MB" | awk '{print $1}')
+HASH_65_MB=$(md5sum "${MINT_DATA_DIR}/datafile-65-MB" | awk '{print $1}')
+
+function get_time() {
+    date +%s%N
 }
 
-remove_bucket() {
-    ./mc rm --force --recursive "target/$1" > /dev/null
-    rm -rf /tmp/*
+function get_duration() {
+    start_time=$1
+    end_time=$(get_time)
+
+    echo $(( (end_time - start_time) / 1000000 ))
+}
+
+function log_success() {
+    printf '{"name": "mc", "duration": "%d", "function": "%s", "status": "PASS"}\n' "$1" "$2"
+}
+
+function log_failure() {
+    printf '{"name": "mc", "duration": "%d", "function": "%s", "status": "FAIL", "error": "%s"}\n' "$1" "$2" "$3"
+}
+
+function log_alert() {
+    printf '{"name": "mc", "duration": "%d", "function": "%s", "status": "FAIL", "alert": "%d", error": "%s"}\n' "$1" "$2" "$3" "$4"
+}
+
+function make_bucket() {
+    # Make bucket
+    bucket_name="mc-mint-test-bucket-$RANDOM"
+    function="${MC_CMD} mb ${SERVER_ALIAS}/${bucket_name}"
+
+    # execute the test
+    out=$($function 2>&1)
+    rv=$?
+
+    # if command is successful print bucket_name or print error
+    if [ $rv -eq 0 ]; then
+        echo "${bucket_name}"
+    else    
+        echo "${out}"
+    fi
+
+    return $rv
+}
+
+function delete_bucket() {
+    # Delete bucket
+    function="${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/${1}"
+    out=$($function 2>&1)
+    rv=$?
+
+    # echo the output
+    echo "${out}"
+
+    return $rv
 }
 
 # Create a bucket and check if it exists on server
-makeBucket(){
-    # Make bucket
-    local bucketName
-    bucketName=$(create_random_string)
+function test_make_bucket() {
 
-    # mc returns status 0 if bucket is created
-    printf "\tEntering Make Bucket Test 1\n"
+    # log start time
+    start_time=$(get_time)
 
-    if ! ./mc mb "target/${bucketName}" > /dev/null
-    then 
-        >&2 echo "Make Bucket Test 1 Failure"
-        return 1
+    function="make_bucket"
+    bucket_name=$(make_bucket)  
+    rv=$?
+
+    # if make_bucket is successful remove the bucket
+    if [ $rv -eq 0 ]; then
+        function="delete_bucket"
+        out=$(delete_bucket "${bucket_name}") 
+        rv=$?
+    else 
+        # if make bucket failes, $bucket_name has the error output
+        out="${bucket_name}"
     fi
 
-    # remove bucket and cleanup
-    remove_bucket "${bucketName}"
-    printf "\tTest Success\n"
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${function}"
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
 }
 
 # Upload an object, download it and check if it matches uploaded object
-putObject(){
-    # Make bucket
-    local bucketName
-    bucketName=$(create_random_string)
+function test_put_object() {
 
-    # Make bucket
-    ./mc mb "target/${bucketName}" > /dev/null
+    # log start time
+    start_time=$(get_time)
 
-    # save md5 hash
-    hash1=$(md5sum "$MINT_DATA_DIR"/datafile-1-MB | awk '{print $1}')
+    function="make_bucket"
+    bucket_name=$(make_bucket)  
+    rv=$?
 
-    # upload the file
-    ./mc cp "$MINT_DATA_DIR"/datafile-1-MB "target/${bucketName}" > /dev/null
-
-    printf "\tEntering Put Object Test 1\n"
-    if [ "$(basename "$(./mc cp --json "target/${bucketName}/datafile-1-MB" /tmp | jq -r .target)")" != "datafile-1-MB" ]; then
-        >&2 echo "Put Object Test 1 Failure"
-        return 1
+    # if make bucket succeeds upload a file
+    if [ $rv -eq 0 ]; then
+        function="${MC_CMD} cp ${MINT_DATA_DIR}/datafile-1-MB ${SERVER_ALIAS}/${bucket_name}"
+        out=$($function 2>&1)
+        rv=$?
+    else 
+        # if make bucket failes, $bucket_name has the error output
+        out="${bucket_name}"
     fi
 
-    # calculate the md5 hash of downloaded file
-    hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
-
-    printf "\tEntering Put Object Test 2\n"
-    if [ "$hash1" != "$hash2" ]; then 
-        >&2 echo "Put Object Test 2 Failure"
-        return 1
+    # if upload succeeds download the file
+    if [ $rv -eq 0 ]; then 
+        function="${MC_CMD} cp --json ${SERVER_ALIAS}/${bucket_name}/datafile-1-MB /tmp"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?        
+        # calculate the md5 hash of downloaded file
+        hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
     fi
 
-    # remove bucket and cleanup
-    remove_bucket "${bucketName}"
-    printf "\tTest Success\n"
+    # if download succeeds, verify downloaded file
+    if [ $rv -eq 0 ]; then 
+        if [ "$HASH_1_MB" == "$hash2" ] && [ "$(basename "$(echo "$out" | jq -r .target)")" == "datafile-1-MB" ]; then
+            function="delete_bucket"
+            out=$(delete_bucket "$bucket_name") 
+            rv=$?
+            # remove download file
+            rm -rf /tmp/datafile-1-MB
+        else
+            rv=1
+        fi
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
 }
 
-# Upload an object > 64MB (MC uses multipart for more than 64MB), download it and check if it matches the uploaded object
-putObjectMultipart(){
-    # Make bucket
-    local bucketName
-    bucketName=$(create_random_string)
+# Upload an object > 64MB (MC uses multipart for more than 64MB), download
+# it and check if it matches the uploaded object
+function test_put_object_multipart() {
+
+    # log start time
+    start_time=$(get_time)
 
     # Make bucket
-    ./mc mb "target/${bucketName}" > /dev/null
+    function="make_bucket"
+    bucket_name=$(make_bucket)  
+    rv=$?
 
-    # save md5 hash
-    hash1=$(md5sum "$MINT_DATA_DIR"/datafile-65-MB | awk '{print $1}')
-
-    # upload the file
-    ./mc cp "$MINT_DATA_DIR"/datafile-65-MB "target/${bucketName}" > /dev/null
-
-    printf "\tEntering Put Object Multipart Test 1\n"
-    if [ "$(basename "$(./mc cp --json "target/${bucketName}/datafile-65-MB" /tmp | jq -r .target)")" != "datafile-65-MB" ]; then
-        >&2 echo "Put Object Multipart Test 1 Failure"
-        return 1
-    fi 
-
-    # calculate the md5 hash of downloaded file
-    hash2=$(md5sum /tmp/datafile-65-MB | awk '{print $1}')
-
-    printf "\tEntering Put Object Multipart Test 2\n"
-    if [ "$hash1" != "$hash2" ]; then
-        >&2 echo "Put Object Multipart Test 2 Failure"
-        return 1
+    # if make bucket succeeds upload a file
+    if [ $rv -eq 0 ]; then
+        function="${MC_CMD} cp ${MINT_DATA_DIR}/datafile-65-MB ${SERVER_ALIAS}/${bucket_name}"
+        out=$($function 2>&1)
+        rv=$?
+    else 
+        # if make bucket failes, $bucket_name has the error output
+        out="${bucket_name}"
     fi
 
-    # remove bucket and cleanup
-    remove_bucket "${bucketName}"
-    printf "\tTest Success\n"
+    # if upload succeeds download the file
+    if [ $rv -eq 0 ]; then 
+        function="${MC_CMD} cp --json ${SERVER_ALIAS}/${bucket_name}/datafile-65-MB /tmp"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?        
+        # calculate the md5 hash of downloaded file
+        hash2=$(md5sum /tmp/datafile-65-MB | awk '{print $1}')
+    fi
+
+    # if download succeeds, verify downloaded file and cleanup
+    if [ $rv -eq 0 ]; then 
+        if [ "$HASH_65_MB" = "$hash2" ] && [ "$(basename "$(echo "$out" | jq -r .target)")" == "datafile-65-MB" ]; then
+            function="delete_bucket"
+            out=$(delete_bucket "$bucket_name") 
+            rv=$?        
+            # remove download file
+            rm -rf /tmp/datafile-65-MB
+        else
+            rv=1
+        fi
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
 }
 
-# Tests for presigned URL upload success case, presigned URL
-# is correct and accessible - we calculate md5sum of
-# the object and validate it against a local files md5sum.
-presignedUploadObject() {
-    # Make bucket
-    local bucketName
-    bucketName=$(create_random_string)
+# Tests for presigned URL upload success case, presigned URL is correct and
+# accessible - we calculate md5sum of the object and validate
+# it against a local files md5sum.
+function test_presigned_upload_object() {
+
+    # log start time
+    start_time=$(get_time)
 
     # Make bucket
-    ./mc mb "target/${bucketName}" > /dev/null
+    function="make_bucket"
+    bucket_name=$(make_bucket)  
+    rv=$?
 
-    fileName="${MINT_DATA_DIR}/datafile-1-MB"
-
-    # save md5 hash
-    hash1=$(md5sum "$fileName" | awk '{print $1}')
-
-    # create presigned URL object
-    url=$(./mc share --json upload "play/${bucketName}/$(basename "$fileName")" | jq -r .share | sed "s|<FILE>|$fileName|g" | sed "s|curl||g")
-    url="curl -sS $url"
-    ./mc policy upload "target/${bucketName}" > /dev/null
-
-    eval "$url"> /dev/null
-
-    printf "\tEntering Share Upload Test 1\n"
-    if [ "$(basename "$(./mc cp --json "target/${bucketName}/datafile-1-MB" /tmp/ | jq -r .target)")" != "datafile-1-MB" ]; then
-        printf "\tShare Upload Test 1 Failure\n"
-        >&2 echo "Presigned Upload Test 1 Failure"
-        >&2 echo "Error on line 164"
-        return 1
+    # if make bucket succeeds, create a share upload
+    if [ $rv -eq 0 ]; then
+        function="${MC_CMD} share --json upload ${SERVER_ALIAS}/${bucket_name}/datafile-1-MB"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    else 
+        # if make bucket failes, $bucket_name has the error output
+        out="${bucket_name}"
     fi
 
-    # calculate the md5 hash of downloaded file
-    hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
 
-    printf "\tEntering Share Upload Test 2\n"
-    if [ "$hash1" != "$hash2" ]; then
-        printf "\tShare Upload Test 2 Faillure\n"
-        >&2 echo "Share Upload Test 2 Failure"
-        >&2 echo "Error on line 171"
-        return 1
+    # if share upload succeeds, upload the file via curl and then download with mc cp
+    if [ $rv -eq 0 ]; then
+        url=$(echo "$out" | jq -r .share | sed "s|<FILE>|$MINT_DATA_DIR/datafile-1-MB|g" | sed "s|curl||g")
+        url="curl -sS $url"
+        # upload the file
+        eval "$url"> /dev/null
+        # download the file
+        function="${MC_CMD} cp --json ${SERVER_ALIAS}/${bucket_name}/datafile-1-MB /tmp"
+        out=$($function 2>&1)
+        rv=$?
+        # calculate the md5 hash of downloaded file
+        hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
     fi
 
-    # remove bucket and cleanup
-    remove_bucket "${bucketName}"
-    printf "\tTest Success\n"
+    # if download succeeds, verify and cleanup
+    if [ $rv -eq 0 ]; then 
+        if [ "$HASH_1_MB" = "$hash2" ] && [ "$(basename "$(echo "$out" | jq -r .target)")" == "datafile-1-MB" ]; then
+            function="delete_bucket"
+            out=$(delete_bucket "$bucket_name") 
+            rv=$? 
+            # remove download file
+            rm -rf /tmp/datafile-1-MB
+        else
+            rv=1
+        fi
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
 }
 
-# Tests for presigned URL download success case, presigned URL
-# is correct and accessible - we calculate md5sum of
-# the object and validate it against a local files md5sum.
-presignedDownloadObject(){
-    # Make bucket
-    local bucketName
-    bucketName=$(create_random_string)
+# Tests for presigned URL download success case, presigned URL is correct and 
+# accessible - we calculate md5sum of the object and validate 
+# it against a local files md5sum.
+function test_presigned_download_object() {
+
+    # log start time
+    start_time=$(get_time)
 
     # Make bucket
-    ./mc mb "target/${bucketName}" > /dev/null
+    function="make_bucket"
+    bucket_name=$(make_bucket)  
+    rv=$?
 
-    fileName="${MINT_DATA_DIR}/datafile-1-MB"
-
-    # save md5 hash
-    hash1=$(md5sum "$fileName" | awk '{print $1}')
-
-    # upload the file
-    ./mc cp "${fileName}" "target/${bucketName}" > /dev/null
-
-    ./mc policy download "target/${bucketName}" > /dev/null
-    # create presigned URL download
-    url=$(./mc share --json download "target/${bucketName}/$(basename "$fileName")" | jq -r .share)
-
-    # download the file
-    curl -sS -X GET "$url" > /tmp/datafile-1-MB
-
-    # calculate the md5 hash of downloaded file
-    hash2=$(md5sum /tmp/"$(basename "$fileName")" | awk '{print $1}')
-
-    printf "\tEntering Presigned Download Object Test 1\n"
-    if [ "$hash1" != "$hash2" ]; then
-        printf "\tShare Download Test 1 Faillure\n"
-        >&2 echo "Share Download Test 1 Failure"
-        return 1
+    # if make bucket succeeds, upload a file via mc cp
+    if [ $rv -eq 0 ]; then
+        function="${MC_CMD} cp $MINT_DATA_DIR/datafile-1-MB ${SERVER_ALIAS}/${bucket_name}/datafile-1-MB"
+        out=$($function 2>&1)
+        rv=$?
+    else 
+        # if make bucket failes, $bucket_name has the error output
+        out="${bucket_name}"
     fi
 
-    # remove bucket and cleanup
-    remove_bucket "${bucketName}"
-    printf "\tTest Success\n"
-}
-
-# Tests for list object success, by mirroring
-# an fs store to minio, and then comparing 
-# the ls results.
-MirrorListObjects(){
-    local bucketName
-    bucketName=$(create_random_string)
-
-    # create a new bucket and mirror all content into said bucket
-    ./mc mb "target/${bucketName}" > /dev/null
-    ./mc mirror -q "$MINT_DATA_DIR" "target/${bucketName}" > /dev/null
-
-
-    # ignore all white space related differences when comparing using diff
-    if ! diff -bB <(ls "$MINT_DATA_DIR") <(./mc ls --json "target/${bucketName}" | jq -r .key)
-    then
-        printf "\tList Objects Test 1 Failure\n"
-        >&2 echo "List Objects Test 1 Failure"
+    # if upload succeeds, generate download url via share download
+    if [ $rv -eq 0 ]; then
+        function="${MC_CMD} share --json download ${SERVER_ALIAS}/${bucket_name}/datafile-1-MB"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
     fi
 
-    remove_bucket "${bucketName}"
-    printf "\tTest Success\n"
+    # if url generation succeeds, download via curl
+    if [ $rv -eq 0 ]; then
+        # get presigned URL download
+        url=$(echo "$out" | jq -r .share)
+        # download the file
+        curl -sS -X GET "$url" > /tmp/datafile-1-MB
+        # calculate the md5 hash of downloaded file
+        hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')    
+    fi
+
+    if [ "$HASH_1_MB" = "$hash2" ]; then
+        function="delete_bucket"
+        out=$(delete_bucket "$bucket_name") 
+        rv=$? 
+        # remove download file
+        rm -rf /tmp/datafile-1-MB
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
 }
 
-# Tests for the cat object success by comparing 
-# the STDout of "cat run.sh", to "mc cat run.sh"
-# by uploading run.sh, and comparing the two
-# outputs.
-catObjects(){
-    local bucketName
-    bucketName=$(create_random_string)
+# Tests for list object success, by mirroring an fs store to minio, 
+# and then comparing the ls results.
+function test_mirror_list_objects() {
 
-    ./mc mb "target/${bucketName}" > /dev/null
+    # log start time
+    start_time=$(get_time)
 
-    # substitute run.sh as a txt file in upload
-    ./mc cp ./run.sh "target/${bucketName}" > /dev/null
+    # Make bucket
+    function="make_bucket"
+    bucket_name=$(make_bucket)  
+    rv=$? 
+
+    # if make bucket succeeds, start mirroring $MINT_DATA_DIR
+    if [ $rv -eq 0 ]; then
+        function="${MC_CMD} mirror -q $MINT_DATA_DIR ${SERVER_ALIAS}/${bucket_name}"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    else 
+        # if make bucket failes, $bucket_name has the error output
+        out="${bucket_name}"
+    fi
+
+    if [ $rv -eq 0 ]; then 
+        if  diff -bB <(ls "$MINT_DATA_DIR") <(./mc ls --json "${SERVER_ALIAS}/${bucket_name}" | jq -r .key); then
+            function="delete_bucket"
+            out=$(delete_bucket "$bucket_name") 
+            rv=$?
+        else
+            rv=1
+        fi
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
+}
+
+# Tests for the cat object success by comparing the STDOUT of "cat run.sh",
+# to "mc cat run.sh" by uploading run.sh, and comparing the two outputs.
+function test_cat_objects() {
+
+    # log start time
+    start_time=$(get_time)
+
+    # Make bucket
+    function="make_bucket"
+    bucket_name=$(make_bucket)  
+    rv=$? 
+
+    # if make bucket succeeds, upload a file
+    if [ $rv -eq 0 ]; then
+        function="${MC_CMD} cp ./run.sh ${SERVER_ALIAS}/${bucket_name}"
+        out=$($function 2>&1)
+        rv=$?
+    else 
+        # if make bucket failes, $bucket_name has the error output
+        out="${bucket_name}"
+    fi
+
+    # if upload succeeds, cat the file using mc cat
+    if [ $rv -eq 0 ]; then
+        function="./mc cat target/${bucket_name}/run.sh"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
 
     # compare output
-    if !  diff <(cat ./run.sh) <(./mc cat "target/${bucketName}/run.sh")
-    then
-        printf "\tCat Objects Test 1 Failure\n"
-        >&2 echo "Cat Objects Test 1 Failure"
+    if [ $rv -eq 0 ]; then 
+        if diff <(cat ./run.sh) <($function); then
+            function="delete_bucket"
+            out=$(delete_bucket "$bucket_name") 
+            rv=$?
+        else 
+            rv=1
+        fi
     fi
-    remove_bucket "${bucketName}"
-    printf "\tTest Success\n"
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
 }
 
-# Tests for mc watch, by running mc watch in 
-# the background, creating several objects,
-# checking to see if the 
-# words "ObjectCreated" and "ObjectRemoved", 
-# were printed to STDout,
-watchObjects(){
-    local bucketName
-    bucketName=$(create_random_string)
-    ./mc mb "target/$bucketName" >/dev/null
+# Tests for mc watch, by running mc watch in the background, creating several 
+# objects, checking to see if the words "ObjectCreated" and "ObjectRemoved", 
+# were printed to STDOUT.
+function watchObjects() {
+    local bucket_name
+    bucket_name=$(create_random_string)
+    ./mc mb "target/$bucket_name" >/dev/null
 
     # send all output to a variable myvar, and run the operation
     # in the background
-    ./mc watch --json "target/$bucketName" > myvar&
+    ./mc watch --json "target/$bucket_name" > myvar&
     processID=$!
 
     # these operations should cause mc watch to print "ObjectCreated and ObjectRemoved"
-    ./mc cp "$MINT_DATA_DIR/datafile-1-b play/$bucketName">/dev/null
-    ./mc rm --force --recursive "target/$bucketName">/dev/null
+    ./mc cp "$MINT_DATA_DIR/datafile-1-b play/$bucket_name">/dev/null
+    ./mc rm --force --recursive "target/$bucket_name">/dev/null
 
     # run diff with flags -bB, to ignore whitespace differences
 
@@ -282,85 +457,88 @@ watchObjects(){
     printf "\tTest Success\n"
 }
 
-# Upload an object, with invalid object name
-putObjectError(){
-    # Make bucket
-    local bucketName
-    bucketName=$(create_random_string)
-
-    # Make bucket
-    ./mc mb "target/${bucketName}" > /dev/null
-
-    # upload the file
-    printf "\tEntering Put Object Error Test 1\n"
-
-    # mc returns status 1 if case of invalid object name
-    if ./mc cp "$MINT_DATA_DIR"/datafile-1-MB "target/${bucketName}//2123123\123" > /dev/null 2>&1
-    then
-        printf "\tPut Object Error Test 1 Failure\n"
-        >&2 echo "Put Object Error Test 1 Failure"
-        >&2 echo "Error on line 264"
-        return 1
-    fi
-
-
-    # remove bucket and cleanup
-    remove_bucket "${bucketName}"
-    printf "\tTest Success\n"
-}
-
 # Create a bucket and check if it exists on server
-makeBucketError(){
-    # Make bucket
-    local bucketName
-    bucketName="Abcd"
+function test_make_bucket_error() {
+    
+    # Make bucket - invalid bucket name
+    bucket_name="Mc-mint-test-bucket-$RANDOM"
+    function="${MC_CMD} mb ${SERVER_ALIAS}/${bucket_name}"
 
-    # Make bucket
-    printf "\tEntering Make Bucket Error Test 1\n"
+    # log start time
+    start_time=$(get_time)
 
-    # mc returns status 1 if case of invalid object name
-    if ./mc mb "target/${bucketName}" > /dev/null 2>&1
-    then
-        printf "\tMake Bucket Error Test 1 Failure\n"
-        >&2 echo "Make Bucket Error Test 1 Failure"
-        >&2 echo "Error on line 280"
-        return 1
+    # execute the test
+    out=$($function 2>&1)
+    rv=$? 
+
+    if [ $rv -eq 1 ]; then
+        log_success "$(get_duration "$start_time")" "${function}"
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
-    printf "\tTest Success\n"
+    return $rv
 }
+
+# Try to upload an object with invalid object name, and verify if the 
+# upload fails
+function test_put_object_error() {
+
+    # log start time
+    start_time=$(get_time)
+
+    # Make bucket
+    function="make_bucket"
+    bucket_name=$(make_bucket)  
+    rv=$? 
+
+    # if make bucket succeeds, try to upload an object with invalid name
+    if [ $rv -eq 0 ]; then
+        function="${MC_CMD} cp $MINT_DATA_DIR/datafile-1-MB ${SERVER_ALIAS}/${bucket_name}//2123123\123"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    else 
+        # if make bucket failes, $bucket_name has the error output
+        out="${bucket_name}"
+    fi 
+    
+    # mc returns status 1 if case of invalid object name
+    if [ $rv -eq 1 ]; then
+        function="delete_bucket"
+        out=$(delete_bucket "$bucket_name") 
+        rv=$?
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
+} 
 
 # main handler for all the tests.
-main() {
-    blue=$(tput setaf 4)
-    normal=$(tput sgr0)
+function main() {
 
-    # Succes tests
-    printf "\n %s Make Bucket Tests %s \n\n" "${blue}" "${normal}"
-    makeBucket
-    printf "\n %s Put Object Tests %s \n\n" "${blue}" "${normal}" 
-    putObject
-    printf "\n %s Put Object Multipart Tests %s \n\n" "${blue}" "${normal}" 
-    putObjectMultipart
-    printf "\n %s Presigned Upload Object Tests %s \n\n" "${blue}" "${normal}"
-    presignedUploadObject
-    printf "\n %s Presigned Download Object Tests %s \n\n" "${blue}" "${normal}" 
-    presignedDownloadObject
-    printf "\n %s List and Mirror Object Tests %s \n\n" "${blue}" "${normal}"
-    MirrorListObjects
-    printf "\n %s Cat Object Tests %s \n\n" "${blue}" "${normal}"
-    catObjects
-    printf "\n %s Watch  Object Tests %s \n\n" "${blue}" "${normal}"
-    #watchObjects 
+    # Success tests
+    test_make_bucket
+    test_put_object
+    test_put_object_multipart
+    test_presigned_upload_object
+    test_presigned_download_object
+    test_mirror_list_objects
+    test_cat_objects 
 
     # TODO Add Policy tests once supported on GCS
 
-    # Error tests
-    printf "\n %s Put Object Error Tests %s \n\n" "${blue}" "${normal}" 
-    putObjectError
-    printf "\n %s Make Bucket Object Error Tests %s \n\n" "${blue}" "${normal}" 
-    makeBucketError
-    printf "\n %s End of tests %s \n\n" "${blue}" "${normal}" 1
+    # Negative tests
+    test_make_bucket_error
+    test_put_object_error
 }
 
 main
