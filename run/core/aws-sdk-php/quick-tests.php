@@ -142,8 +142,9 @@ function runExceptionalTests($s3Client, $apiCall, $exceptionMatcher, $exceptionP
   */
 function testListBuckets(S3Client $s3Client) {
     $buckets = $s3Client->listBuckets();
+    $debugger = $GLOBALS['debugger'];
     foreach ($buckets['Buckets'] as $bucket){
-        echo $bucket['Name']."\n";
+        $debugger->out($bucket['Name'] . "\n");
     }
 }
 
@@ -209,11 +210,14 @@ function testHeadObject($s3Client, $objects) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $objects Associative array of buckets and objects
+  * @param $params associative array containing bucket and object names
   *
   * @return void
   */
-function testListObjects($s3Client, $bucket, $object) {
+function testListObjects($s3Client, $params) {
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+    $debugger = $GLOBALS['debugger'];
     try {
         for ($i = 0; $i < 5; $i++) {
             $copyKey = $object . '-copy-' . strval($i);
@@ -228,12 +232,12 @@ function testListObjects($s3Client, $bucket, $object) {
 
         $paginator = $s3Client->getPaginator('ListObjects', ['Bucket' => $bucket]);
         foreach ($paginator->search('Contents[].Key') as $key) {
-            echo 'key = ' . $key . "\n";
+            $debugger->out('key = ' . $key . "\n");
         }
 
         $paginator = $s3Client->getPaginator('ListObjectsV2', ['Bucket' => $bucket]);
         foreach ($paginator->search('Contents[].Key') as $key) {
-            echo 'key = ' . $key . "\n";
+            $debugger->out('key = ' . $key . "\n");
         }
 
         $prefix = 'obj';
@@ -270,13 +274,15 @@ function testListObjects($s3Client, $bucket, $object) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket Name of bucket
-  *
-  * @param $object Name of object to be copied
+  * @param $params associative array containing bucket and object names
   *
   * @return void
   */
-function testListMultipartUploads($s3Client, $bucket, $object) {
+function testListMultipartUploads($s3Client, $params) {
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+    $debugger = $GLOBALS['debugger'];
+
     $data_dir = $GLOBALS['MINT_DATA_DIR'];
     // Initiate multipart upload
     $result = $s3Client->createMultipartUpload([
@@ -316,7 +322,7 @@ function testListMultipartUploads($s3Client, $bucket, $object) {
         $paginator = $s3Client->getPaginator('ListMultipartUploads',
                                              ['Bucket' => $bucket]);
         foreach ($paginator->search('Uploads[].{Key: Key, UploadId: UploadId}') as $keyHash) {
-            echo 'key = ' . $keyHash['Key'] . ' uploadId = ' . $keyHash['UploadId'] . "\n";
+            $debugger->out('key = ' . $keyHash['Key'] . ' uploadId = ' . $keyHash['UploadId'] . "\n");
         }
 
         $paginator = $s3Client->getPaginator('ListParts', [
@@ -325,7 +331,7 @@ function testListMultipartUploads($s3Client, $bucket, $object) {
             'UploadId' => $uploadId,
         ]);
         foreach ($paginator->search('Parts[].{PartNumber: PartNumber, ETag: ETag}') as $partsHash) {
-            echo 'partNumber = ' . $partsHash['PartNumber'] . ' ETag = ' . $partsHash['ETag'] . "\n";
+            $debugger->out('partNumber = ' . $partsHash['PartNumber'] . ' ETag = ' . $partsHash['ETag'] . "\n");
         }
 
     } finally {
@@ -387,13 +393,14 @@ function initSetup(S3Client $s3Client, $objects) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket bucket on which GET/PUT operations are performed
-  *
-  * @param $object object to be downloaded/uploaded
+  * @param $params associative array containing bucket and object names
   *
   * @return void
   */
-function testGetPutObject($s3Client, $bucket, $object) {
+function testGetPutObject($s3Client, $params) {
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+
     // Upload a 10KB file
     $MINT_DATA_DIR = $GLOBALS['MINT_DATA_DIR'];
     try {
@@ -436,14 +443,14 @@ function testGetPutObject($s3Client, $bucket, $object) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket bucket on objects are uploaded using
-  * MultipartUpload API
-  *
-  * @param $object object to be uploaded
+  * @param $params associative array containing bucket and object names
   *
   * @return void
   */
-function testMultipartUploadFailure($s3Client, $bucket, $object) {
+function testMultipartUploadFailure($s3Client, $params) {
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+
     $MINT_DATA_DIR = $GLOBALS['MINT_DATA_DIR'];
     // Initiate multipart upload
     $result = $s3Client->createMultipartUpload([
@@ -513,14 +520,14 @@ function testMultipartUploadFailure($s3Client, $bucket, $object) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket bucket on objects are uploaded using
-  * MultipartUpload API
-  *
-  * @param $object object to be uploaded
+  * @param $params associative array containing bucket and object names
   *
   * @return void
   */
-function testMultipartUpload($s3Client, $bucket, $object) {
+function testMultipartUpload($s3Client, $params) {
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+
     $MINT_DATA_DIR = $GLOBALS['MINT_DATA_DIR'];
     // Initiate multipart upload
     $result = $s3Client->createMultipartUpload([
@@ -583,14 +590,14 @@ function testMultipartUpload($s3Client, $bucket, $object) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket bucket on objects are uploaded using
-  * MultipartUpload API
-  *
-  * @param $object object to be uploaded
+  * @param $params associative array containing bucket and object names
   *
   * @return void
   */
-function testAbortMultipartUpload($s3Client, $bucket, $object) {
+function testAbortMultipartUpload($s3Client, $params) {
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+
     $MINT_DATA_DIR = $GLOBALS['MINT_DATA_DIR'];
     // Initiate multipart upload
     $result = $s3Client->createMultipartUpload([
@@ -629,11 +636,13 @@ function testAbortMultipartUpload($s3Client, $bucket, $object) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket bucket whose location is to be determined
+  * @param $params associative array containing bucket name
   *
   * @return void
   */
-function testGetBucketLocation($s3Client, $bucket) {
+function testGetBucketLocation($s3Client, $params) {
+    $bucket = $params['Bucket'];
+
     // Valid test
     $result = $s3Client->getBucketLocation(['Bucket' => $bucket]);
     if (getStatusCode($result) != HTTP_OK)
@@ -656,14 +665,14 @@ function testGetBucketLocation($s3Client, $bucket) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket bucket from where object is copied from and copied
-  * into
-  *
-  * @param $object object to be copied
+  * @param $params associative array containing bucket and object name
   *
   * @return void
   */
-function testCopyObject($s3Client, $bucket, $object) {
+function testCopyObject($s3Client, $params) {
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+
     $result = $s3Client->copyObject([
         'Bucket' => $bucket,
         'Key' => $object . '-copy',
@@ -702,14 +711,14 @@ function testCopyObject($s3Client, $bucket, $object) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket bucket from where objects are deleted
-  * into
-  *
-  * @param $object whose copies are deleted in one batch
+  * @param $params associative array containing bucket and object names
   *
   * @return void
   */
-function testDeleteObjects($s3Client, $bucket, $object) {
+function testDeleteObjects($s3Client, $params) {
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+
     $copies = [];
     for ($i = 0; $i < 3; $i++) {
         $copyKey = $object . '-copy' . strval($i);
@@ -736,21 +745,32 @@ function testDeleteObjects($s3Client, $bucket, $object) {
 }
 
  /**
-  * testAnonDeleteObjects tests Delete Objects S3 API for anonymous requests. 
-  * The test case checks this scenario: 
+  * testAnonDeleteObjects tests Delete Objects S3 API for anonymous requests.
+  * The test case checks this scenario:
   * http://docs.aws.amazon.com/AmazonS3/latest/API/multiobjectdeleteapi.html#multiobjectdeleteapi-examples
-  *
-  * @param $anonymousClient Anonymous AWS\S3\S3Client object
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket bucket from where objects are deleted from
-  *
-  * @param $object whose copies are deleted in one batch
+  * @param $params associative array containing bucket and object names
   *
   * @return void
   */
-function testAnonDeleteObjects($anonymousClient, $s3Client, $bucket, $object) {
+function testAnonDeleteObjects($s3Client, $params) {
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+
+    // Create anonymous config object
+    $anonConfig = new ClientConfig("", "", $GLOBALS['endpoint'], $GLOBALS['secure']);
+
+    // Create anonymous S3 client
+    $anonymousClient = new S3Client([
+        'credentials' => false,
+        'endpoint' => $anonConfig->endpoint,
+        'use_path_style_endpoint' => true,
+        'region' => 'us-east-1',
+        'version' => '2006-03-01'
+    ]);
+
     $copies = [];
     for ($i = 0; $i < 3; $i++) {
         $copyKey = $object . '-copy' . strval($i);
@@ -765,7 +785,7 @@ function testAnonDeleteObjects($anonymousClient, $s3Client, $bucket, $object) {
         array_push($copies, ['Key' => $copyKey]);
     }
 
-    // Try anonymous delete. 
+    // Try anonymous delete.
     $result = $anonymousClient->deleteObjects([
         'Bucket' => $bucket,
         'Delete' => [
@@ -779,8 +799,8 @@ function testAnonDeleteObjects($anonymousClient, $s3Client, $bucket, $object) {
 
     // Each object should have error code AccessDenied
     for ($i = 0; $i < 3; $i++) {
-        if ($result["Errors"][$i]["Code"] != "AccessDenied") 
-            throw new Exception('Incorrect response deleteObjects anonymous 
+        if ($result["Errors"][$i]["Code"] != "AccessDenied")
+            throw new Exception('Incorrect response deleteObjects anonymous
                                 call for ' .$bucket);
     }
 
@@ -798,8 +818,8 @@ function testAnonDeleteObjects($anonymousClient, $s3Client, $bucket, $object) {
 
     // Each object should have empty code in case of successful delete
     for ($i = 0; $i < 3; $i++) {
-        if ($result["Errors"][$i]["Code"] != "") 
-            throw new Exception('Incorrect response deleteObjects anonymous 
+        if ($result["Errors"][$i]["Code"] != "")
+            throw new Exception('Incorrect response deleteObjects anonymous
                                 call for ' .$bucket);
     }
 }
@@ -809,11 +829,13 @@ function testAnonDeleteObjects($anonymousClient, $s3Client, $bucket, $object) {
   *
   * @param $s3Client AWS\S3\S3Client object
   *
-  * @param $bucket bucket on which policy is being set
+  * @param $params associative array containing bucket and object names
   *
   * @return void
   */
-function testBucketPolicy($s3Client, $bucket) {
+function testBucketPolicy($s3Client, $params) {
+    $bucket = $params['Bucket'];
+
     // Taken from policy set using `mc policy download`
     $downloadPolicy = sprintf('{"Version":"2012-10-17","Statement":[{"Action":["s3:GetBucketLocation","s3:ListBucket"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s"],"Sid":""},{"Action":["s3:GetObject"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s/*"],"Sid":""}]}', $bucket, $bucket);
 
@@ -920,28 +942,41 @@ function cleanupSetup($s3Client, $objects) {
 
 
  /**
-  * runTestFunction helper function to wrap a test function and log
+  * runTest helper function to wrap a test function and log
   * success or failure accordingly.
   *
   * @param myfunc name of test function to be run
+  *
+  * @param fnSignature function signature of the main S3 SDK API
   *
   * @param args parameters to be passed to test function
   *
   * @return void
   */
-function runTestFunction($myfunc, ...$args) {
-    static $counter = 1;
-
-    printf("%d. Testing %s\n\n", $counter, $myfunc);
+function runTest($s3Client, $myfunc, $fnSignature, $args = []) {
     try {
-        $myfunc(...$args);
+        $start_time = microtime();
+        $status = "PASS";
+        $error = "";
+        $myfunc($s3Client, $args);
     } catch (Exception $e) {
-        printf("%d. %s failed at %d %s", $counter, $myfunc, $e->getLine(), $e->getFile());
+        $status = "FAIL";
+        $error = $e->getMessage();
         throw $e;
     } finally {
-        $counter++;
+        $end_time = microtime();
+        $json_log = [
+            "name" => "aws-sdk-php",
+            "function" => $fnSignature,
+            "args" => $args,
+            "duration" => sprintf("%d", ($end_time - $start_time) * 1000), // elapsed time in ms
+            "status" => $status,
+        ];
+        if ($error !== "") {
+            $json_log["error"] = $error;
+        }
+        print_r(json_encode($json_log)."\n");
     }
-    echo "\nPASSED " . $myfunc . "\n\n";
 }
 
 // Get client configuration from environment variables
@@ -958,6 +993,33 @@ $GLOBALS['MINT_DATA_DIR'] = '/mint/data';
 $GLOBALS['MINT_DATA_DIR'] = getenv("MINT_DATA_DIR");
 
 
+// Useful for debugging test failures; Set $debugmode it to true when required
+$debugmode = false;
+
+interface Debugger {
+    public function out($data);
+}
+
+class EchoDebugger implements Debugger {
+    public function out($data) {
+        echo $data;
+    }
+}
+
+class NullDebugger implements Debugger {
+    public function out($data) {
+        // Do nothing
+    }
+}
+
+if($debugmode)
+    $debugger = new EchoDebugger();
+else
+    $debugger = new NullDebugger();
+
+// Make $debugger global
+$GLOBALS['debugger'] = $debugger;
+
 // Create config object
 $config = new ClientConfig($GLOBALS['access_key'], $GLOBALS['secret_key'],
                            $GLOBALS['endpoint'], $GLOBALS['secure']);
@@ -966,18 +1028,6 @@ $config = new ClientConfig($GLOBALS['access_key'], $GLOBALS['secret_key'],
 $s3Client = new S3Client([
     'credentials' => $config->creds,
     'endpoint' => $config->endpoint,
-    'use_path_style_endpoint' => true,
-    'region' => 'us-east-1',
-    'version' => '2006-03-01'
-]);
-
-// Create anonymous config object
-$anonConfig = new ClientConfig("", "", $GLOBALS['endpoint'], $GLOBALS['secure']);
-
-// Create anonymous S3 client
-$anonymousClient = new S3Client([
-    'credentials' => false,
-    'endpoint' => $anonConfig->endpoint,
     'use_path_style_endpoint' => true,
     'region' => 'us-east-1',
     'version' => '2006-03-01'
@@ -994,20 +1044,21 @@ try {
     initSetup($s3Client, $objects);
     $firstBucket = array_keys($objects)[0];
     $firstObject = $objects[$firstBucket];
-    runTestFunction('testGetBucketLocation', $s3Client, $firstBucket);
-    runTestFunction('testListBuckets', $s3Client);
-    runTestFunction('testListObjects', $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testListMultipartUploads', $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testBucketExists', $s3Client, array_keys($objects));
-    runTestFunction('testHeadObject', $s3Client, $objects);
-    runTestFunction('testGetPutObject', $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testCopyObject', $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testDeleteObjects', $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testAnonDeleteObjects', $anonymousClient, $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testMultipartUpload', $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testMultipartUploadFailure', $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testAbortMultipartUpload', $s3Client, $firstBucket, $firstObject);
-    runTestFunction('testBucketPolicy', $s3Client, $emptyBucket);
+    $testParams = ['Bucket' => $firstBucket, 'Object' => $firstObject];
+    runTest($s3Client, 'testGetBucketLocation', "getBucketLocation ( array \$params = [] )", ['Bucket' => $firstBucket]);
+    runTest($s3Client, 'testListBuckets', "listBuckets ( array \$params = [] )");
+    runTest($s3Client, 'testListObjects', "listObjects ( array \$params = [] )", $testParams);
+    runTest($s3Client, 'testListMultipartUploads', "listMultipartUploads ( array \$params = [] )", $testParams);
+    runTest($s3Client, 'testBucketExists', "headBucket ( array \$params = [] )", array_keys($objects));
+    runTest($s3Client, 'testHeadObject', "headObject ( array \$params = [] )", $objects);
+    runTest($s3Client, 'testGetPutObject', "getObject ( array \$params = [] )", $testParams);
+    runTest($s3Client, 'testCopyObject', "copyObject ( array \$params = [] )", $testParams);
+    runTest($s3Client, 'testDeleteObjects', "deleteObjects (array \$params = [] )", $testParams);
+    runTest($s3Client, 'testAnonDeleteObjects', "anonDeleteObjects ( array \$params = [] )", $testParams);
+    runTest($s3Client, 'testMultipartUpload', "createMultipartUpload ( array \$params = [] )", $testParams);
+    runTest($s3Client, 'testMultipartUploadFailure', "uploadPart ( array \$params = [] )", $testParams);
+    runTest($s3Client, 'testAbortMultipartUpload', "abortMultipartupload ( array \$params = [] )", $testParams);
+    runTest($s3Client, 'testBucketPolicy', "getBucketPolicy ( array \$params = [] )", ['Bucket' => $emptyBucket]);
 }
 finally {
     cleanupSetup($s3Client, $objects);
