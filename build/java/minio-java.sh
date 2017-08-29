@@ -19,7 +19,7 @@ set -e
 
 _init() {
     MINIO_JAVA_SDK_PATH="/mint/run/core/minio-java"
-    MINIO_JAVA_SDK_VERSION="3.0.7"
+    MINIO_JAVA_SDK_VERSION="3.0.6"
 }
 
 # install java dependencies.
