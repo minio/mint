@@ -19,14 +19,13 @@ set -e
 
 _init() {
     MINIO_JS_SDK_PATH="/mint/run/core/minio-js"
-    MINIO_JS_SDK_VERSION="3.1.3"
+    MINIO_JS_SDK_VERSION="3.2.0"
 }
 
 # Compile test files
 install() {
-    #TODO - Change this to release based URL once we make a minio-js release
     mkdir "${MINIO_JS_SDK_PATH}"/test
-    curl https://raw.githubusercontent.com/minio/minio-js/master/src/test/functional/functional-tests.js > "${MINIO_JS_SDK_PATH}"/test/functional-tests.js
+    curl https://raw.githubusercontent.com/minio/minio-js/${MINIO_JS_SDK_VERSION}/src/test/functional/functional-tests.js > "${MINIO_JS_SDK_PATH}"/test/functional-tests.js
     npm --prefix "$MINIO_JS_SDK_PATH" install --save "minio@$MINIO_JS_SDK_VERSION"
     npm --prefix "$MINIO_JS_SDK_PATH" install
 }
