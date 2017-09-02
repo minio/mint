@@ -27,12 +27,13 @@ install() {
     curl https://raw.githubusercontent.com/minio/minio-java/"${MINIO_JAVA_SDK_VERSION}"/functional/ContentInputStream.java > "${MINIO_JAVA_SDK_PATH}"/ContentInputStream.java
     curl https://raw.githubusercontent.com/minio/minio-java/"${MINIO_JAVA_SDK_VERSION}"/functional/PutObjectRunnable.java > "${MINIO_JAVA_SDK_PATH}"/PutObjectRunnable.java
     curl https://raw.githubusercontent.com/minio/minio-java/"${MINIO_JAVA_SDK_VERSION}"/functional/FunctionalTest.java > "${MINIO_JAVA_SDK_PATH}"/FunctionalTest.java
+    curl https://raw.githubusercontent.com/minio/minio-java/"${MINIO_JAVA_SDK_VERSION}"/functional/MintLogger.java > "${MINIO_JAVA_SDK_PATH}"/MintLogger.java
     curl -s -o "$MINIO_JAVA_SDK_PATH/minio-${MINIO_JAVA_SDK_VERSION}-all.jar" "http://repo1.maven.org/maven2/io/minio/minio/${MINIO_JAVA_SDK_VERSION}/minio-${MINIO_JAVA_SDK_VERSION}-all.jar"
  }
 
 # Compile test files
 build() {
-    javac -cp "$MINIO_JAVA_SDK_PATH/minio-${MINIO_JAVA_SDK_VERSION}-all.jar" "${MINIO_JAVA_SDK_PATH}/FunctionalTest.java" "${MINIO_JAVA_SDK_PATH}/PutObjectRunnable.java" "${MINIO_JAVA_SDK_PATH}/ContentInputStream.java"
+    javac -cp "$MINIO_JAVA_SDK_PATH/minio-${MINIO_JAVA_SDK_VERSION}-all.jar" "${MINIO_JAVA_SDK_PATH}/*.java" 
 }
 
 main() {
