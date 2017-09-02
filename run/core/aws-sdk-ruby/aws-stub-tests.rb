@@ -232,7 +232,7 @@ class AwsSdkRubyTest
     raise e
   end
 
-  def listBucketsWrapper
+  def listBucketsWrapper(log_output)
     listBuckets
   rescue => e
     log_output[:function] = 'listBuckets'
@@ -369,7 +369,7 @@ class AwsSdkRubyTest
 
     begin
       start_time = Time.now
-      prev_total_buckets = listBucketsWrapper.length
+      prev_total_buckets = listBucketsWrapper(log_output).length
       new_buckets = bucket_name_list.length
       bucket_name_list.each do |b|
         makeBucketWrapper(b, log_output)
