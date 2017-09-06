@@ -12,36 +12,48 @@ ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
 
 WORKDIR /mint
 
-RUN apt-get update && apt-get install -yq git jq curl
+RUN apt-get --yes update && apt-get --yes upgrade && apt-get --yes --quiet install wget jq curl
+
+ENV MINT_ROOT_DIR /mint
+ENV MINT_RUN_CORE_DIR $MINT_ROOT_DIR/run/core
+ENV WGET "wget --quiet --no-check-certificate"
+
+COPY create-data-files.sh /mint
+RUN /mint/create-data-files.sh
+
+COPY install-packages.list /mint
+COPY preinstall.sh /mint
+RUN /mint/preinstall.sh
 
 COPY run /mint/run
 
-COPY build/data/ /mint/build/data/
-RUN /mint/build/data/install.sh
+COPY build/awscli /mint/build/awscli
+RUN build/awscli/install.sh
 
-COPY build/cli/ /mint/build/cli/
-RUN /mint/build/cli/install.sh
+COPY build/aws-sdk-php /mint/build/aws-sdk-php
+RUN build/aws-sdk-php/install.sh
 
-COPY build/go/ /mint/build/go/
-RUN /mint/build/go/install.sh
+COPY build/aws-sdk-ruby /mint/build/aws-sdk-ruby
+RUN build/aws-sdk-ruby/install.sh
 
-COPY build/java/ /mint/build/java/
-RUN /mint/build/java/install.sh
+COPY build/mc /mint/build/mc
+RUN build/mc/install.sh
 
-COPY build/py/ /mint/build/py/
-RUN /mint/build/py/install.sh
+COPY build/minio-go /mint/build/minio-go
+RUN build/minio-go/install.sh
 
-COPY build/js/ /mint/build/js/
-RUN /mint/build/js/install.sh
+COPY build/minio-java /mint/build/minio-java
+RUN build/minio-java/install.sh
 
-COPY build/php/ /mint/build/php/
-RUN /mint/build/php/install.sh
+COPY build/minio-js /mint/build/minio-js
+RUN build/minio-js/install.sh
 
-COPY build/ruby/ /mint/build/ruby/
-RUN /mint/build/ruby/install.sh
+COPY build/minio-py /mint/build/minio-py
+RUN build/minio-py/install.sh
 
-COPY run.sh /mint/run.sh
-COPY tests.sh /mint/tests.sh
+COPY remove-packages.list /mint
+COPY postinstall.sh /mint
+RUN /mint/postinstall.sh
 
-CMD ["/mint/run.sh", "/mint/tests.sh"]
-
+COPY mint.sh /mint/mint.sh
+CMD ["/mint/mint.sh"]

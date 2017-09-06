@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 #  Minio Cloud Storage, (C) 2017 Minio, Inc.
 #
@@ -15,28 +15,17 @@
 #  limitations under the License.
 #
 
-set -e
+export MINT_ROOT_DIR=${MINT_ROOT_DIR:-/mint}
+export MINT_RUN_CORE_DIR="$MINT_ROOT_DIR/run/core"
+export WGET="wget --quiet --no-check-certificate"
 
-# Install general dependencies
-installDeps() {
-    apt-get update -yq
-    apt-get install -yq curl openssl
-}
+./create-data-files.sh
+./preinstall.sh
 
-cleanupDeps() {
-    apt-get purge -yq git
-    apt-get autoremove -yq
-}
+# install mint app packages
+for pkg in "$MINT_ROOT_DIR/build"/*/install.sh; do
+    echo "Running $pkg"
+    $pkg
+done
 
-main() {
-    installDeps
-
-    for i in $(echo /mint/build/*/install.sh | tr ' ' '\n'); do
-        $i
-    done
-
-    # Remove all the used deps
-    cleanupDeps
-}
-
-main
+./postinstall.sh

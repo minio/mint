@@ -15,38 +15,23 @@
 #  limitations under the License.
 #
 
-# Execute test.sh
-run() {
-    [ "$ENABLE_HTTPS" == "1" ] && scheme="https" || scheme="http"
-    endpoint_url=$scheme://$SERVER_ENDPOINT
+# handle command line arguments
+if [ $# -ne 2 ]; then
+    echo "usage: run.sh <OUTPUT-LOG-FILE> <ERROR-LOG-FILE>"
+    exit -1
+fi
 
-    echo "Starting aws cli tests on ${endpoint_url}"
-    ./test.sh "$endpoint_url"
-}
+output_log_file="$1"
+error_log_file="$2"
 
-configure() {
-    echo "Configure aws cli secrets."
+# configure awscli
+aws configure set aws_access_key_id "$ACCESS_KEY"
+aws configure set aws_secret_access_key "$SECRET_KEY"
+aws configure set default.region "$SERVER_REGION"
 
-    aws configure set aws_access_key_id "$ACCESS_KEY"
-    aws configure set aws_secret_access_key "$SECRET_KEY"
-    aws configure set default.region "$SERVER_REGION"
-}
-
-main() {
-    logfile=$1
-    errfile=$2
-
-    # run the tests
-    rc=0
-
-    # configure aws cli
-    configure >>"$logfile" 2>&1 || { echo 'aws cli setup failed'; exit 1; }
-
-    run 2>>"$errfile" 1>>"$logfile" || { echo 'aws cli run failed.'; rc=1; }
-    grep -e '<ERROR>' "$logfile" >> "$errfile"
-
-    return $rc
-}
-
-# invoke the script
-main "$@"
+# run tests
+endpoint="http://$SERVER_ENDPOINT"
+if [ "$ENABLE_HTTPS" -eq 1 ]; then
+    endpoint="https://$SERVER_ENDPOINT"
+fi
+./test.sh "$endpoint"  1>"$output_log_file" 2>"$error_log_file"

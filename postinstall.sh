@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -15,35 +15,12 @@
 #  limitations under the License.
 #
 
-set -e
+# remove all packages listed in remove-packages.list
+xargs --arg-file=remove-packages.list apt --quiet --yes purge
+apt --quiet --yes autoremove
 
-# Install PHP deps
-install() {
-    apt-get install -yq php php7.0-curl php-xml
-}
+# remove unwanted files
+rm -fr "$GOROOT" "$GOPATH/src" /var/lib/apt/lists/*
 
-# Remove PHP dependencies
-cleanup() {
-    apt-get autoremove -yq
-}
-
-installPkgs() {
-    ## Execute all scripts present in py/* other than `install.sh`
-    for i in $(echo /mint/build/php/*.sh | tr ' ' '\n' | grep -v install.sh); do
-        $i
-    done
-}
-
-main() {
-    # Start with installing PHP.
-    install
-
-    # Install all the dependent packages which are used
-    # for running tests
-    installPkgs
-
-    # Cleanup any unnecessary packages not required at runtime.
-    cleanup
-}
-
-main
+# flush to disk
+sync
