@@ -19,14 +19,10 @@
 run() {
     [ "$ENABLE_HTTPS" == "1" ] && scheme="https" || scheme="http"
     endpoint_url=$scheme://$SERVER_ENDPOINT
-
-    echo "Starting aws cli tests on ${endpoint_url}"
     ./test.sh "$endpoint_url"
 }
 
 configure() {
-    echo "Configure aws cli secrets."
-
     aws configure set aws_access_key_id "$ACCESS_KEY"
     aws configure set aws_secret_access_key "$SECRET_KEY"
     aws configure set default.region "$SERVER_REGION"
