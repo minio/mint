@@ -15,37 +15,20 @@
 #  limitations under the License.
 #
 
-# Execute test.sh 
-run() {
-    ./test.sh
-}
+# handle command line arguments
+if [ $# -ne 2 ]; then
+    echo "usage: run.sh <OUTPUT-LOG-FILE> <ERROR-LOG-FILE>"
+    exit -1
+fi
 
-setupMCTarget() {
-        
-    [ "$ENABLE_HTTPS" -eq "1" ] && scheme="https" || scheme="http" 
+output_log_file="$1"
+error_log_file="$2"
 
-    target_address=$scheme://$SERVER_ENDPOINT
-    
-    # echo "Adding mc host alias target $target_address"
+# run tests
+endpoint="http://$SERVER_ENDPOINT"
+if [ "$ENABLE_HTTPS" -eq 1 ]; then
+    endpoint="https://$SERVER_ENDPOINT"
+fi
 
-    ./mc config host add target "$target_address" "$ACCESS_KEY" "$SECRET_KEY" > /dev/null
-}
-
-main() {
-    
-    logfile=$1
-    errfile=$2
-
-    # run the tests
-    rc=0
-    
-    # setup MC alias target to point to SERVER_ENDPOINT
-    setupMCTarget >>"$logfile"  2>&1 || { echo 'mc setup failed' ; exit 1; }
-
-    run 2>>"$errfile" 1>>"$logfile" || { echo 'mc run failed.'; rc=1; } 
-    return $rc
-}
-
-# invoke the script
-main "$@"
-
+./mc --quiet config host add target "$endpoint" "$ACCESS_KEY" "$SECRET_KEY" >/dev/null 2>&1
+./test.sh 1>"$output_log_file" 2>"$error_log_file"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -15,34 +15,6 @@
 #  limitations under the License.
 #
 
-# install java dependencies.
-
-set -e 
-
-install() {
-    apt-get update && apt-get install -yq default-jre default-jdk
-}
-
-installPkgs() {
-    ## Execute all scripts present in java/* other than `install.sh`
-    for i in $(echo /mint/build/java/*.sh | tr ' ' '\n' | grep -v install.sh); do
-        $i
-    done
-}
-
-# remove java dependencies.
-cleanup() {
-    apt-get purge -yq default-jdk
-    apt-get autoremove -yq
-}
-
-main() {
-    install
-
-    installPkgs
-
-    cleanup
-}
-
-main
-
+test_run_dir="$MINT_RUN_CORE_DIR/aws-sdk-php"
+$WGET --output-document=- https://getcomposer.org/installer | php -- --install-dir="$test_run_dir"
+php "$test_run_dir/composer.phar" --working-dir="$test_run_dir" install

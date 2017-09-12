@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -15,17 +15,8 @@
 #  limitations under the License.
 #
 
-set -e
+MC_VERSION="RELEASE.2017-06-15T03-38-43Z"
 
-installTools() {
-    ## Execute all scripts present in cli/* other than `install.sh`
-    for i in $(echo /mint/build/cli/*.sh | tr ' ' '\n' | grep -v install.sh); do
-        $i
-    done
-}
-
-main() {
-    installTools
-}
-
-main
+test_run_dir="$MINT_RUN_CORE_DIR/mc"
+$WGET --output-document="${test_run_dir}/mc" "https://dl.minio.io/client/mc/release/linux-amd64/mc.${MC_VERSION}"
+chmod a+x "${test_run_dir}/mc"

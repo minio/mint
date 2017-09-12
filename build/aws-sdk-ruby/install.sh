@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -15,24 +15,4 @@
 #  limitations under the License.
 #
 
-# Check script argument
-[[ $# -ne 1 ]] && echo "USAGE: ./run.sh /path/to/target/app" && exit -1
-
-APPNAME=$1
-
-pid=0
-
-sig_handler() {
-    echo "EXIT signal captured.."
-    kill $pid
-    exit -1
-}
-
-# Register signal handler
-trap 'sig_handler' SIGINT
-
-# Run application in background
-$APPNAME &
-pid=$!
-
-wait $pid
+gem install aws-sdk multipart_body

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -15,25 +15,15 @@
 #  limitations under the License.
 #
 
-set -e
+# handle command line arguments
+if [ $# -ne 2 ]; then
+    echo "usage: run.sh <OUTPUT-LOG-FILE> <ERROR-LOG-FILE>"
+    exit -1
+fi
 
-run() {
-    chmod +x aws-stub-tests.rb
-    ruby aws-stub-tests.rb
-}
+output_log_file="$1"
+error_log_file="$2"
 
-main () {
-    logfile=$1
-    errfile=$2
-    
-    # run the tests
-    rc=0
-
-    # run the tests
-    run 2>>"$errfile" 1>>"$logfile" || { echo "aws-sdk-ruby run failed."; exit 1;}
-    return $rc
-}
-
-# invoke the script
-
-main "$@"
+# run tests
+chmod a+x aws-stub-tests.rb
+ruby aws-stub-tests.rb 1>"$output_log_file" 2>"$error_log_file"

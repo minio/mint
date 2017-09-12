@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -15,19 +15,13 @@
 #  limitations under the License.
 #
 
-set -e
+MINIO_PY_VERSION="2.2.4"
 
-_init() {
-    AWS_CLI_VERSION="1.11.112"
-}
-
-# Install PY dependencies
-installDeps() {
-    pip3 install awscli==$AWS_CLI_VERSION
-}
-
-main() {
-    installDeps
-}
-
-_init "$@" && main
+test_run_dir="$MINT_RUN_CORE_DIR/minio-py"
+pip3 install --user faker
+pip3 install minio==$MINIO_PY_VERSION
+$WGET --output-document="$test_run_dir/tests.py" "https://raw.githubusercontent.com/minio/minio-py/${MINIO_PY_VERSION}/tests/functional/tests.py"
+if [ "$MINIO_PY_VERSION" == "2.2.4" ]; then
+    # This is needed until we make a new minio-py release.
+    sed -i 's/DATA_DIR/MINT_DATA_DIR/g' "$test_run_dir/tests.py"
+fi

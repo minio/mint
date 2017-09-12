@@ -1,8 +1,8 @@
-## `mc` tests
-This directory serves as the location for Mint tests using `mc`.  Top level `mint.sh` calls `run.sh` to execute tests.
+## `aws-sdk-ruby` tests
+This directory serves as the location for Mint tests using `aws-sdk-ruby`.  Top level `mint.sh` calls `run.sh` to execute tests.
 
 ## Adding new tests
-New tests is added into `test.sh` as new functions.
+New tests is added into `aws-stub-test.rb` as new functions.
 
 ## Running tests manually
 - Set environment variables `MINT_DATA_DIR`, `MINT_MODE`, `SERVER_ENDPOINT`, `ACCESS_KEY`, `SECRET_KEY`, `SERVER_REGION` and `ENABLE_HTTPS`

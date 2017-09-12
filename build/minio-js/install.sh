@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/bash -e
 #
-#  Mint, (C) 2017 Minio, Inc.
+#  Mint (C) 2017 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,21 +15,10 @@
 #  limitations under the License.
 #
 
-set -e
+MINIO_JS_VERSION="3.2.0"
 
-_init() {
-    AWS_SDK_PHP_PATH="/mint/run/core/aws-sdk-php"
-}
-
-# Install PHP dependencies
-installDeps() {
-    curl -sS https://getcomposer.org/installer | php -- --install-dir=$AWS_SDK_PHP_PATH && \
-    php $AWS_SDK_PHP_PATH/composer.phar --working-dir=$AWS_SDK_PHP_PATH install
-
-}
-
-phpMain() {
-    installDeps
-}
-
-_init "$@" && phpMain
+test_run_dir="$MINT_RUN_CORE_DIR/minio-js"
+mkdir "${test_run_dir}/test"
+$WGET --output-document="${test_run_dir}/test/functional-tests.js" "https://raw.githubusercontent.com/minio/minio-js/${MINIO_JS_VERSION}/src/test/functional/functional-tests.js"
+npm --prefix "$test_run_dir" install --save "minio@$MINIO_JS_VERSION"
+npm --prefix "$test_run_dir" install
