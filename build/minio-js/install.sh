@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-MINIO_JS_VERSION="3.2.0"
+MINIO_JS_VERSION="3.2.1"
 
 test_run_dir="$MINT_RUN_CORE_DIR/minio-js"
 mkdir "${test_run_dir}/test"
