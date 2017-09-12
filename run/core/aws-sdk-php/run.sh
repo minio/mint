@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 #
 #  Mint, (C) 2017 Minio, Inc.
 #
@@ -15,24 +15,14 @@
 #  limitations under the License.
 #
 
-set -e
+# handle command line arguments
+if [ $# -ne 2 ]; then
+    echo "usage: run.sh <OUTPUT-LOG-FILE> <ERROR-LOG-FILE>"
+    exit -1
+fi
 
-run() {
-    php ./quick-tests.php
-}
+output_log_file="$1"
+error_log_file="$2"
 
-main () {
-    logfile=$1
-    errfile=$2
-
-    # run the tests
-    rc=0
-
-    # run the tests
-    run 2>>"$errfile" 1>>"$logfile" || { echo "aws-sdk-php run failed."; exit 1;}
-    return $rc
-}
-
-# invoke the script
-
-main "$@"
+# run tests
+php ./quick-tests.php 1>"$output_log_file" 2>"$error_log_file"

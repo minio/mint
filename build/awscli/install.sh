@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -15,27 +15,6 @@
 #  limitations under the License.
 #
 
-set -e
+AWS_CLI_VERSION="1.11.112"
 
-# Install JS dependencies
-install() {
-    curl -sL https://deb.nodesource.com/setup_6.x | bash - && \
-    apt-get install -y nodejs
-}
-
-installPkgs() {
-    ## Execute all scripts present in js/* other than `install.sh`
-    for i in $(echo /mint/build/js/*.sh | tr ' ' '\n' | grep -v install.sh); do
-        $i
-    done
-}
-
-main() {
-    install
-
-    # Install all the dependent packages which are used
-    # for running tests
-    installPkgs
-}
-
-main
+pip3 install awscli==$AWS_CLI_VERSION

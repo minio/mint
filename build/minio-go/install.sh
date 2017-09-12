@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -15,33 +15,10 @@
 #  limitations under the License.
 #
 
-set -e
+MINIO_GO_VERSION="v3.0.2"
 
-# Install ruby deps
-install() {
-     apt-get update && \
-     apt-get install -y ruby ruby-dev ruby-bundler && \
-     rm -rf /var/lib/apt/lists/*
-}
- 
-
-installPkgs() {
-    ## Execute all scripts present in ruby/* other than `install.sh`
-    for i in $(echo /mint/build/ruby/*.sh | tr ' ' '\n' | grep -v install.sh); do
-        $i
-    done
-}
-
-main() {
-    # Start with installing ruby.
-    install
-
-    # Install all the dependent packages which are used
-    # for running tests
-    installPkgs
-
-    # Cleanup any unnecessary packages not required at runtime.
-    
-}
-
-main
+test_run_dir="$MINT_RUN_CORE_DIR/minio-go"
+go get -u github.com/sirupsen/logrus/...
+go get -u github.com/minio/minio-go/...
+(cd "$GOPATH/src/github.com/minio/minio-go" && git checkout --quiet "tags/$MINIO_GO_VERSION")
+CGO_ENABLED=0 go build -o "$test_run_dir/minio-go" "$GOPATH/src/github.com/minio/minio-go/functional_tests.go"
