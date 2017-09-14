@@ -20,6 +20,7 @@ MINT_DATA_DIR=${MINT_DATA_DIR:-/mint/data}
 MINT_MODE=${MINT_MODE:-core}
 SERVER_REGION=${SERVER_REGION:-us-east-1}
 ENABLE_HTTPS=${ENABLE_HTTPS:-0}
+RUN_LIST=( "$@" )
 
 if [ -z "$SERVER_ENDPOINT" ]; then
     SERVER_ENDPOINT="play.minio.io:9000"
@@ -36,18 +37,6 @@ TESTS_DIR="$ROOT_DIR/run/core"
 BASE_LOG_DIR="$ROOT_DIR/log"
 mkdir -p "$BASE_LOG_DIR"
 
-function ignore_sdk()
-{
-    IFS=',' read -ra ignore_list <<<"${SKIP_TESTS}"
-    for sdk in "${ignore_list[@]}"; do
-        if [ "$1" == "$sdk" ]; then
-            return 0
-        fi
-    done
-
-    return 1
-}
-
 function humanize_time()
 {
     time="$1"
@@ -63,6 +52,33 @@ function humanize_time()
     echo "$seconds seconds"
 }
 
+function run_test()
+{
+    if [ ! -d "$1" ]; then
+        return 1
+    fi
+
+    sdk_name="$(basename "$1")"
+
+    echo -n "Running $sdk_name tests ... "
+    start=$(date +%s)
+
+    mkdir -p "$BASE_LOG_DIR/$sdk_name"
+
+    (cd "$sdk_dir" && ./run.sh "$BASE_LOG_DIR/$sdk_name/$OUTPUT_LOG_FILE" "$BASE_LOG_DIR/$sdk_name/$ERROR_LOG_FILE")
+    rv=$?
+    end=$(date +%s)
+    duration=$(humanize_time $(( end - start )))
+
+    if [ "$rv" -eq 0 ]; then
+        echo "done in $duration"
+    else
+        echo "FAILED in $duration"
+    fi
+
+    return $rv
+}
+
 function main()
 {
     export MINT_DATA_DIR
@@ -76,41 +92,19 @@ function main()
     ## $MINT_MODE is used inside every sdks.
     echo "To get intermittent logs, 'sudo docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
 
-    for sdk_dir in "$TESTS_DIR"/*; do
-        if [ ! -d "$sdk_dir" ]; then
-            continue
-        fi
-
-        sdk_name="$(basename "$sdk_dir")"
-        if ignore_sdk "$sdk_name"; then
-            echo "Ignoring $sdk_name tests"
-            continue
-        fi
-
-        echo -n "Running $sdk_name tests ... "
-        start=$(date +%s)
-
-        mkdir -p "$BASE_LOG_DIR/$sdk_name"
-
-        (cd "$sdk_dir" && ./run.sh "$BASE_LOG_DIR/$sdk_name/$OUTPUT_LOG_FILE" "$BASE_LOG_DIR/$sdk_name/$ERROR_LOG_FILE")
-        rv=$?
-        end=$(date +%s)
-        duration=$(humanize_time $(( end - start )))
-
-        if [ "$rv" -eq 0 ]; then
-            echo "done in $duration"
-        else
-            echo "FAILED in $duration"
-        fi
-    done
+    if [ "${#RUN_LIST[@]}" -ne 0 ]; then 
+        for sdk in "${RUN_LIST[@]}"; do
+            sdk_dir="$TESTS_DIR"/$sdk
+            run_test "$sdk_dir"
+        done
+    else 
+        for sdk_dir in "$TESTS_DIR"/*; do
+            run_test "$sdk_dir"
+        done
+    fi
 
     echo "Finished running all tests."
     echo "To get logs, run 'sudo docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
 }
 
-main "$@" &
-main_pid=$!
-trap 'echo -e "\nAborting Mint..."; kill $main_pid' SIGINT SIGTERM
-
-# wait for main to complete
-wait
+main "$@"
