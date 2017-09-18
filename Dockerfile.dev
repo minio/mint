@@ -56,4 +56,5 @@ COPY postinstall.sh /mint
 RUN /mint/postinstall.sh
 
 COPY mint.sh /mint/mint.sh
-CMD ["/mint/mint.sh"]
+COPY entrypoint.sh /mint/entrypoint.sh
+ENTRYPOINT ["/mint/entrypoint.sh"]

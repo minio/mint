@@ -16,4 +16,4 @@ RUN apt-get --yes update && apt-get --yes upgrade && apt-get --yes --quiet insta
 
 WORKDIR /mint
 
-CMD ["/mint/mint.sh"]
+ENTRYPOINT ["/mint/entrypoint.sh"]
