@@ -38,6 +38,7 @@
     "gulp-sourcemaps": "*",
     "jshint-stylish": "*",
     "mocha": "*",
+    "mocha-steps": "*",
     "nock": "*",
     "rewire": "*",
     "superagent": "*"
