@@ -25,4 +25,4 @@ output_log_file="$1"
 error_log_file="$2"
 
 # run tests
-python "/mint/run/core/minio-py/tests.py" 1>"$output_log_file" 2>"$error_log_file"
+python "/mint/run/core/minio-py/tests.py" 1>>"$output_log_file" 2>"$error_log_file"

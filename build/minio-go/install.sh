@@ -15,10 +15,11 @@
 #  limitations under the License.
 #
 
-MINIO_GO_VERSION="v3.0.2"
+MINIO_GO_VERSION="3.0.3"
 
 test_run_dir="$MINT_RUN_CORE_DIR/minio-go"
 go get -u github.com/sirupsen/logrus/...
+go get -u github.com/dustin/go-humanize/...
 go get -u github.com/minio/minio-go/...
 (cd "$GOPATH/src/github.com/minio/minio-go" && git checkout --quiet "tags/$MINIO_GO_VERSION")
 CGO_ENABLED=0 go build -o "$test_run_dir/minio-go" "$GOPATH/src/github.com/minio/minio-go/functional_tests.go"

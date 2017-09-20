@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-MINIO_JAVA_VERSION="3.0.6"
+MINIO_JAVA_VERSION="3.0.7"
 MINIO_JAVA_PATH="/mint/run/core/minio-java"
 
 # handle command line arguments
@@ -34,4 +34,4 @@ if [ "$ENABLE_HTTPS" -eq 1 ]; then
 fi
 
 java -cp "$MINIO_JAVA_PATH/minio-${MINIO_JAVA_VERSION}-all.jar:." FunctionalTest \
-     "$endpoint" "$ACCESS_KEY" "$SECRET_KEY" "$SERVER_REGION" 1>"$output_log_file" 2>"$error_log_file"
+    "$endpoint" "$ACCESS_KEY" "$SECRET_KEY" "$SERVER_REGION" 1>>"$output_log_file" 2>"$error_log_file"

@@ -25,4 +25,4 @@ output_log_file="$1"
 error_log_file="$2"
 
 # run tests
-php ./quick-tests.php 1>"$output_log_file" 2>"$error_log_file"
+php ./quick-tests.php 1>>"$output_log_file" 2>"$error_log_file"

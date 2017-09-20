@@ -25,4 +25,4 @@ output_log_file="$1"
 error_log_file="$2"
 
 # run tests
-./node_modules/mocha/bin/mocha -R minioreporter -b 1>"$output_log_file" 2>"$error_log_file"
+./node_modules/mocha/bin/mocha -R minioreporter -b 1>>"$output_log_file" 2>"$error_log_file"
