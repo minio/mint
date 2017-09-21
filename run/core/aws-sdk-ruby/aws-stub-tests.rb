@@ -81,7 +81,7 @@ class AwsSdkRubyTest
       end
     end
   rescue => e
-    raise "Failed to clean-up bucket '#{bucket_name}': #{e}"
+    raise "Failed to clean-up bucket '#{bucket_name}', #{e}"
   end
 
   #
@@ -207,10 +207,10 @@ class AwsSdkRubyTest
     file_name = ''
     @@s3.bucket(bucket_name).objects.each do |obj|
       file_name = obj.key
-      obj.delete obj.key
+      obj.delete
     end
   rescue => e
-    raise e
+    raise "File name: '#{file_name}', #{e}"
   end
 
   def removeObjectsWrapper(bucket_name, log_output)
