@@ -33,20 +33,20 @@ function get_duration() {
 }
 
 function log_success() {
-    printf '{"name": "awscli", "duration": "%d", "function": "%s", "status": "PASS"}\n' "$1" "$2"
+    function=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$2")
+    printf '{"name": "awscli", "duration": %d, "function": %s, "status": "PASS"}\n' "$1" "$function"
 }
 
 function log_failure() {
-    printf '{"name": "awscli", "duration": "%d", "function": "%s", "status": "FAIL", "error": "%s"}\n' "$1" "$2" "$3"
+    function=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$2")
+    err=$(echo "$3" | tr -d '\n')
+    printf '{"name": "awscli", "duration": %d, "function": %s, "status": "FAIL", "error": "%s"}\n' "$1" "$function" "$err"
 }
 
 function log_alert() {
-    printf '{"name": "awscli", "duration": "%d", "function": "%s", "status": "FAIL", "alert": "%d", error": "%s"}\n' "$1" "$2" "$3" "$4"
-}
-
-function create_random_string() {
-    random_str=$(tr -dc 'a-z0-9' < /dev/urandom  | fold -w 32 | head -n 1)
-    echo "$random_str"
+    function=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$2")
+    err=$(echo "$4" | tr -d '\n')
+    printf '{"name": "awscli", "duration": %d, "function": %s, "status": "FAIL", "alert": "%s", "error": "%s"}\n' "$1" "$function" "$3" "$err"
 }
 
 function make_bucket() {
@@ -86,8 +86,10 @@ function test_create_bucket() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket)  
+    bucket_name=$(make_bucket)
     rv=$?
+    # save the ref to function being tested, so it can be logged
+    test_function=${function}
 
     # if make_bucket is successful stat the bucket
     if [ $rv -eq 0 ]; then
@@ -104,14 +106,16 @@ function test_create_bucket() {
         function="delete_bucket"
         out=$(delete_bucket "${bucket_name}") 
         rv=$?
-    else 
+    else
         # if make bucket failes, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
     if [ $rv -eq 0 ]; then
-        log_success "$(get_duration "$start_time")" "${function}"
+        log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -119,7 +123,7 @@ function test_create_bucket() {
 }
 
 # Tests creating and deleting an object.
-function test_create_object() {
+function test_upload_object() {
     # log start time
     start_time=$(get_time)
 
@@ -132,7 +136,7 @@ function test_create_object() {
         function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
         out=$($function 2>&1)
         rv=$?
-    else 
+    else
         # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
@@ -143,7 +147,7 @@ function test_create_object() {
         # save the ref to function being tested, so it can be logged
         test_function=${function}
         out=$($function 2>&1)
-        rv=$?        
+        rv=$?
         # calculate the md5 hash of downloaded file
         hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
     fi
@@ -155,15 +159,18 @@ function test_create_object() {
             out=$(delete_bucket "$bucket_name") 
             rv=$?
             # remove download file
-            rm -rf /tmp/datafile-1-MB
+            rm -f /tmp/datafile-1-MB
         else
             rv=1
+            out="Checksum verification failed for uploaded object"
         fi
     fi
 
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -193,40 +200,49 @@ function test_list_objects() {
     if [ $rv -eq 0 ]; then 
         function="${AWS} s3api list-objects --bucket ${bucket_name} --prefix datafile-1-MB"
         test_function=${function}
-        key_name=$($function | jq -r .Contents[].Key)
+        out=$($function)
         rv=$?
-        if [ "$key_name" != "datafile-1-MB" ]; then
-            rv=1            
+        key_name=$(echo "$out" | jq -r .Contents[].Key)
+        if [ $rv -eq 0 ] && [ "$key_name" != "datafile-1-MB" ]; then
+            rv=1
+            # since rv is 0, command passed, but didn't return expected value. In this case set the output
+            out="list-objects with existing prefix failed"
         fi
     fi
 
     # if upload objects succeeds, list objects without existing prefix
     if [ $rv -eq 0 ]; then 
         function="${AWS} s3api list-objects --bucket ${bucket_name} --prefix linux"
-        key_name=$($function | jq -r .Contents[].Key)
+        out=$($function)
         rv=$?
-        if [ "$key_name" != "" ]; then
-            rv=1            
+        key_name=$(echo "$out" | jq -r .Contents[].Key)
+        if [ $rv -eq 0 ] && [ "$key_name" != "" ]; then
+            rv=1
+            out="list-objects without existing prefix failed"
         fi
     fi
 
     # if upload objects succeeds, list objectsv2 with existing prefix
     if [ $rv -eq 0 ]; then 
         function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix datafile-1-MB"
-        key_name=$($function | jq -r .Contents[].Key)
+        out=$($function)
         rv=$?
-        if [ "$key_name" != "datafile-1-MB" ]; then
-            rv=1 
+        key_name=$(echo "$out" | jq -r .Contents[].Key)
+        if [ $rv -eq 0 ] && [ "$key_name" != "datafile-1-MB" ]; then
+            rv=1
+            out="list-objects-v2 with existing prefix failed"
         fi
     fi
 
     # if upload objects succeeds, list objectsv2 without existing prefix
     if [ $rv -eq 0 ]; then 
         function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix linux"
-        key_name=$($function | jq -r .Contents[].Key)
+        out=$($function)
         rv=$?
-        if [ "$key_name" != "" ]; then
+        key_name=$(echo "$out" | jq -r .Contents[].Key)
+        if [ $rv -eq 0 ] && [ "$key_name" != "" ]; then
             rv=1
+            out="list-objects-v2 without existing prefix failed"
         fi
     fi
     
@@ -235,12 +251,15 @@ function test_list_objects() {
         out=$(delete_bucket "$bucket_name") 
         rv=$?
         # remove download file
-        rm -rf /tmp/datafile-1-MB
+        rm -f /tmp/datafile-1-MB
     fi
 
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        rm -f /tmp/datafile-1-MB
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -271,22 +290,25 @@ function test_multipart_upload() {
         # create multipart
         function="${AWS} s3api create-multipart-upload --bucket ${bucket_name} --key ${object_name}"
         test_function=${function}
-        upload_id=$($function | jq -r .UploadId)
+        out=$($function)
         rv=$?
+        upload_id=$(echo "$out" | jq -r .UploadId)
     fi
 
     if [ $rv -eq 0 ]; then
         # Capture etag for part-number 1
         function="${AWS} s3api upload-part --bucket ${bucket_name} --key ${object_name} --body ${MINT_DATA_DIR}/datafile-5-MB --upload-id ${upload_id} --part-number 1"
-        etag1=$($function | jq -r .ETag)
+        out=$($function)
         rv=$?
+        etag1=$(echo "$out" | jq -r .ETag)
     fi
 
     if [ $rv -eq 0 ]; then
         # Capture etag for part-number 2
         function="${AWS} s3api upload-part --bucket ${bucket_name} --key ${object_name} --body ${MINT_DATA_DIR}/datafile-1-MB --upload-id ${upload_id} --part-number 2"
-        etag2=$($function | jq -r .ETag)
+        out=$($function)
         rv=$?
+        etag2=$(echo "$out" | jq -r .ETag)
         # Create a multipart struct file for completing multipart transaction
         echo "{
             \"Parts\": [
@@ -305,16 +327,29 @@ function test_multipart_upload() {
     if [ $rv -eq 0 ]; then
         # Use saved etags to complete the multipart transaction
         function="${AWS} s3api complete-multipart-upload --multipart-upload file:///tmp/multipart --bucket ${bucket_name} --key ${object_name} --upload-id ${upload_id}"
-        finalETag=$($function  | jq -r .ETag)
+        out=$($function)
         rv=$?
+        finalETag=$(echo "$out" | jq -r .ETag)
         if [ "${finalETag}" == "" ]; then
             rv=1
+            out="complete-multipart-upload failed"
         fi
+    fi
+
+    if [ $rv -eq 0 ]; then 
+        function="delete_bucket"
+        out=$(delete_bucket "$bucket_name") 
+        rv=$?
+        # remove temp file
+        rm -f /tmp/multipart
     fi
 
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        rm -f /tmp/multipart
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -348,18 +383,20 @@ function test_copy_object() {
         out=$($function)
         rv=$?
         hash2=$(echo "$out" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
-        if [ "$HASH_1_MB" == "$hash2" ]; then
+        if [ $rv -eq 0 ] && [ "$HASH_1_MB" == "$hash2" ]; then
             function="delete_bucket"
             out=$(delete_bucket "$bucket_name") 
             rv=$?
-        else
-            rv=1
+            # The command passed, but the verfication failed
+            out="Verification failed for copied object"
         fi
     fi
 
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -392,20 +429,25 @@ function test_presigned_object() {
         test_function=${function}
         url=$($function)
         rv=$?
-        hash2=$(curl -sS "${url}" | md5sum -)
-        hash2=${hash2:0:32}
+        curl -sS -X GET "${url}" > /tmp/datafile-1-MB
+        hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
         if [ "$HASH_1_MB" == "$hash2" ]; then
             function="delete_bucket"
             out=$(delete_bucket "$bucket_name") 
             rv=$?
+            # remove download file
+            rm -f /tmp/datafile-1-MB
         else
             rv=1
+            out="Checksum verification failed for downloaded object"
         fi
     fi
 
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -449,6 +491,8 @@ function test_aws_s3_cp() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -493,6 +537,8 @@ function test_aws_s3_sync() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -561,6 +607,8 @@ function test_list_objects_error() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -629,6 +677,8 @@ function test_put_object_error() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -638,8 +688,8 @@ function test_put_object_error() {
 # main handler for all the tests.
 main() {
     # Success tests
-    rv=test_create_bucket && \
-    test_create_object && \
+    test_create_bucket && \
+    test_upload_object && \
     test_list_objects && \
     test_multipart_upload && \
     test_copy_object && \
@@ -651,7 +701,7 @@ main() {
     test_list_objects_error && \
     test_put_object_error
 
-    return $rv
+    return $?
 }
 
 _init "$@" && main
