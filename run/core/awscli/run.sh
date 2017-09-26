@@ -34,4 +34,4 @@ endpoint="http://$SERVER_ENDPOINT"
 if [ "$ENABLE_HTTPS" -eq 1 ]; then
     endpoint="https://$SERVER_ENDPOINT"
 fi
-./test.sh "$endpoint"  1>"$output_log_file" 2>"$error_log_file"
+./test.sh "$endpoint"  1>>"$output_log_file" 2>"$error_log_file"

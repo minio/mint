@@ -31,15 +31,18 @@ function get_duration() {
 }
 
 function log_success() {
-    printf '{"name": "mc", "duration": "%d", "function": "%s", "status": "PASS"}\n' "$1" "$2"
+    function=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$2")
+    printf '{"name": "mc", "duration": "%d", "function": %s, "status": "PASS"}\n' "$1" "$function"
 }
 
 function log_failure() {
-    printf '{"name": "mc", "duration": "%d", "function": "%s", "status": "FAIL", "error": "%s"}\n' "$1" "$2" "$3"
+    function=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$2")
+    printf '{"name": "mc", "duration": "%d", "function": %s, "status": "FAIL", "error": %s}\n' "$1" "$function" "$3"
 }
 
 function log_alert() {
-    printf '{"name": "mc", "duration": "%d", "function": "%s", "status": "FAIL", "alert": "%d", error": "%s"}\n' "$1" "$2" "$3" "$4"
+    function=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$2")
+    printf '{"name": "mc", "duration": "%d", "function": %s, "status": "FAIL", "alert": "%d", error": "%s"}\n' "$1" "$function" "$3" "$4"
 }
 
 function make_bucket() {

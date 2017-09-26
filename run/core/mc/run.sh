@@ -31,4 +31,4 @@ if [ "$ENABLE_HTTPS" -eq 1 ]; then
 fi
 
 ./mc --quiet config host add target "$endpoint" "$ACCESS_KEY" "$SECRET_KEY" >/dev/null 2>&1
-./test.sh 1>"$output_log_file" 2>"$error_log_file"
+./test.sh 1>>"$output_log_file" 2>"$error_log_file"

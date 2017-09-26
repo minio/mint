@@ -23,13 +23,13 @@ function minioreporter(runner) {
 
   runner.on('pass', function (test) {
     var res = test.title.split("_");
-    process.stdout.write(JSON.stringify({name: "minio-js", status: "PASS", function: res[0], args: res[1], alert: res[2], duration: test.duration}));
+    process.stdout.write(JSON.stringify({name: "minio-js", status: "PASS", function: res[0], args: res[1], alert: res[2], duration: test.duration}) + "\n");
   });
 
   runner.on('fail', function (test) {
      test.err = errorJSON (test.error)
      var res = test.title.split("_");
-    process.stdout.write(JSON.stringify({name: "minio-js", status: "FAIL", function: res[0], args: res[1], alert: res[2], duration: test.duration, error: test.err}));
+    process.stdout.write(JSON.stringify({name: "minio-js", status: "FAIL", function: res[0], args: res[1], alert: res[2], duration: test.duration, error: test.err}) + "\n");
   });
 
 }

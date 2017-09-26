@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-MINIO_JAVA_VERSION="3.0.6"
+MINIO_JAVA_VERSION="3.0.7"
 
 test_run_dir="$MINT_RUN_CORE_DIR/minio-java"
 git clone --quiet https://github.com/minio/minio-java.git "$test_run_dir/minio-java.git"

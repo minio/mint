@@ -30,11 +30,11 @@ if [ -z "$SERVER_ENDPOINT" ]; then
 fi
 
 ROOT_DIR="$PWD"
-ERROR_LOG_FILE="error.log"
-OUTPUT_LOG_FILE="output.log"
 TESTS_DIR="$ROOT_DIR/run/core"
 
 BASE_LOG_DIR="$ROOT_DIR/log"
+LOG_FILE="log.json"
+ERROR_FILE="error.log"
 mkdir -p "$BASE_LOG_DIR"
 
 function humanize_time()
@@ -65,7 +65,7 @@ function run_test()
 
     mkdir -p "$BASE_LOG_DIR/$sdk_name"
 
-    (cd "$sdk_dir" && ./run.sh "$BASE_LOG_DIR/$sdk_name/$OUTPUT_LOG_FILE" "$BASE_LOG_DIR/$sdk_name/$ERROR_LOG_FILE")
+    (cd "$sdk_dir" && ./run.sh "$BASE_LOG_DIR/$LOG_FILE" "$BASE_LOG_DIR/$sdk_name/$ERROR_FILE")
     rv=$?
     end=$(date +%s)
     duration=$(humanize_time $(( end - start )))

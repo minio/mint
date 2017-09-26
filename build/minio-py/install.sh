@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-MINIO_PY_VERSION="2.2.4"
+MINIO_PY_VERSION="2.2.5"
 
 test_run_dir="$MINT_RUN_CORE_DIR/minio-py"
 pip3 install --user faker

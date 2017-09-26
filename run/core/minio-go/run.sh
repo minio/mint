@@ -25,4 +25,4 @@ output_log_file="$1"
 error_log_file="$2"
 
 # run tests
-/mint/run/core/minio-go/minio-go 1>"$output_log_file" 2>"$error_log_file"
+/mint/run/core/minio-go/minio-go 1>>"$output_log_file" 2>"$error_log_file"
