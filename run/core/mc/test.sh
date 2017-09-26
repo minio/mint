@@ -495,9 +495,10 @@ function test_put_object_error() {
     bucket_name=$(make_bucket)  
     rv=$? 
 
-    # if make bucket succeeds, try to upload an object with invalid name
+    # if make bucket succeeds, try to upload an object with invalid name (too long name)
     if [ $rv -eq 0 ]; then
-        function="${MC_CMD} cp $MINT_DATA_DIR/datafile-1-MB ${SERVER_ALIAS}/${bucket_name}//2123123\123"
+        long_name=$(printf '=%.0s' {1..1100})
+        function="${MC_CMD} cp $MINT_DATA_DIR/datafile-1-MB ${SERVER_ALIAS}/${bucket_name}/${long_name}"
         # save the ref to function being tested, so it can be logged
         test_function=${function}
         out=$($function 2>&1)
