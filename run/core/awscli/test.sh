@@ -638,20 +638,20 @@ function test_put_object_error() {
 # main handler for all the tests.
 main() {
     # Success tests
-    test_create_bucket
-    test_create_object
-    test_list_objects
-    test_multipart_upload
-    test_copy_object
-    test_presigned_object
-
+    rv=test_create_bucket && \
+    test_create_object && \
+    test_list_objects && \
+    test_multipart_upload && \
+    test_copy_object && \
+    test_presigned_object && \
     # Success cli ops.
-    test_aws_s3_cp
-    test_aws_s3_sync
-
+    test_aws_s3_cp && \
+    test_aws_s3_sync && \
     # Error tests
-    test_list_objects_error
+    test_list_objects_error && \
     test_put_object_error
+
+    return $rv
 }
 
 _init "$@" && main
