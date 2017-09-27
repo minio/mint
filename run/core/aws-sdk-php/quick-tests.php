@@ -28,7 +28,9 @@ const FILE_10KB = "datafile-10-kB";
 const FILE_5_MB = "datafile-5-MB";
 const HTTP_OK = "200";
 const HTTP_NOCONTENT = "204";
-const TEST_METADATA = ['Param-1' => 'val-1'];
+const HTTP_NOTIMPLEMENTED = "501";
+const HTTP_INTERNAL_ERROR = "500";
+const TEST_METADATA = ['Param_1' => 'val-1'];
 
 /**
  * ClientConfig abstracts configuration details to connect to a
@@ -334,7 +336,7 @@ function testListMultipartUploads($s3Client, $params) {
             $debugger->out('partNumber = ' . $partsHash['PartNumber'] . ' ETag = ' . $partsHash['ETag'] . "\n");
         }
 
-    } finally {
+    }finally {
         $s3Client->abortMultipartUpload([
             'Bucket' => $bucket,
             'Key' => $object . '-copy',
@@ -861,11 +863,31 @@ function testBucketPolicy($s3Client, $params) {
         throw new Exception('deleteBucket API failed for ' .
                             $bucket);
 
-    $result = $s3Client->createBucket(['Bucket' => $bucket]);
-    if (getstatuscode($result) != HTTP_OK)
-        throw new Exception('createBucket API failed for ' .
-                            $bucket);
+    // In Minio Gateway for Azure, a container delete will take at
+    // least 30s to be truly deleted. Ref: https://docs.microsoft.com/en-us/rest/api/storageservices/create-container
+    $retries = 5;
+    while ($retries > 0) {
+        try {
+            $result = $s3Client->createBucket(['Bucket' => $bucket]);
+        } catch (Exception $e) {
+            $errorCode = $e->getStatusCode();
+            switch($errorCode) {
+            case HTTP_INTERNAL_ERROR:
+                $retries--;
+                sleep(30);
+                break;
 
+            case "409":
+            case HTTP_OK:
+                $retries = 0;
+                break;
+
+            default:
+                throw new Exception('createBucket API failed for ' .
+                                $bucket);
+            }
+        }
+    }
     $params = [
         '404' => ['Bucket' => $bucket]
     ];
@@ -958,11 +980,18 @@ function runTest($s3Client, $myfunc, $fnSignature, $args = []) {
         $start_time = microtime();
         $status = "PASS";
         $error = "";
+        $message = "";
         $myfunc($s3Client, $args);
     } catch (Exception $e) {
-        $status = "FAIL";
+        $errorCode = $e->getAwsErrorCode();
+        if ($errorCode != "NotImplemented") {
+            $status = "FAIL";
+            $error = $e->getMessage();
+            throw $e;
+        }
+
+        $message = "Not Implemented";
         $error = $e->getMessage();
-        throw $e;
     } finally {
         $end_time = microtime();
         $json_log = [
@@ -974,6 +1003,9 @@ function runTest($s3Client, $myfunc, $fnSignature, $args = []) {
         ];
         if ($error !== "") {
             $json_log["error"] = $error;
+        }
+        if ($message !== "") {
+            $json_log["message"] = $message;
         }
         print_r(json_encode($json_log)."\n");
     }
