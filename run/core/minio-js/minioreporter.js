@@ -22,33 +22,45 @@ function minioreporter(runner) {
    var self = this;
 
   runner.on('pass', function (test) {
-    var res = test.title.split("_");
-    process.stdout.write(JSON.stringify({name: "minio-js", status: "PASS", function: res[0], args: res[1], alert: res[2], duration: test.duration}) + "\n");
+    GenerateJsonEntry(test)
   });
 
-  runner.on('fail', function (test) {
-     test.err = errorJSON (test.error)
-     var res = test.title.split("_");
-    process.stdout.write(JSON.stringify({name: "minio-js", status: "FAIL", function: res[0], args: res[1], alert: res[2], duration: test.duration, error: test.err}) + "\n");
+  runner.on('fail', function (test, err) {
+    GenerateJsonEntry(test, err)
   });
 
 }
 
-
 /**
- * Transform `error` into a JSON object.
+ * Convert test result into a JSON object and print on the console.
  *
  * @api private
- * @param {Error} err
- * @return {Object}
+ * @param test, err
  */
-function errorJSON (err) {
 
-  if (err == null )
- return "";
-  var res = {};
-  Object.getOwnPropertyNames(err).forEach(function (key) {
-    res[key] = err[key];
-  }, err);
-  return res;
+function GenerateJsonEntry (test, err) {
+  var res = test.title.split("_")
+  var jsonEntry = {};
+
+  jsonEntry.name = "minio-js"  
+  jsonEntry.function = res[0]
+  
+  if (res[1].length) {
+    jsonEntry.args = res[1]
+  }
+
+  jsonEntry.duration = test.duration
+  
+  if (res[2].length) {
+    jsonEntry.alert = res[2]
+  }
+
+  if (err != null ) {
+    jsonEntry.status = "FAIL"
+    jsonEntry.error = err.stack.replace(/\n/g, " ").replace(/ +(?= )/g,'')
+  } else {
+    jsonEntry.status = "PASS"
+  }
+
+  process.stdout.write(JSON.stringify(jsonEntry) + "\n")
 }
