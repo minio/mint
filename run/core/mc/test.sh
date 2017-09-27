@@ -32,17 +32,17 @@ function get_duration() {
 
 function log_success() {
     function=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$2")
-    printf '{"name": "mc", "duration": "%d", "function": %s, "status": "PASS"}\n' "$1" "$function"
+    printf '{"name": "mc", "duration": %d, "function": %s, "status": "PASS"}\n' "$1" "$function"
 }
 
 function log_failure() {
     function=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$2")
-    printf '{"name": "mc", "duration": "%d", "function": %s, "status": "FAIL", "error": %s}\n' "$1" "$function" "$3"
+    printf '{"name": "mc", "duration": %d, "function": %s, "status": "FAIL", "error": "%s"}\n' "$1" "$function" "$3"
 }
 
 function log_alert() {
     function=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$2")
-    printf '{"name": "mc", "duration": "%d", "function": %s, "status": "FAIL", "alert": "%d", error": "%s"}\n' "$1" "$function" "$3" "$4"
+    printf '{"name": "mc", "duration": %d, "function": %s, "status": "FAIL", "alert": "%d", error": "%s"}\n' "$1" "$function" "$3" "$4"
 }
 
 function make_bucket() {
@@ -83,7 +83,8 @@ function test_make_bucket() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket)  
+    test_function=${function}
+    bucket_name=$(make_bucket)
     rv=$?
 
     # if make_bucket is successful remove the bucket
@@ -92,13 +93,14 @@ function test_make_bucket() {
         out=$(delete_bucket "${bucket_name}") 
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
     if [ $rv -eq 0 ]; then
-        log_success "$(get_duration "$start_time")" "${function}"
+        log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -121,7 +123,7 @@ function test_put_object() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -152,6 +154,7 @@ function test_put_object() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -176,7 +179,7 @@ function test_put_object_multipart() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -207,6 +210,7 @@ function test_put_object_multipart() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -234,7 +238,7 @@ function test_presigned_upload_object() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -269,6 +273,7 @@ function test_presigned_upload_object() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -294,7 +299,7 @@ function test_presigned_download_object() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -328,6 +333,7 @@ function test_presigned_download_object() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -354,12 +360,12 @@ function test_mirror_list_objects() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
     if [ $rv -eq 0 ]; then 
-        if  diff -bB <(ls "$MINT_DATA_DIR") <(./mc ls --json "${SERVER_ALIAS}/${bucket_name}" | jq -r .key); then
+        if  diff -bB <(find "$MINT_DATA_DIR" -type f -printf "%f\n" | sort) <(./mc ls --json "${SERVER_ALIAS}/${bucket_name}" | jq -r .key | sort) > /dev/null; then
             function="delete_bucket"
             out=$(delete_bucket "$bucket_name") 
             rv=$?
@@ -371,6 +377,7 @@ function test_mirror_list_objects() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -395,7 +402,7 @@ function test_cat_objects() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -422,6 +429,7 @@ function test_cat_objects() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -472,11 +480,13 @@ function test_make_bucket_error() {
 
     # execute the test
     out=$($function 2>&1)
-    rv=$? 
+    rv=$?
 
     if [ $rv -eq 1 ]; then
         log_success "$(get_duration "$start_time")" "${function}"
+        rv=0
     else
+        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -503,7 +513,7 @@ function test_put_object_error() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi 
     
@@ -519,6 +529,7 @@ function test_put_object_error() {
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
+        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -528,20 +539,17 @@ function test_put_object_error() {
 # main handler for all the tests.
 function main() {
 
-    # Success tests
-    test_make_bucket
-    test_put_object
-    test_put_object_multipart
-    test_presigned_upload_object
-    test_presigned_download_object
-    test_mirror_list_objects
-    test_cat_objects 
-
-    # TODO Add Policy tests once supported on GCS
-
-    # Negative tests
-    test_make_bucket_error
+    test_make_bucket && \
+    test_put_object && \
+    test_put_object_multipart && \
+    test_presigned_upload_object && \
+    test_presigned_download_object && \
+    test_mirror_list_objects && \
+    test_cat_objects && \
+    test_make_bucket_error && \
     test_put_object_error
+
+    return $?
 }
 
 main
