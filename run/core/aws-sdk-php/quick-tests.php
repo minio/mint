@@ -977,7 +977,7 @@ function cleanupSetup($s3Client, $objects) {
   */
 function runTest($s3Client, $myfunc, $fnSignature, $args = []) {
     try {
-        $start_time = microtime();
+        $start_time = microtime(true);
         $status = "PASS";
         $error = "";
         $message = "";
@@ -993,7 +993,7 @@ function runTest($s3Client, $myfunc, $fnSignature, $args = []) {
         $message = "Not Implemented";
         $error = $e->getMessage();
     } finally {
-        $end_time = microtime();
+        $end_time = microtime(true);
         $json_log = [
             "name" => "aws-sdk-php",
             "function" => $fnSignature,
