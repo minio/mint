@@ -123,7 +123,7 @@ function test_put_object() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -179,7 +179,7 @@ function test_put_object_multipart() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -238,7 +238,7 @@ function test_presigned_upload_object() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -299,7 +299,7 @@ function test_presigned_download_object() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -360,12 +360,12 @@ function test_mirror_list_objects() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
     if [ $rv -eq 0 ]; then 
-        if  diff -bB <(ls "$MINT_DATA_DIR" | sort) <(./mc ls --json "${SERVER_ALIAS}/${bucket_name}" | jq -r .key | sort) > /dev/null; then
+        if  diff -bB <(find "$MINT_DATA_DIR" -type f -printf "%f\n" | sort) <(./mc ls --json "${SERVER_ALIAS}/${bucket_name}" | jq -r .key | sort) > /dev/null; then
             function="delete_bucket"
             out=$(delete_bucket "$bucket_name") 
             rv=$?
@@ -402,7 +402,7 @@ function test_cat_objects() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
@@ -513,7 +513,7 @@ function test_put_object_error() {
         out=$($function 2>&1)
         rv=$?
     else 
-        # if make bucket failes, $bucket_name has the error output
+        # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi 
     
