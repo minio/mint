@@ -954,11 +954,15 @@ function cleanupSetup($s3Client, $objects) {
     $allBuckets = array_keys($objects);
     array_push($allBuckets, $GLOBALS['emptyBucket']);
     foreach ($allBuckets as $bucket) {
+        try {
         // Delete the bucket
         $s3Client->deleteBucket(['Bucket' => $bucket]);
 
         // Wait until the bucket is removed from object store
         $s3Client->waitUntil('BucketNotExists', ['Bucket' => $bucket]);
+        } catch (Exception $e) {
+            // Ignore exceptions thrown during cleanup
+        }
     }
 }
 
@@ -987,11 +991,15 @@ function runTest($s3Client, $myfunc, $fnSignature, $args = []) {
         if ($errorCode != "NotImplemented") {
             $status = "FAIL";
             $error = $e->getMessage();
-            throw $e;
         }
 
+        $status = "NA";
         $message = "Not Implemented";
         $error = $e->getMessage();
+        // $fnSignature holds the specific API that is being
+        // tested. It is possible that functions used to create the
+        // test setup may not be implemented.
+        $alert = sprintf("%s or a related API is not implemented, see \"error\" for exact details.", $fnSignature);
     } finally {
         $end_time = microtime(true);
         $json_log = [
@@ -1008,6 +1016,12 @@ function runTest($s3Client, $myfunc, $fnSignature, $args = []) {
             $json_log["message"] = $message;
         }
         print_r(json_encode($json_log)."\n");
+
+        // Exit on first failure.
+        switch ($status) {
+        case "FAIL":
+            exit(1);
+        }
     }
 }
 
