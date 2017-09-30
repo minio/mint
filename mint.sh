@@ -89,6 +89,15 @@ function main()
     export ENABLE_HTTPS
     export SERVER_REGION
 
+    echo "Running with"
+    echo "SERVER_ENDPOINT: $SERVER_ENDPOINT"
+    echo "ACCESS_KEY:      $ACCESS_KEY"
+    echo "SECRET_KEY:      ***REDACTED***"
+    echo "ENABLE_HTTPS:    $ENABLE_HTTPS"
+    echo "SERVER_REGION:   $SERVER_REGION"
+    echo "MINT_DATA_DIR:   $MINT_DATA_DIR"
+    echo "MINT_MODE:       $MINT_MODE"
+
     ## $MINT_MODE is used inside every sdks.
     echo "To get intermittent logs, 'sudo docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
 
