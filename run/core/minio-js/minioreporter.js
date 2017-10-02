@@ -43,15 +43,18 @@ function GenerateJsonEntry (test, err) {
   var jsonEntry = {};
 
   jsonEntry.name = "minio-js"  
-  jsonEntry.function = res[0]
   
-  if (res[1].length) {
+  if (res.length > 0 && res[0].length) {
+    jsonEntry.function = res[0]
+  }
+  
+  if (res.length > 1 && res[1].length) {
     jsonEntry.args = res[1]
   }
 
   jsonEntry.duration = test.duration
   
-  if (res[2].length) {
+  if (res.length > 2 && res[2].length) {
     jsonEntry.alert = res[2]
   }
 

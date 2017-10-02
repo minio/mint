@@ -67,7 +67,7 @@ class AwsSdkRubyTest
     # Get rid of the log_output fields if nil
     puts log_output.delete_if{|k, value| value == nil}.to_json
     # Exit at the first failure
-    exit if log_output[:status] == 'FAIL'
+    exit 1 if log_output[:status] == 'FAIL'
   end
 
   def cleanUp(buckets, log_output)
