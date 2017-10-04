@@ -74,6 +74,7 @@ function run_test()
         echo "done in $duration"
     else
         echo "FAILED in $duration"
+        tail -n 1 "$BASE_LOG_DIR/$LOG_FILE" | jq
     fi
 
     return $rv
@@ -104,11 +105,15 @@ function main()
     if [ "${#RUN_LIST[@]}" -ne 0 ]; then 
         for sdk in "${RUN_LIST[@]}"; do
             sdk_dir="$TESTS_DIR"/$sdk
-            run_test "$sdk_dir"
+            if ! run_test "$sdk_dir"; then
+                break
+            fi
         done
     else 
         for sdk_dir in "$TESTS_DIR"/*; do
-            run_test "$sdk_dir"
+            if ! run_test "$sdk_dir"; then
+                break
+            fi
         done
     fi
 
