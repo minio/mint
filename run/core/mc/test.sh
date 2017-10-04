@@ -260,7 +260,7 @@ function test_presigned_upload_object() {
     # if download succeeds, verify and cleanup
     if [ $rv -eq 0 ]; then 
         if [ "$HASH_1_MB" = "$hash2" ] && [ "$(basename "$(echo "$out" | jq -r .target)")" == "datafile-1-MB" ]; then
-            function="delete_bucket"
+            function="delete_bucket"    
             out=$(delete_bucket "$bucket_name") 
             rv=$? 
             # remove download file
@@ -493,49 +493,6 @@ function test_make_bucket_error() {
     return $rv
 }
 
-# Try to upload an object with invalid object name, and verify if the 
-# upload fails
-function test_put_object_error() {
-
-    # log start time
-    start_time=$(get_time)
-
-    # Make bucket
-    function="make_bucket"
-    bucket_name=$(make_bucket)  
-    rv=$? 
-
-    # if make bucket succeeds, try to upload an object with invalid name
-    if [ $rv -eq 0 ]; then
-        function="${MC_CMD} cp $MINT_DATA_DIR/datafile-1-MB ${SERVER_ALIAS}/${bucket_name}//2123123\123"
-        # save the ref to function being tested, so it can be logged
-        test_function=${function}
-        out=$($function 2>&1)
-        rv=$?
-    else 
-        # if make bucket fails, $bucket_name has the error output
-        out="${bucket_name}"
-    fi 
-    
-    # mc returns status 1 if case of invalid object name
-    if [ $rv -eq 1 ]; then
-        function="delete_bucket"
-        out=$(delete_bucket "$bucket_name") 
-        rv=$?
-    else
-        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
-    fi
-
-    if [ $rv -eq 0 ]; then
-        log_success "$(get_duration "$start_time")" "${test_function}"
-    else
-        ${MC_CMD} rm --force --recursive ${SERVER_ALIAS}/"${bucket_name}" > /dev/null 2>&1
-        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
-    fi
-
-    return $rv
-} 
-
 # main handler for all the tests.
 function main() {
 
@@ -546,8 +503,7 @@ function main() {
     test_presigned_download_object && \
     test_mirror_list_objects && \
     test_cat_objects && \
-    test_make_bucket_error && \
-    test_put_object_error
+    test_make_bucket_error
 
     return $?
 }
