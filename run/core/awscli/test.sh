@@ -627,22 +627,7 @@ function test_put_object_error() {
     bucket_name=$(make_bucket)  
     rv=$?
 
-    # if make bucket succeeds upload a file with invalid object_name
-    if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key /2123123\123"
-        out=$($function 2>&1)
-        rv=$?
-        if [ $rv -ne 255 ]; then
-            rv=1
-        else 
-            rv=0
-        fi
-    else 
-        # if make bucket fails, $bucket_name has the error output
-        out="${bucket_name}"
-    fi
-
-    # upload an object without content-md5.
+    # if make bucket succeeds upload an object without content-md5.
     if [ $rv -eq 0 ]; then
         function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB --content-md5 invalid"
         test_function=${function}
