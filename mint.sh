@@ -74,7 +74,7 @@ function run_test()
         echo "done in $duration"
     else
         echo "FAILED in $duration"
-        tail -n 1 "$BASE_LOG_DIR/$LOG_FILE" | jq
+        tail -n 1 "$BASE_LOG_DIR/$LOG_FILE" | jq .
     fi
 
     return $rv
