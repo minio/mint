@@ -1030,6 +1030,7 @@ $GLOBALS['access_key'] = getenv("ACCESS_KEY");
 $GLOBALS['secret_key'] = getenv("SECRET_KEY");
 $GLOBALS['endpoint'] = getenv("SERVER_ENDPOINT");
 $GLOBALS['secure'] = getenv("ENABLE_HTTPS");
+$GLOBALS['mint_mode'] = getenv("MINT_MODE");
 
 /**
  * @global string $GLOBALS['MINT_DATA_DIR']
@@ -1085,6 +1086,11 @@ $objects =  [
     randomName() => 'obj1',
     randomName() => 'obj2',
 ];
+
+if (!($GLOBALS['mint_mode'] == "core" || $GLOBALS['mint_mode'] == "full" )) {
+    // Unknown mint mode
+    exit(1);
+}
 
 try {
     initSetup($s3Client, $objects);
