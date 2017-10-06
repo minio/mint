@@ -15,7 +15,11 @@
 #  limitations under the License.
 #
 
-MINIO_JAVA_VERSION="3.0.7"
+MINIO_JAVA_VERSION=$(curl -s https://api.github.com/repos/minio/minio-java/releases/latest | jq -r .tag_name)
+if [ -z "$MINIO_JAVA_VERSION" ]; then
+    echo "unable to get minio-java version from github"
+    exit 1
+fi
 
 test_run_dir="$MINT_RUN_CORE_DIR/minio-java"
 git clone --quiet https://github.com/minio/minio-java.git "$test_run_dir/minio-java.git"

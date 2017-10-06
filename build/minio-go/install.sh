@@ -15,7 +15,11 @@
 #  limitations under the License.
 #
 
-MINIO_GO_VERSION="3.0.3"
+MINIO_GO_VERSION=$(curl -s https://api.github.com/repos/minio/minio-go/releases/latest | jq -r .tag_name)
+if [ -z "$MINIO_GO_VERSION" ]; then
+    echo "unable to get minio-go version from github"
+    exit 1
+fi
 
 test_run_dir="$MINT_RUN_CORE_DIR/minio-go"
 go get -u github.com/sirupsen/logrus/...

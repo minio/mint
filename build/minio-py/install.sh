@@ -15,13 +15,13 @@
 #  limitations under the License.
 #
 
-MINIO_PY_VERSION="2.2.5"
+MINIO_PY_VERSION=$(curl -s https://api.github.com/repos/minio/minio-py/releases/latest | jq -r .tag_name)
+if [ -z "$MINIO_PY_VERSION" ]; then
+    echo "unable to get minio-py version from github"
+    exit 1
+fi
 
 test_run_dir="$MINT_RUN_CORE_DIR/minio-py"
 pip3 install --user faker
-pip3 install minio==$MINIO_PY_VERSION
+pip3 install minio=="$MINIO_PY_VERSION"
 $WGET --output-document="$test_run_dir/tests.py" "https://raw.githubusercontent.com/minio/minio-py/${MINIO_PY_VERSION}/tests/functional/tests.py"
-if [ "$MINIO_PY_VERSION" == "2.2.4" ]; then
-    # This is needed until we make a new minio-py release.
-    sed -i 's/DATA_DIR/MINT_DATA_DIR/g' "$test_run_dir/tests.py"
-fi
