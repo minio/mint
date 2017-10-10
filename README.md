@@ -1,6 +1,6 @@
 # Mint [![Slack](https://slack.minio.io/slack?type=svg)](https://slack.minio.io) [![Docker Pulls](https://img.shields.io/docker/pulls/minio/mint.svg?maxAge=604800)](https://hub.docker.com/r/minio/mint/)
 
-Mint detects overall correctness of Minio server using Minio SDKs, minio client (mc), AWS SDKs and awscli. Use Mint to test Minio server instances for functional correctness.
+Mint detects overall correctness of Minio server using Minio SDKs, minio client (mc), AWS SDKs, awscli and s3cmd. Use Mint to test Minio server instances for functional correctness.
 
 ## Get started
 
@@ -73,6 +73,7 @@ Following SDKs/CLI tools are available in Mint:
 - minio-java
 - minio-js
 - minio-py
+- s3cmd
 
 #### Test data
 
