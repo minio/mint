@@ -24,11 +24,4 @@ fi
 output_log_file="$1"
 error_log_file="$2"
 
-# run tests
-endpoint="http://$SERVER_ENDPOINT"
-if [ "$ENABLE_HTTPS" -eq 1 ]; then
-    endpoint="https://$SERVER_ENDPOINT"
-fi
-
-./mc --quiet config host add target "$endpoint" "$ACCESS_KEY" "$SECRET_KEY" >/dev/null 2>&1
-./test.sh 1>>"$output_log_file" 2>"$error_log_file"
+./functional-tests.sh 1>>"$output_log_file" 2>"$error_log_file"
