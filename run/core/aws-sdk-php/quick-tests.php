@@ -863,31 +863,21 @@ function testBucketPolicy($s3Client, $params) {
         throw new Exception('deleteBucket API failed for ' .
                             $bucket);
 
-    // In Minio Gateway for Azure, a container delete will take at
-    // least 30s to be truly deleted. Ref: https://docs.microsoft.com/en-us/rest/api/storageservices/create-container
-    $retries = 5;
-    while ($retries > 0) {
-        try {
-            $result = $s3Client->createBucket(['Bucket' => $bucket]);
-        } catch (Exception $e) {
-            $errorCode = $e->getStatusCode();
-            switch($errorCode) {
-            case HTTP_INTERNAL_ERROR:
-                $retries--;
-                sleep(30);
-                break;
-
-            case "409":
-            case HTTP_OK:
-                $retries = 0;
-                break;
-
-            default:
-                throw new Exception('createBucket API failed for ' .
-                                $bucket);
-            }
+    try {
+        $s3Client->getBucketPolicy(['Bucket' => $bucket]);
+    } catch (AWSException $e) {
+        switch ($e->getAwsErrorCode()) {
+        case 'NoSuchBucket':
+            break;
         }
     }
+
+    // Sleep is needed for Minio Gateway for Azure, ref:
+    // https://docs.microsoft.com/en-us/rest/api/storageservices/Delete-Container#remarks
+    sleep(40);
+
+    $s3Client->createBucket(['Bucket' => $bucket]);
+
     $params = [
         '404' => ['Bucket' => $bucket]
     ];
@@ -986,20 +976,24 @@ function runTest($s3Client, $myfunc, $fnSignature, $args = []) {
         $error = "";
         $message = "";
         $myfunc($s3Client, $args);
-    } catch (Exception $e) {
+    } catch (AwsException $e) {
         $errorCode = $e->getAwsErrorCode();
-        if ($errorCode != "NotImplemented") {
-            $status = "FAIL";
-            $error = $e->getMessage();
-        }
-
-        $status = "NA";
-        $message = "Not Implemented";
-        $error = $e->getMessage();
         // $fnSignature holds the specific API that is being
         // tested. It is possible that functions used to create the
         // test setup may not be implemented.
-        $alert = sprintf("%s or a related API is not implemented, see \"error\" for exact details.", $fnSignature);
+        if ($errorCode != "NotImplemented") {
+            $status = "FAIL";
+            $error = $e->getMessage();
+        } else {
+            $status = "NA";
+            $error = $e->getMessage();
+            $alert = sprintf("%s or a related API is NOT IMPLEMENTED, see \"error\" for exact details.", $fnSignature);
+        }
+
+    } catch (Exception $e) {
+        // This exception handler handles high-level custom exceptions.
+        $status = "FAIL";
+        $error = $e->getMessage();
     } finally {
         $end_time = microtime(true);
         $json_log = [
