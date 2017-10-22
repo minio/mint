@@ -74,7 +74,19 @@ function run_test()
         echo "done in $duration"
     else
         echo "FAILED in $duration"
-        tail -n 1 "$BASE_LOG_DIR/$LOG_FILE" | jq .
+        entry=$(tail -n 1 "$BASE_LOG_DIR/$LOG_FILE")
+        status=$(jq -e -r .status <<<"$entry")
+        rv=$?
+        if [ "$rv" -ne 0 ]; then
+            echo "$entry"
+        fi
+        ## Show error.log when status is empty or not "FAIL".
+        ## This may happen when test run failed without providing logs.
+        if [ "$rv" -ne 0 ] || [ -z "$status" ] || [ "$status" != "FAIL" ]; then
+            cat "$BASE_LOG_DIR/$sdk_name/$ERROR_FILE"
+        else
+            jq . <<<"$entry"
+        fi
     fi
 
     return $rv
@@ -98,9 +110,9 @@ function main()
     echo "SERVER_REGION:   $SERVER_REGION"
     echo "MINT_DATA_DIR:   $MINT_DATA_DIR"
     echo "MINT_MODE:       $MINT_MODE"
+    echo
 
-    ## $MINT_MODE is used inside every sdks.
-    echo "To get intermittent logs, 'sudo docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
+    echo "To get logs, run 'sudo docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
 
     if [ "${#RUN_LIST[@]}" -ne 0 ]; then 
         for sdk in "${RUN_LIST[@]}"; do
@@ -118,7 +130,6 @@ function main()
     fi
 
     echo "Finished running all tests."
-    echo "To get logs, run 'sudo docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
 }
 
 main "$@"
