@@ -76,13 +76,13 @@ function run_test()
         echo "FAILED in $duration"
         entry=$(tail -n 1 "$BASE_LOG_DIR/$LOG_FILE")
         status=$(jq -e -r .status <<<"$entry")
-        rv=$?
-        if [ "$rv" -ne 0 ]; then
+        jq_rv=$?
+        if [ "$jq_rv" -ne 0 ]; then
             echo "$entry"
         fi
         ## Show error.log when status is empty or not "FAIL".
         ## This may happen when test run failed without providing logs.
-        if [ "$rv" -ne 0 ] || [ -z "$status" ] || [ "$status" != "FAIL" ]; then
+        if [ "$jq_rv" -ne 0 ] || [ -z "$status" ] || [ "$status" != "FAIL" ]; then
             cat "$BASE_LOG_DIR/$sdk_name/$ERROR_FILE"
         else
             jq . <<<"$entry"
