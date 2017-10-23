@@ -121,12 +121,13 @@ function assert()
     func_name="$1"
     shift
 
-    err=$("$@")
+    err=$("$@" 2>&1)
     rv=$?
     if [ "$rv" -ne 0 ] && [ "$expected_rv" -eq 0 ]; then
         if [ -n "$MINT_MODE" ]; then
-            err=$(python -c 'import sys,json; print(json.dumps(sys.stdin.read()))' <<<"$err")
-            printf '{"name": "s3cmd", "duration": "%d", "function": "%s", "status": "FAIL", "error": "%s"}\n' "$(get_duration "$start_time")" "$func_name" "$err"
+            err=$(printf '%s' "$err" | python -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
+            ## err is already JSON string, no need to double quote
+            printf '{"name": "s3cmd", "duration": "%d", "function": "%s", "status": "FAIL", "error": %s}\n' "$(get_duration "$start_time")" "$func_name" "$err"
         else
             echo "s3cmd: $func_name: $err"
         fi
@@ -342,7 +343,7 @@ function __init__()
 {
     set -e
 
-    S3CMD_CONFIG_DIR="/tmp/.s3cmd-$RANDOM/"
+    S3CMD_CONFIG_DIR="/tmp/.s3cmd-$RANDOM"
     mkdir -p $S3CMD_CONFIG_DIR
     S3CMD_CONFIG_FILE="$S3CMD_CONFIG_DIR/s3cfg"
 
@@ -381,7 +382,7 @@ EOF
     fi
 
     if [ ! -e "$FILE_65_MB" ]; then
-        shred -n 1 -s 65MB - >"$FILE_1_MB"
+        shred -n 1 -s 65MB - >"$FILE_65_MB"
     fi
 
     set -E
