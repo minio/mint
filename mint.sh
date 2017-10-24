@@ -20,7 +20,6 @@ MINT_DATA_DIR=${MINT_DATA_DIR:-/mint/data}
 MINT_MODE=${MINT_MODE:-core}
 SERVER_REGION=${SERVER_REGION:-us-east-1}
 ENABLE_HTTPS=${ENABLE_HTTPS:-0}
-RUN_LIST=( "$@" )
 
 if [ -z "$SERVER_ENDPOINT" ]; then
     SERVER_ENDPOINT="play.minio.io:9000"
@@ -58,9 +57,6 @@ function run_test()
         return 1
     fi
 
-    sdk_name="$(basename "$1")"
-
-    echo -n "Running $sdk_name tests ... "
     start=$(date +%s)
 
     mkdir -p "$BASE_LOG_DIR/$sdk_name"
@@ -114,20 +110,27 @@ function main()
 
     echo "To get logs, run 'sudo docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
 
-    if [ "${#RUN_LIST[@]}" -ne 0 ]; then 
-        for sdk in "${RUN_LIST[@]}"; do
-            sdk_dir="$TESTS_DIR"/$sdk
-            if ! run_test "$sdk_dir"; then
-                break
-            fi
-        done
-    else 
-        for sdk_dir in "$TESTS_DIR"/*; do
-            if ! run_test "$sdk_dir"; then
-                break
-            fi
-        done
+    declare -a run_list
+    ## Populate values from command line argument
+    for sdk in "$@"; do
+        run_list=( "${run_list[@]}" "$TESTS_DIR/$sdk" )
+    done
+
+    ## On empty command line argument, populate all SDK names from $TESTS_DIR
+    if [ "${#run_list[@]}" -eq 0 ]; then
+        run_list=( "$TESTS_DIR"/* )
     fi
+
+    count="${#run_list[@]}"
+    i=1
+    for sdk_dir in "${run_list[@]}"; do
+        sdk_name=$(basename "$sdk_dir")
+        echo -n "($i/$count) Running $sdk_name tests ... "
+        if ! run_test "$sdk_dir"; then
+            break
+        fi
+        (( i++ ))
+    done
 
     echo "Finished running all tests."
 }
