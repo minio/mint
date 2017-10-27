@@ -52,27 +52,13 @@ class ClientConfig {
 }
 
  /**
-  * randomName returns a string of random characters picked from 0-9,a-z.
+  * randomName returns a name prefixed by aws-sdk-php using uniqid()
+  * from standard library
   *
-  * By default it returns a random name of length 5.
-  *
-  * @param int $length - length of random name.
-  *
-  * @return void
+  * @return string
   */
-function randomName(int $length=5):string {
-    $alphabet = array_rand(str_split('0123456789abcdefghijklmnopqrstuvwxyz'), 26);
-    $alphaLen = count($alphabet);
-    $rounds = floor($length / $alphaLen);
-    $remaining = $length % $alphaLen;
-    $bigalphabet = [];
-    for ($i = 0; $i < $rounds; $i++) {
-        $bigalphabet = array_merge($bigalphabet, $alphabet);
-    }
-    $bigalphabet = array_merge($bigalphabet, array_slice($alphabet, 0, $remaining));
-    $alphabet_soup = array_flip($bigalphabet);
-    shuffle($alphabet_soup);
-    return 'aws-sdk-php-bucket-' . join($alphabet_soup);
+function randomName():string {
+    return uniqid("aws-sdk-php-");
 }
 
  /**
