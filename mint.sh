@@ -122,17 +122,23 @@ function main()
     fi
 
     count="${#run_list[@]}"
-    i=1
+    i=0
     for sdk_dir in "${run_list[@]}"; do
         sdk_name=$(basename "$sdk_dir")
+        (( i++ ))
         echo -n "($i/$count) Running $sdk_name tests ... "
         if ! run_test "$sdk_dir"; then
+            (( i-- ))
             break
         fi
-        (( i++ ))
     done
 
-    echo "Finished running all tests."
+    ## Report when all tests in run_list are run
+    if [ $i -eq "$count" ]; then
+        echo -e "\nAll tests ran successfully"
+    else 
+        echo -e "\nExecuted $i out of $count tests successfully."
+    fi
 }
 
 main "$@"
