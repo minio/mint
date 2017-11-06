@@ -22,12 +22,14 @@ use Aws\S3\S3Client;
 use Aws\Credentials;
 use Aws\Exception\AwsException;
 use GuzzleHttp\Psr7;
+use GuzzleHttp\Client;
 
 // Constants
 const FILE_10KB = "datafile-10-kB";
 const FILE_5_MB = "datafile-5-MB";
 const HTTP_OK = "200";
 const HTTP_NOCONTENT = "204";
+const HTTP_BADREQUEST = "400";
 const HTTP_NOTIMPLEMENTED = "501";
 const HTTP_INTERNAL_ERROR = "500";
 const TEST_METADATA = ['Param_1' => 'val-1'];
@@ -813,6 +815,90 @@ function testAnonDeleteObjects($s3Client, $params) {
 }
 
  /**
+  * testPresignedPut tests presigned PUT S3 API under following conditions
+  * - Set content-sha256
+  * - No content-sha256
+  * - Invalid content-sha256
+  *
+  * @param $s3Client AWS\S3\S3Client object
+  *
+  * @param $params associative array containing bucket and object name
+  *
+  * @return void
+  */
+function testPresignedPut($s3Client, $params) {
+    // Test to validate the validate sha256 set to the value of the body.
+    // ------ 1 ------
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+    $sha256 = "03675ac53ff9cd1535ccc7dfcdfa2c458c5218371f418dc136f2d19ac1fbe8a5";
+
+    $cmd = $s3Client->getCommand('PutObject', [
+            'Bucket' => $bucket,
+            'Key'    => $object,
+            'ContentSHA256' => $sha256,
+    ]);
+
+    $request = $s3Client->createPresignedRequest($cmd, '+20 minutes');
+    $presignedUrl = (string) $request->getUri();
+
+    $client = new Client();
+    $body = "Hello, World";
+    $res = $client->request('PUT', $presignedUrl, ['body' => $body]);
+
+    if ($res->getStatusCode() != HTTP_OK) {
+        throw new Exception('presignedPutObject API failed for ' .
+                            $bucket, $object);
+    }
+    // ------ 1 ------
+
+    // Test to simple presigned PUT with just body no validation.
+    // ------ 2 ------
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+
+    $cmd = $s3Client->getCommand('PutObject', [
+            'Bucket' => $bucket,
+            'Key'    => $object,
+    ]);
+
+    $request = $s3Client->createPresignedRequest($cmd, '+20 minutes');
+    $presignedUrl = (string) $request->getUri();
+    $res = $client->request('PUT', $presignedUrl, ['body' => $body]);
+
+    if ($res->getStatusCode() != HTTP_OK) {
+        throw new Exception('presignedPutObject API failed for ' .
+                            $bucket, $object);
+    }
+    // ------ 2 ------
+
+    // Test to presigned PUT with invalid sha256.
+    // ------ 3 ------
+    $bucket = $params['Bucket'];
+    $object = $params['Object'];
+    $sha256 = "invalid-sha256";
+
+    $cmd = $s3Client->getCommand('PutObject', [
+            'Bucket' => $bucket,
+            'Key'    => $object,
+            'ContentSHA256' => $sha256,
+    ]);
+
+    $request = $s3Client->createPresignedRequest($cmd, '+20 minutes');
+    $presignedUrl = (string) $request->getUri();
+
+    $client = new Client();
+    $body = "Hello, World";
+    $res = $client->request('PUT', $presignedUrl, ['body' => $body]);
+
+    if ($res->getStatusCode() != HTTP_BADREQUEST) {
+        throw new Exception('presignedPutObject API failed for ' .
+                            $bucket, $object);
+    }
+    // ------ 3 ------
+}
+
+ /**
   *  testBucketPolicy tests GET/PUT Bucket policy S3 APIs
   *
   * @param $s3Client AWS\S3\S3Client object
@@ -1084,6 +1170,7 @@ try {
     runTest($s3Client, 'testMultipartUpload', "createMultipartUpload ( array \$params = [] )", $testParams);
     runTest($s3Client, 'testMultipartUploadFailure', "uploadPart ( array \$params = [] )", $testParams);
     runTest($s3Client, 'testAbortMultipartUpload', "abortMultipartupload ( array \$params = [] )", $testParams);
+    runTest($s3Client, 'testPresignedPut', "presignedPut ( array \$params = [] )", $testParams);
     runTest($s3Client, 'testBucketPolicy', "getBucketPolicy ( array \$params = [] )", ['Bucket' => $emptyBucket]);
 }
 finally {

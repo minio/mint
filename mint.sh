@@ -126,6 +126,10 @@ function main()
     for sdk_dir in "${run_list[@]}"; do
         sdk_name=$(basename "$sdk_dir")
         (( i++ ))
+        if [ ! -d "$sdk_dir" ]; then
+            echo "Test $sdk_name not found. Exiting Mint."
+            exit 1
+        fi
         echo -n "($i/$count) Running $sdk_name tests ... "
         if ! run_test "$sdk_dir"; then
             (( i-- ))
