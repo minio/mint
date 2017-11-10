@@ -29,9 +29,18 @@ aws configure set aws_access_key_id "$ACCESS_KEY"
 aws configure set aws_secret_access_key "$SECRET_KEY"
 aws configure set default.region "$SERVER_REGION"
 
-# run tests
+# Setup endpoint scheme
 endpoint="http://$SERVER_ENDPOINT"
 if [ "$ENABLE_HTTPS" -eq 1 ]; then
     endpoint="https://$SERVER_ENDPOINT"
 fi
+
+# check the access style and run tests if virtual style is set
+if [ "$ENABLE_VIRTUAL_STYLE" -eq 1 ]; then
+    aws configure set default.s3.addressing_style virtual
+    ./test.sh "$endpoint"  1>>"$output_log_file" 2>"$error_log_file"
+fi
+
+# run path style tests
+aws configure set default.s3.addressing_style path
 ./test.sh "$endpoint"  1>>"$output_log_file" 2>"$error_log_file"
