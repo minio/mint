@@ -30,6 +30,9 @@ COPY run /mint/run
 COPY build/awscli /mint/build/awscli
 RUN build/awscli/install.sh
 
+COPY build/aws-sdk-go /mint/build/aws-sdk-go
+RUN build/aws-sdk-go/install.sh
+
 COPY build/aws-sdk-php /mint/build/aws-sdk-php
 RUN build/aws-sdk-php/install.sh
 
