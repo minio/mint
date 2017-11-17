@@ -177,6 +177,58 @@ function test_upload_object() {
     return $rv
 }
 
+# Test lookup a directory prefix.
+function test_lookup_object_prefix() {
+    # log start time
+    start_time=$(get_time)
+
+    function="make_bucket"
+    bucket_name=$(make_bucket)
+    rv=$?
+
+    # if make bucket succeeds upload a file
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key prefix/directory/datafile-1-MB"
+        out=$($function 2>&1)
+        rv=$?
+    else
+        # if make_bucket fails, $bucket_name has the error output
+        out="${bucket_name}"
+    fi
+
+    # if upload succeeds lookup for the prefix.
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api head-object --bucket ${bucket_name} --key prefix/directory"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
+
+    # Request should fail.
+    if [ $rv -eq 0 ]; then
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+        return 1
+    fi
+
+    # Lookup for the right prefix.
+    function="${AWS} s3api head-object --bucket ${bucket_name} --key prefix/directory/"
+    # save the ref to function being tested, so it can be logged
+    test_function=${function}
+    out=$($function 2>&1)
+    rv=$?
+
+    if [ $rv -ne 0 ]; then
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    else
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    fi
+}
+
 # Tests listing objects for both v1 and v2 API.
 function test_list_objects() {
     # log start time
@@ -675,6 +727,7 @@ main() {
     # Success tests
     test_create_bucket && \
     test_upload_object && \
+    test_lookup_object_prefix && \
     test_list_objects && \
     test_multipart_upload && \
     test_copy_object && \
