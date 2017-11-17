@@ -3,6 +3,7 @@
 Mint is a testing framework for Minio object server, available as a docker image. It runs correctness, benchmarking and stress tests. Following are the SDKs/tools used in correctness tests.
 
 - awscli
+- aws-sdk-go
 - aws-sdk-php
 - aws-sdk-ruby
 - mc
