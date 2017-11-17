@@ -669,6 +669,155 @@ function test_put_object_error() {
 
     return $rv
 }
+# tests server side encryption headers for get and put calls
+function test_serverside_encryption() {
+    #skip server side encryption tests if HTTPS disabled.
+    if [ "$ENABLE_HTTPS" != "1" ]; then
+        return 0
+    fi
+    # log start time
+    start_time=$(get_time)
+
+    function="make_bucket"
+    bucket_name=$(make_bucket)
+    rv=$?
+
+    # put object with server side encryption headers
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
+    # now get encrypted object from server
+    if [ $rv -eq 0 ]; then
+        etag1=$(echo "$out" | jq -r .ETag)
+        sse_customer_key1=$(echo "$out" | jq -r .SSECustomerKeyMD5)
+        sse_customer_algo1=$(echo "$out" | jq -r .SSECustomerAlgorithm)
+
+        function="${AWS} s3api get-object --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg== /tmp/datafile-1-MB"
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
+    if [ $rv -eq 0 ]; then
+        etag2=$(echo "$out" | jq -r .ETag)
+        sse_customer_key2=$(echo "$out" | jq -r .SSECustomerKeyMD5)
+        sse_customer_algo2=$(echo "$out" | jq -r .SSECustomerAlgorithm)
+        hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
+        # match downloaded object's hash to original
+        if [ "$HASH_1_MB" == "$hash2" ]; then
+            function="delete_bucket"
+            out=$(delete_bucket "$bucket_name")
+            rv=$?
+            # remove download file
+            rm -f /tmp/datafile-1-MB
+        else
+            rv=1
+            out="Checksum verification failed for downloaded object"
+        fi
+        # match etag and SSE headers
+        if [ "$etag1" != "$etag2" ]; then
+            rv=1
+            out="Etag mismatch for object encrypted with server side encryption"
+        fi
+        if [ "$sse_customer_algo1" != "$sse_customer_algo2" ]; then
+            rv=1
+            out="sse customer algorithm mismatch"
+        fi
+        if [ "$sse_customer_key1" != "$sse_customer_key2" ]; then
+            rv=1
+            out="sse customer key mismatch"
+        fi
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
+}
+
+# tests server side encryption error for get and put calls
+function test_serverside_encryption_error() {
+    #skip server side encryption tests if HTTPS disabled.
+    if [ "$ENABLE_HTTPS" != "1" ]; then
+        return 0
+    fi
+    # log start time
+    start_time=$(get_time)
+
+    function="make_bucket"
+    bucket_name=$(make_bucket)
+    rv=$?
+
+    # put object with server side encryption headers  with MD5Sum mismatch for sse-customer-key-md5 header
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg"
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
+
+    if [ $rv -ne 255 ]; then
+        rv=1
+    else
+        rv=0
+    fi
+    # put object with missing server side encryption header sse-customer-algorithm
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB  --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
+
+    if [ $rv -ne 255 ]; then
+        rv=1
+    else
+        rv=0
+    fi
+
+    # put object with server side encryption headers successfully
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
+
+    # now test get on encrypted object with nonmatching sse-customer-key and sse-customer-md5 headers
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api get-object --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg== /tmp/datafile-1-MB"
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
+    if [ $rv -ne 255 ]; then
+        rv=1
+    else
+        rv=0
+    fi
+    # delete bucket
+    if [ $rv -eq 0 ]; then
+        function="delete_bucket"
+        out=$(delete_bucket "$bucket_name")
+        rv=$?
+    fi
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
+}
 
 # main handler for all the tests.
 main() {
@@ -679,12 +828,14 @@ main() {
     test_multipart_upload && \
     test_copy_object && \
     test_presigned_object && \
+    test_serverside_encryption && \
     # Success cli ops.
     test_aws_s3_cp && \
     test_aws_s3_sync && \
     # Error tests
     test_list_objects_error && \
-    test_put_object_error
+    test_put_object_error && \
+    test_serverside_encryption_error
 
     return $?
 }
