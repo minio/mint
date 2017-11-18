@@ -218,8 +218,8 @@ function test_lookup_object_prefix() {
     # save the ref to function being tested, so it can be logged
     test_function=${function}
     out=$($function 2>&1)
-    rv=$?
 
+    rv=$?
     if [ $rv -ne 0 ]; then
         # clean up and log error
         ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
@@ -227,6 +227,8 @@ function test_lookup_object_prefix() {
     else
         log_success "$(get_duration "$start_time")" "${test_function}"
     fi
+
+    return $rv
 }
 
 # Tests listing objects for both v1 and v2 API.
