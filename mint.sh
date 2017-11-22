@@ -78,7 +78,7 @@ function run_test()
         fi
         ## Show error.log when status is empty or not "FAIL".
         ## This may happen when test run failed without providing logs.
-        if [ "$jq_rv" -ne 0 ] || [ -z "$status" ] || [ "$status" != "FAIL" ]; then
+        if [ "$jq_rv" -ne 0 ] || [ -z "$status" ] || ([ "$status" != "FAIL" ] && [ "$status" != "fail" ]); then
             cat "$BASE_LOG_DIR/$sdk_name/$ERROR_FILE"
         else
             jq . <<<"$entry"
