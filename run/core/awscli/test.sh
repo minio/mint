@@ -186,14 +186,23 @@ function test_lookup_object_prefix() {
     bucket_name=$(make_bucket)
     rv=$?
 
-    # if make bucket succeeds upload a file
+    # if make bucket succeeds create a directory.
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key prefix/directory/datafile-1-MB"
+        function="${AWS} s3api put-object --bucket ${bucket_name} --key prefix/directory/"
         out=$($function 2>&1)
         rv=$?
     else
         # if make_bucket fails, $bucket_name has the error output
         out="${bucket_name}"
+    fi
+
+    # if directory create succeeds, upload the object.
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key prefix/directory/datafile-1-MB"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
     fi
 
     # if upload succeeds lookup for the prefix.
