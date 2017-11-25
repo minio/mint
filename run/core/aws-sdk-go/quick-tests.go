@@ -43,6 +43,11 @@ const (
 	letterIdxMask = 1<<letterIdxBits - 1 // All 1-bits, as many as letterIdxBits
 	letterIdxMax  = 63 / letterIdxBits   // # of letter indices fitting in 63 bits
 )
+const (
+	PASS = "PASS" // Indicate that a test passed
+	FAIL = "FAIL" // Indicate that a test failed
+	NA   = "NA"   // Indicate that a test is not applicable
+)
 
 type ErrorResponse struct {
 	XMLName    xml.Name `xml:"Error" json:"-"`
@@ -89,7 +94,7 @@ func successLogger(function string, args map[string]interface{}, startTime time.
 	// calculate the test case duration
 	duration := time.Since(startTime)
 	// log with the fields as per mint
-	fields := log.Fields{"name": "aws-sdk-go", "function": function, "args": args, "duration": duration.Nanoseconds() / 1000000, "status": "pass"}
+	fields := log.Fields{"name": "aws-sdk-go", "function": function, "args": args, "duration": duration.Nanoseconds() / 1000000, "status": PASS}
 	return log.WithFields(fields)
 }
 
@@ -101,10 +106,10 @@ func failureLog(function string, args map[string]interface{}, startTime time.Tim
 	// log with the fields as per mint
 	if err != nil {
 		fields = log.Fields{"name": "aws-sdk-go", "function": function, "args": args,
-			"duration": duration.Nanoseconds() / 1000000, "status": "fail", "alert": alert, "message": message, "error": err}
+			"duration": duration.Nanoseconds() / 1000000, "status": FAIL, "alert": alert, "message": message, "error": err}
 	} else {
 		fields = log.Fields{"name": "aws-sdk-go", "function": function, "args": args,
-			"duration": duration.Nanoseconds() / 1000000, "status": "fail", "alert": alert, "message": message}
+			"duration": duration.Nanoseconds() / 1000000, "status": FAIL, "alert": alert, "message": message}
 	}
 	return log.WithFields(fields)
 }
