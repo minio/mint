@@ -12,6 +12,10 @@ ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
 
 WORKDIR /mint
 
+COPY dnsmasq.conf /etc/dnsmasq.conf
+
+EXPOSE 53/udp
+
 RUN apt-get --yes update && apt-get --yes upgrade && apt-get --yes --quiet install wget jq curl
 
 ENV MINT_ROOT_DIR /mint
