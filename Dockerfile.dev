@@ -57,6 +57,9 @@ RUN build/minio-py/install.sh
 COPY build/s3cmd /mint/build/s3cmd
 RUN build/s3cmd/install.sh
 
+COPY build/minio-dotnet/ /mint/build/minio-dotnet/
+RUN /mint/build/minio-dotnet/install.sh
+
 COPY remove-packages.list /mint
 COPY postinstall.sh /mint
 RUN /mint/postinstall.sh

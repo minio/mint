@@ -9,3 +9,8 @@ php7.0-curl
 php-xml
 default-jre
 default-jdk
+dirmngr
+apt-transport-https
+dotnet-dev-1.0.4
+nuget
+libunwind8

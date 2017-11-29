@@ -23,6 +23,11 @@ if ! $WGET --output-document=- https://deb.nodesource.com/setup_6.x | bash -; th
     echo "unable to set nodejs respository"
     exit 1
 fi
+
+# dotnetcore install commands
+sh -c 'echo "deb [arch=amd64] https://apt-mo.trafficmanager.net/repos/dotnet-release/ xenial main" > /etc/apt/sources.list.d/dotnetdev.list'
+apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 417A0893
+
 $APT update
 
 # download and install golang
