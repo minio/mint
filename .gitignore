@@ -12,3 +12,6 @@ node_modules
 !bin/.gitkeep 
 *.class
 *~
+run/core/minio-dotnet/bin/*
+run/core/minio-dotnet/obj/*
+run/core/minio-dotnet/out/*
