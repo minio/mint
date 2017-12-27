@@ -108,7 +108,7 @@ function main()
     echo "MINT_MODE:       $MINT_MODE"
     echo
 
-    echo "To get logs, run 'sudo docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
+    echo "To get logs, run 'docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
 
     declare -a run_list
     ## Populate values from command line argument
@@ -140,7 +140,7 @@ function main()
     ## Report when all tests in run_list are run
     if [ $i -eq "$count" ]; then
         echo -e "\nAll tests ran successfully"
-    else 
+    else
         echo -e "\nExecuted $i out of $count tests successfully."
     fi
 }
