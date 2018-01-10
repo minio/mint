@@ -30,5 +30,5 @@ if [ "$ENABLE_HTTPS" -eq 1 ]; then
     endpoint="https://$SERVER_ENDPOINT"
 fi
 
-java -cp "/mint/run/core/minio-java/*:." FunctionalTest \
+java -Xmx4096m -Xms256m -cp "/mint/run/core/minio-java/*:." FunctionalTest \
     "$endpoint" "$ACCESS_KEY" "$SECRET_KEY" "$SERVER_REGION" 1>>"$output_log_file" 2>"$error_log_file"
