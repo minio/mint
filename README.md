@@ -96,11 +96,3 @@ Tests may use pre-created data set to perform various object operations on Minio
 | datafile-6-MB |6MiB |
 | datafile-11-MB |11MiB |
 | datafile-65-MB |65MiB |
-
-#### Mint image of github pull request
-
-**Note for Developers**: On each PR sent to [Mint repository](https://github.com/minio/mint), `travis-ci` builds `mint` docker image and pushes it to `play.minio.io`, our private docker registry. You can get the `mint` image associated with your pull request by just running `docker pull play.minio.io/mint:$PULL_REQUEST_SHA`. For example
-
-```sh
-$ docker pull play.minio.io/mint:travis-f9f519cefc25f2eeb210847e782a47e466a6b79e
-```
