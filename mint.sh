@@ -29,7 +29,7 @@ if [ -z "$SERVER_ENDPOINT" ]; then
 fi
 
 ROOT_DIR="$PWD"
-TESTS_DIR="$ROOT_DIR/run/core"
+CORE_TESTS_DIR="$ROOT_DIR/run/core"
 
 BASE_LOG_DIR="$ROOT_DIR/log"
 LOG_FILE="log.json"
@@ -88,6 +88,32 @@ function run_test()
     return $rv
 }
 
+function run_tests()
+{
+    i=0
+    for sdk_dir in "${run_list[@]}"; do
+        sdk_name=$(basename "$sdk_dir")
+        (( i++ ))
+        if [ ! -d "$sdk_dir" ]; then
+            echo "Test $sdk_name not found. Exiting Mint."
+            exit 1
+        fi
+        echo -n "($i/$count) Running $sdk_name tests ... "
+        if ! run_test "$sdk_dir"; then
+            (( i-- ))
+            break
+        fi
+    done
+
+     ## Report when all tests in run_list are run
+    if [ $i -eq "$count" ]; then
+        echo -e "\nAll tests ran successfully"
+    else
+        echo -e "\nExecuted $i out of $count tests successfully."
+        exit 1
+    fi
+}
+
 function main()
 {
     export MINT_DATA_DIR
@@ -113,36 +139,18 @@ function main()
     declare -a run_list
     ## Populate values from command line argument
     for sdk in "$@"; do
-        run_list=( "${run_list[@]}" "$TESTS_DIR/$sdk" )
+        run_list=( "${run_list[@]}" "$CORE_TESTS_DIR/$sdk" )
     done
 
     ## On empty command line argument, populate all SDK names from $TESTS_DIR
     if [ "${#run_list[@]}" -eq 0 ]; then
-        run_list=( "$TESTS_DIR"/* )
+        run_list=( "$CORE_TESTS_DIR"/* )
     fi
 
+    ## Run core tests
+    echo -e "Running core tests:\n"
     count="${#run_list[@]}"
-    i=0
-    for sdk_dir in "${run_list[@]}"; do
-        sdk_name=$(basename "$sdk_dir")
-        (( i++ ))
-        if [ ! -d "$sdk_dir" ]; then
-            echo "Test $sdk_name not found. Exiting Mint."
-            exit 1
-        fi
-        echo -n "($i/$count) Running $sdk_name tests ... "
-        if ! run_test "$sdk_dir"; then
-            (( i-- ))
-            break
-        fi
-    done
-
-    ## Report when all tests in run_list are run
-    if [ $i -eq "$count" ]; then
-        echo -e "\nAll tests ran successfully"
-    else
-        echo -e "\nExecuted $i out of $count tests successfully."
-    fi
+    run_tests "${run_list[@]}"
 }
 
 main "$@"
