@@ -1,6 +1,6 @@
 #!/bin/bash -e
 #
-#  Minio Cloud Storage, (C) 2017 Minio, Inc.
+#  Mint (C) 2018 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,18 +15,6 @@
 #  limitations under the License.
 #
 
-export MINT_ROOT_DIR=${MINT_ROOT_DIR:-/mint}
-export MINT_RUN_CORE_DIR="$MINT_ROOT_DIR/run/core"
-export MINT_RUN_SECURITY_DIR="$MINT_ROOT_DIR/run/security"
-export WGET="wget --quiet --no-check-certificate"
-
-./create-data-files.sh
-./preinstall.sh
-
-# install mint app packages
-for pkg in "$MINT_ROOT_DIR/build"/*/install.sh; do
-    echo "Running $pkg"
-    $pkg
-done
-
-./postinstall.sh
+test_run_dir="$MINT_RUN_CORE_DIR/security"
+go get -u github.com/sirupsen/logrus/...
+go build -o "$test_run_dir/tls-tests" "$test_run_dir/tls-tests.go"
