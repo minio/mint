@@ -189,7 +189,25 @@ function test_lookup_object_prefix() {
     # if make bucket succeeds create a directory.
     if [ $rv -eq 0 ]; then
         function="${AWS} s3api put-object --bucket ${bucket_name} --key prefix/directory/"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+
         out=$($function 2>&1)
+
+        rv=$?
+    else
+        # if make_bucket fails, $bucket_name has the error output
+        out="${bucket_name}"
+    fi
+
+    if [ $rv -eq 0 ]; then
+        ## Attempt an overwrite of the prefix again and should succeed as well.
+        function="${AWS} s3api put-object --bucket ${bucket_name} --key prefix/directory/"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+
+        out=$($function 2>&1)
+
         rv=$?
     else
         # if make_bucket fails, $bucket_name has the error output
@@ -199,6 +217,24 @@ function test_lookup_object_prefix() {
     # if directory create succeeds, upload the object.
     if [ $rv -eq 0 ]; then
         function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key prefix/directory/datafile-1-MB"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
+
+    # Attempt a delete on prefix shouldn't delete the directory since we have an object inside it.
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api delete-object --bucket ${bucket_name} --key prefix/directory/"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
+    fi
+
+    # if upload succeeds lookup for the object should succeed.
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api head-object --bucket ${bucket_name} --key prefix/directory/datafile-1-MB"
         # save the ref to function being tested, so it can be logged
         test_function=${function}
         out=$($function 2>&1)
