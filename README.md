@@ -6,6 +6,7 @@ Mint is a testing framework for Minio object server, available as a docker image
 - aws-sdk-go
 - aws-sdk-php
 - aws-sdk-ruby
+- aws-sdk-java
 - mc
 - minio-go
 - minio-java
