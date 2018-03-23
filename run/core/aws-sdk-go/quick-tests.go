@@ -28,6 +28,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -132,7 +133,7 @@ func randString(n int, src rand.Source, prefix string) string {
 }
 
 func cleanup(s3Client *s3.S3, bucket string, object string, function string,
-	args map[string]interface{}, startTime time.Time) {
+	args map[string]interface{}, startTime time.Time, deleteBucket bool) {
 
 	// Deleting the object, just in case it was created. Will not check for errors.
 	s3Client.DeleteObject(&s3.DeleteObjectInput{
@@ -140,12 +141,14 @@ func cleanup(s3Client *s3.S3, bucket string, object string, function string,
 		Key:    aws.String(object),
 	})
 
-	_, err := s3Client.DeleteBucket(&s3.DeleteBucketInput{
-		Bucket: aws.String(bucket),
-	})
-	if err != nil {
-		failureLog(function, args, startTime, "", "AWS SDK Go DeleteBucket Failed", err).Fatal()
-		return
+	if deleteBucket {
+		_, err := s3Client.DeleteBucket(&s3.DeleteBucketInput{
+			Bucket: aws.String(bucket),
+		})
+		if err != nil {
+			failureLog(function, args, startTime, "", "AWS SDK Go DeleteBucket Failed", err).Fatal()
+			return
+		}
 	}
 
 }
@@ -169,7 +172,7 @@ func testPresignedPutInvalidHash(s3Client *s3.S3) {
 		failureLog(function, args, startTime, "", "AWS SDK Go CreateBucket Failed", err).Fatal()
 		return
 	}
-	defer cleanup(s3Client, bucket, object, function, args, startTime)
+	defer cleanup(s3Client, bucket, object, function, args, startTime, true)
 
 	req, _ := s3Client.PutObjectRequest(&s3.PutObjectInput{
 		Bucket:      aws.String(bucket),
@@ -211,6 +214,82 @@ func testPresignedPutInvalidHash(s3Client *s3.S3) {
 	successLogger(function, args, startTime).Info()
 }
 
+func testListObjects(s3Client *s3.S3) {
+	startTime := time.Now()
+	function := "testListObjects"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object1 := "testObject1"
+	object2 := "testObject2"
+	expiry := 1 * time.Minute
+	args := map[string]interface{}{
+		"bucketName":  bucket,
+		"objectName1": object1,
+		"objectName2": object2,
+		"expiry":      expiry,
+	}
+
+	getKeys := func(objects []*s3.Object) []string {
+		var rv []string
+		for _, obj := range objects {
+			rv = append(rv, *obj.Key)
+		}
+		return rv
+	}
+	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanup(s3Client, bucket, object1, function, args, startTime, true)
+	defer cleanup(s3Client, bucket, object2, function, args, startTime, false)
+
+	listInput := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		MaxKeys: aws.Int64(1000),
+		Prefix:  aws.String(""),
+	}
+	result, err := s3Client.ListObjectsV2(listInput)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go listobjects expected to success but got %v", err), err).Fatal()
+		return
+	}
+	if *result.KeyCount != 0 {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go listobjects with prefix '' expected 0 key but got %v, %v", result.KeyCount, getKeys(result.Contents)), errors.New("AWS S3 key count mismatch")).Fatal()
+		return
+	}
+	putInput1 := &s3.PutObjectInput{
+		Body:   aws.ReadSeekCloser(strings.NewReader("filetoupload")),
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object1),
+	}
+	_, err = s3Client.PutObject(putInput1)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go PUT expected to success but got %v", err), err).Fatal()
+		return
+	}
+	putInput2 := &s3.PutObjectInput{
+		Body:   aws.ReadSeekCloser(strings.NewReader("filetoupload")),
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object2),
+	}
+	_, err = s3Client.PutObject(putInput2)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go PUT expected to success but got %v", err), err).Fatal()
+		return
+	}
+	result, err = s3Client.ListObjectsV2(listInput)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go listobjects expected to success but got %v", err), err).Fatal()
+		return
+	}
+	if *result.KeyCount != 2 {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go listobjects with prefix '' expected 2 key but got %v, %v", *result.KeyCount, getKeys(result.Contents)), errors.New("AWS S3 key count mismatch")).Fatal()
+		return
+	}
+}
+
 func main() {
 	endpoint := os.Getenv("SERVER_ENDPOINT")
 	accessKey := os.Getenv("ACCESS_KEY")
@@ -243,4 +322,5 @@ func main() {
 	log.SetLevel(log.InfoLevel)
 	// execute tests
 	testPresignedPutInvalidHash(s3Client)
+	testListObjects(s3Client)
 }

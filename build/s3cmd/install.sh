@@ -16,4 +16,4 @@
 #
 
 # Always install the latest.
-pip3 install s3cmd
+python -m pip install s3cmd
