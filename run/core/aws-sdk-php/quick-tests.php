@@ -42,8 +42,9 @@ const TEST_METADATA = ['Param_1' => 'val-1'];
 class ClientConfig {
     public $creds;
     public $endpoint;
+    public $region;
 
-    function __construct(string $access_key, string $secret_key, string $host, string $secure) {
+    function __construct(string $access_key, string $secret_key, string $host, string $secure, string $region) {
         $this->creds = new Aws\Credentials\Credentials($access_key, $secret_key);
 
         if ($secure == "1")  {
@@ -51,6 +52,8 @@ class ClientConfig {
         } else {
             $this->endpoint = "http://" . $host;
         }
+
+        $this->region = $region;
     }
 }
 
@@ -91,8 +94,8 @@ function getStatusCode($result):string {
   * $apiCall = 'headBucket'
   * $exceptionMatcher = 'getStatusCode'
   * $exceptionParamMap = [
-  * // Invalid bucket name
-  *     '400' => ['Bucket' => $bucket['Name'] . '--'],
+  *      // Invalid bucket name
+  *      '400' => ['Bucket' => $bucket['Name'] . '--'],
   *
   *      // Non existent bucket
   *      '404' => ['Bucket' => $bucket['Name'] . '-non-existent'],
@@ -751,14 +754,14 @@ function testAnonDeleteObjects($s3Client, $params) {
     $object = $params['Object'];
 
     // Create anonymous config object
-    $anonConfig = new ClientConfig("", "", $GLOBALS['endpoint'], $GLOBALS['secure']);
+    $anonConfig = new ClientConfig("", "", $GLOBALS['endpoint'], $GLOBALS['secure'], $GLOBALS['region']);
 
     // Create anonymous S3 client
     $anonymousClient = new S3Client([
         'credentials' => false,
         'endpoint' => $anonConfig->endpoint,
         'use_path_style_endpoint' => true,
-        'region' => 'us-east-1',
+        'region' => $anonConfig->region,
         'version' => '2006-03-01'
     ]);
 
@@ -889,12 +892,12 @@ function testBucketPolicy($s3Client, $params) {
             throw new Exception('createBucket API failed for ' .
                                 $bucket);
 
-        $anonConfig = new ClientConfig("", "", $GLOBALS['endpoint'], $GLOBALS['secure']);
+        $anonConfig = new ClientConfig("", "", $GLOBALS['endpoint'], $GLOBALS['secure'], $GLOBALS['region']);
         $anonymousClient = new S3Client([
             'credentials' => false,
             'endpoint' => $anonConfig->endpoint,
             'use_path_style_endpoint' => true,
-            'region' => 'us-east-1',
+            'region' => $anonConfig->region,
             'version' => '2006-03-01'
         ]);
         runExceptionalTests($anonymousClient, 'getObject', 'getStatusCode', [
@@ -1012,6 +1015,7 @@ function runTest($s3Client, $myfunc, $fnSignature, $args = []) {
 $GLOBALS['access_key'] = getenv("ACCESS_KEY");
 $GLOBALS['secret_key'] = getenv("SECRET_KEY");
 $GLOBALS['endpoint'] = getenv("SERVER_ENDPOINT");
+$GLOBALS['region'] = getenv("SERVER_REGION");
 $GLOBALS['secure'] = getenv("ENABLE_HTTPS");
 
 /**
@@ -1051,14 +1055,15 @@ $GLOBALS['debugger'] = $debugger;
 
 // Create config object
 $config = new ClientConfig($GLOBALS['access_key'], $GLOBALS['secret_key'],
-                           $GLOBALS['endpoint'], $GLOBALS['secure']);
+                           $GLOBALS['endpoint'], $GLOBALS['secure'],
+                           $GLOBALS['region']);
 
 // Create a S3Client
 $s3Client = new S3Client([
     'credentials' => $config->creds,
     'endpoint' => $config->endpoint,
     'use_path_style_endpoint' => true,
-    'region' => 'us-east-1',
+    'region' => $config->region,
     'version' => '2006-03-01'
 ]);
 

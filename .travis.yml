@@ -2,14 +2,12 @@ language: bash
 sudo: true
 addons:
   apt:
-    sources:
-    - debian-sid    # Grab shellcheck from the Debian repo (o_O)
     packages:
     - shellcheck
 services:
   - docker
 script:
   - bash -c 'shopt -s globstar; shellcheck **/*.sh'
-  - docker build -f Dockerfile.dev -t play.minio.io/mint:travis-$TRAVIS_PULL_REQUEST_SHA .
+  - docker build -f Dockerfile.dev -t minio/mint:travis-$TRAVIS_PULL_REQUEST_SHA .
 matrix:
   fast_finish: true
