@@ -828,7 +828,7 @@ function testBucketPolicy($s3Client, $params) {
     $bucket = $params['Bucket'];
 
     // Taken from policy set using `mc policy download`
-    $downloadPolicy = sprintf('{"Version":"2012-10-17","Statement":[{"Action":["s3:GetBucketLocation","s3:ListBucket"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s"],"Sid":""},{"Action":["s3:GetObject"],"Effect":"Allow","Principal":{"AWS":["*"]},"Resource":["arn:aws:s3:::%s/*"],"Sid":""}]}', $bucket, $bucket);
+    $downloadPolicy = sprintf('{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":["*"]},"Action":["s3:GetObject"],"Resource":["arn:aws:s3:::%s/*"]}]}', $bucket);
 
     $result = $s3Client->putBucketPolicy([
         'Bucket' => $bucket,
