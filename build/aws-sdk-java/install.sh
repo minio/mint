@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 #  Mint (C) 2017 Minio, Inc.
 #
@@ -15,10 +15,16 @@
 #  limitations under the License.
 #
 
-./mint.sh "$@"  &
+test_run_dir="$MINT_RUN_CORE_DIR/aws-sdk-java"
 
-# Get the pid to be used for kill command if required
-main_pid="$!"
-trap 'echo -e "\nAborting Mint..."; kill $main_pid' SIGINT SIGTERM
-# use -n here to catch mint.sh exit code, notify to ci
-wait -n
+cd "$(dirname "$(realpath "$0")")"
+
+ant init-ivy && \
+    ant resolve && \
+    ant compile && \
+    ant jar
+
+cp build/jar/FunctionalTests.jar "$test_run_dir/"
+
+rm -rf lib/ build/
+

@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Mint (C) 2017 Minio, Inc.
+#  Mint (C) 2018 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,10 +15,16 @@
 #  limitations under the License.
 #
 
-./mint.sh "$@"  &
+# handle command line arguments
+if [ $# -ne 2 ]; then
+    echo "usage: run.sh <OUTPUT-LOG-FILE> <ERROR-LOG-FILE>"
+    exit -1
+fi
 
-# Get the pid to be used for kill command if required
-main_pid="$!"
-trap 'echo -e "\nAborting Mint..."; kill $main_pid' SIGINT SIGTERM
-# use -n here to catch mint.sh exit code, notify to ci
-wait -n
+output_log_file="$1"
+error_log_file="$2"
+
+# run tests
+cd /mint/run/core/aws-sdk-java/ || exit -1
+
+java -jar FunctionalTests.jar 1>>"$output_log_file" 2>"$error_log_file"

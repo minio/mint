@@ -9,5 +9,6 @@ services:
 script:
   - bash -c 'shopt -s globstar; shellcheck **/*.sh'
   - docker build -f Dockerfile.dev -t minio/mint:travis-$TRAVIS_PULL_REQUEST_SHA .
+
 matrix:
   fast_finish: true

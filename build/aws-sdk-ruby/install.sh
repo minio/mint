@@ -15,4 +15,4 @@
 #  limitations under the License.
 #
 
-gem install aws-sdk multipart_body
+gem install --no-rdoc --no-ri aws-sdk multipart_body
