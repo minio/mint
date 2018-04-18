@@ -486,7 +486,7 @@ function test_copy_object() {
             function="delete_bucket"
             out=$(delete_bucket "$bucket_name") 
             rv=$?
-            # The command passed, but the verfication failed
+            # The command passed, but the verification failed
             out="Verification failed for copied object"
         fi
     fi
