@@ -2,17 +2,13 @@ language: bash
 sudo: true
 addons:
   apt:
-    sources:
-    - debian-sid    # Grab shellcheck from the Debian repo (o_O)
-before-script:      # Related to https://github.com/travis-ci/travis-ci/issues/9484, manual install shellcheck
-  - "sudo apt-get install cabal-install"
-  - "cabal update"
-  - "cabal install shellcheck"
+    packages:
+    - shellcheck
 services:
   - docker
 script:
   - bash -c 'shopt -s globstar; shellcheck **/*.sh'
-  - docker build -f Dockerfile.dev -t mint:travis-$TRAVIS_PULL_REQUEST_SHA .
-  - docker run mint:travis-$TRAVIS_PULL_REQUEST_SHA
+  - docker build -f Dockerfile.dev -t minio/mint:travis-$TRAVIS_PULL_REQUEST_SHA .
+
 matrix:
   fast_finish: true
