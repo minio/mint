@@ -57,7 +57,7 @@ public class FunctionalTests {
     private static String secretKey;
     private static String region;
     private static String endpoint;
-    private static String enableHTTPS;
+    private static boolean enableHTTPS;
 
     private static final Random random = new Random(new SecureRandom().nextLong());
     private static String bucketName = getRandomName();
@@ -149,10 +149,14 @@ public class FunctionalTests {
         s3Client.deleteBucket(bucketName);
     }
 
-    // Test regular upload object
-    public static void uploadObject_test1() throws Exception {
+    // Test regular object upload using encryption
+    public static void uploadObjectEncryption_test1() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: uploadObject(String bucketName, String objectName, String f, SSECustomerKey sseKey)");
+        }
+
+        if (!enableHTTPS) {
+            return;
         }
 
         long startTime = System.currentTimeMillis();
@@ -174,11 +178,16 @@ public class FunctionalTests {
         }
     }
 
-    // Test downloading an object with a wrong key
-    public static void downloadObject_test1() throws Exception {
+    // Test downloading an object with a wrong encryption key
+    public static void downloadObjectEncryption_test1() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: downloadObject(String bucketName, String objectName, SSECustomerKey sseKey)");
         }
+
+        if (!enableHTTPS) {
+            return;
+        }
+
 
         long startTime = System.currentTimeMillis();
 
@@ -207,11 +216,15 @@ public class FunctionalTests {
         }
     }
 
-    // Test copying object with a new different key
-    public static void copyObject_test1() throws Exception {
+    // Test copying object with a new different encryption key
+    public static void copyObjectEncryption_test1() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
                 "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)");
+        }
+
+        if (!enableHTTPS) {
+            return;
         }
 
         long startTime = System.currentTimeMillis();
@@ -238,11 +251,15 @@ public class FunctionalTests {
                 startTime);
     }
 
-    // Test copying object with wrong source key
-    public static void copyObject_test2() throws Exception {
+    // Test copying object with wrong source encryption key
+    public static void copyObjectEncryption_test2() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
                     "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)");
+        }
+
+        if (!enableHTTPS) {
+            return;
         }
 
         String objectName = "testobject";
@@ -277,11 +294,15 @@ public class FunctionalTests {
         }
     }
 
-    // Test download object with Get Range, 0 -> 1024*1024
-    public static void downloadGetRange_test1() throws Exception {
+    // Test downloading encrypted object with Get Range, 0 -> 1024*1024
+    public static void downloadGetRangeEncryption_test1() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
                     "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+        }
+
+        if (!enableHTTPS) {
+            return;
         }
 
         long startTime = System.currentTimeMillis();
@@ -307,11 +328,15 @@ public class FunctionalTests {
                 startTime);
     }
 
-    // Test download object with Get Range, 0 -> 1
-    public static void downloadGetRange_test2() throws Exception {
+    // Test downloading encrypted object with Get Range, 0 -> 1
+    public static void downloadGetRangeEncryption_test2() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
                     "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+        }
+
+        if (!enableHTTPS) {
+            return;
         }
 
         long startTime = System.currentTimeMillis();
@@ -338,11 +363,15 @@ public class FunctionalTests {
     }
 
 
-    // Test download object with Get Range, 0 -> 1024*1024-1
-    public static void downloadGetRange_test3() throws Exception {
+    // Test downloading encrypted object with Get Range, 0 -> 1024*1024-1
+    public static void downloadGetRangeEncryption_test3() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
                     "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+        }
+
+        if (!enableHTTPS) {
+            return;
         }
 
         long startTime = System.currentTimeMillis();
@@ -368,11 +397,15 @@ public class FunctionalTests {
                 startTime);
     }
 
-    // Test download object with Get Range, 1 -> 1024*1024-1
-    public static void downloadGetRange_test4() throws Exception {
+    // Test downloading encrypted object with Get Range, 1 -> 1024*1024-1
+    public static void downloadGetRangeEncryption_test4() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
                     "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+        }
+
+        if (!enableHTTPS) {
+            return;
         }
 
         long startTime = System.currentTimeMillis();
@@ -398,11 +431,15 @@ public class FunctionalTests {
                 startTime);
     }
 
-    // Test download object with Get Range, 64*1024 -> 64*1024
-    public static void downloadGetRange_test5() throws Exception {
+    // Test downloading encrypted object with Get Range, 64*1024 -> 64*1024
+    public static void downloadGetRangeEncryption_test5() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
                     "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+        }
+
+        if (!enableHTTPS) {
+            return;
         }
 
         long startTime = System.currentTimeMillis();
@@ -428,11 +465,15 @@ public class FunctionalTests {
                 startTime);
     }
 
-    // Test download object with Get Range, 64*1024 -> 1024*1024-64*1024
-    public static void downloadGetRange_test6() throws Exception {
+    // Test downloading encrypted object with Get Range, 64*1024 -> 1024*1024-64*1024
+    public static void downloadGetRangeEncryption_test6() throws Exception {
         if (!mintEnv) {
             System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
                     "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+        }
+
+        if (!enableHTTPS) {
+            return;
         }
 
         long startTime = System.currentTimeMillis();
@@ -465,19 +506,19 @@ public class FunctionalTests {
     // Quick tests
     public static void runQuickTests() throws Exception {
 
-        uploadObject_test1();
+        uploadObjectEncryption_test1();
 
-        downloadObject_test1();
+        downloadObjectEncryption_test1();
 
-        copyObject_test1();
-        copyObject_test2();
+        copyObjectEncryption_test1();
+        copyObjectEncryption_test2();
 
-        downloadGetRange_test1();
-        downloadGetRange_test2();
-        downloadGetRange_test3();
-        downloadGetRange_test4();
-        downloadGetRange_test5();
-        downloadGetRange_test6();
+        downloadGetRangeEncryption_test1();
+        downloadGetRangeEncryption_test2();
+        downloadGetRangeEncryption_test3();
+        downloadGetRangeEncryption_test4();
+        downloadGetRangeEncryption_test5();
+        downloadGetRangeEncryption_test6();
    }
 
     public static void main(String[] args) throws Exception,
@@ -486,10 +527,11 @@ public class FunctionalTests {
         endpoint = System.getenv("SERVER_ENDPOINT");
         accessKey = System.getenv("ACCESS_KEY");
         secretKey = System.getenv("SECRET_KEY");
-        enableHTTPS = System.getenv("ENABLE_HTTPS");
+        enableHTTPS = System.getenv("ENABLE_HTTPS").equals("1");
+
         region = "us-east-1";
 
-        if (enableHTTPS.contains("1")) {
+        if (enableHTTPS) {
             endpoint = "https://" + endpoint;
         } else {
             endpoint = "http://" + endpoint;
