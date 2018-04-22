@@ -94,14 +94,14 @@ function getStatusCode($result):string {
   * $apiCall = 'headBucket'
   * $exceptionMatcher = 'getStatusCode'
   * $exceptionParamMap = [
-  *      // Invalid bucket name
-  *      '400' => ['Bucket' => $bucket['Name'] . '--'],
+  *      // Non existent bucket
+  *      '404' => ['Bucket' => $bucket['Name'] . '--'],
   *
   *      // Non existent bucket
   *      '404' => ['Bucket' => $bucket['Name'] . '-non-existent'],
   * ];
   *
-  * @return string - HTTP status code. E.g, "400" for Bad Request.
+  * @return string - HTTP status code. E.g, "404" for Non existent bucket.
   */
 function runExceptionalTests($s3Client, $apiCall, $exceptionMatcher, $exceptionParamMap) {
     foreach($exceptionParamMap as $exn => $params) {
@@ -161,8 +161,8 @@ function testBucketExists(S3Client $s3Client) {
 
     // Run failure tests
     $params = [
-        // Invalid bucket name
-        '400' => ['Bucket' => $bucket['Name'] . '--'],
+        // Non existent bucket
+        '404' => ['Bucket' => $bucket['Name'] . '--'],
 
         // Non existent bucket
         '404' => ['Bucket' => $bucket['Name'] . '-non-existent'],
@@ -645,8 +645,8 @@ function testGetBucketLocation($s3Client, $params) {
 
     // Run failure tests.
     $params = [
-        // InvalidBucketName test
-        'InvalidBucketName' => ['Bucket' => $bucket . '--'],
+        // Non existent bucket
+        'NoSuchBucket' => ['Bucket' => $bucket . '--'],
 
         // Bucket not found
         'NoSuchBucket' => ['Bucket' => $bucket . '-non-existent'],
