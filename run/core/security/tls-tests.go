@@ -50,6 +50,7 @@ func main() {
 
 	testTLSVersions(endpoint)
 	testTLSCiphers(endpoint)
+	testTLSEllipticCurves(endpoint)
 }
 
 // Tests whether the endpoint accepts SSL3.0, TLS1.0 or TLS1.1 connections - fail if so.
@@ -136,6 +137,42 @@ func testTLSCiphers(endpoint string) {
 	successLog(function, args, startTime)
 }
 
+// Tests whether the endpoint accepts the P-384 or P-521 elliptic curve - fail if so.
+// Tests whether the endpoint accepts Curve25519 or P-256 - fail if not.
+func testTLSEllipticCurves(endpoint string) {
+	const function = "TLSEllipticCurves"
+	startTime := time.Now()
+
+	// Tests whether the endpoint accepts curves using non-constant time implementations.
+	args := map[string]interface{}{
+		"CurvePreferences": unsupportedCurves,
+	}
+	_, err := tls.Dial("tcp", endpoint, &tls.Config{
+		MinVersion:       tls.VersionTLS12,
+		CurvePreferences: unsupportedCurves,
+		CipherSuites:     supportedCipherSuites,
+	})
+	if err == nil {
+		failureLog(function, args, startTime, "", "Endpoint accepts insecure elliptic curves", err).Error()
+		return
+	}
+
+	// Tests whether the endpoint accepts curves using constant time implementations.
+	args = map[string]interface{}{
+		"CurvePreferences": unsupportedCurves,
+	}
+	_, err = tls.Dial("tcp", endpoint, &tls.Config{
+		MinVersion:       tls.VersionTLS12,
+		CurvePreferences: supportedCurves,
+		CipherSuites:     supportedCipherSuites,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "Endpoint does not accept secure elliptic curves", err).Error()
+		return
+	}
+	successLog(function, args, startTime)
+}
+
 func successLog(function string, args map[string]interface{}, startTime time.Time) *log.Entry {
 	duration := time.Since(startTime).Nanoseconds() / 1000000
 	return log.WithFields(log.Fields{
@@ -206,6 +243,9 @@ var supportedCipherSuites = []uint16{
 	tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 }
 
+// Supported elliptic curves: Implementations are constant-time.
+var supportedCurves = []tls.CurveID{tls.X25519, tls.CurveP256}
+
 var unsupportedCipherSuites = []uint16{
 	tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,    // Go stack contains (some) countermeasures against timing attacks (Lucky13)
 	tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, // No countermeasures against timing attacks
@@ -227,3 +267,6 @@ var unsupportedCipherSuites = []uint16{
 	tls.TLS_RSA_WITH_AES_128_GCM_SHA256, // Disabled because of RSA-PKCS1-v1.5 - AES-GCM is considered secure.
 	tls.TLS_RSA_WITH_AES_256_GCM_SHA384, // Disabled because of RSA-PKCS1-v1.5 - AES-GCM is considered secure.
 }
+
+// Unsupported elliptic curves: Implementations are not constant-time.
+var unsupportedCurves = []tls.CurveID{tls.CurveP384, tls.CurveP521}
