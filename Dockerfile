@@ -10,11 +10,7 @@ ENV GOPATH /usr/local
 
 ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
 
-COPY dnsmasq.conf /etc/dnsmasq.conf
-
-EXPOSE 53/udp
-
-RUN apt-get --yes update && apt-get --yes upgrade && apt-get --yes --quiet install wget jq curl git && \
+RUN apt-get --yes update && apt-get --yes upgrade && apt-get --yes --quiet install wget jq curl git dnsmasq && \
     git clone https://github.com/minio/mint.git /mint && \
     cd /mint && /mint/release.sh
 

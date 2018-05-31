@@ -37,32 +37,27 @@ Below environment variables are required to be passed to the docker container. S
 
 | Environment variable | Description | Example |
 |:--- |:--- |:--- |
-| `SERVER_ENDPOINT` | Endpoint of Minio server in the format `HOST:PORT` | `play.minio.io:9000` |
+| `SERVER_ENDPOINT` | Endpoint of Minio server in the format `HOST:PORT`; for virtual style `IP:PORT` | `play.minio.io:9000` |
 | `ACCESS_KEY` | Access key of access `SERVER_ENDPOINT` | `Q3AM3UQ867SPQQA43P2F` |
 | `SECRET_KEY` | Secret Key of access `SERVER_ENDPOINT` | `zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG` |
 | `ENABLE_HTTPS` | (Optional) Set `1` to indicate to use HTTPS to access `SERVER_ENDPOINT`. Defaults to `0` (HTTP) | `1` |
 | `MINT_MODE` | (Optional) Set mode indicating what category of tests to be run by values `core` or `full`.  Defaults to `core` | `full` |
-| `ENABLE_VIRTUAL_STYLE` | (Optional) Set `1` to enable virtual style access to `SERVER_ENDPOINT`. Defaults to `0` (Path style) | `1` |
+| `DOMAIN` | (Optional) Value of MINIO_DOMAIN environment variable used in Minio server | `myminio.com` |
+| `ENABLE_VIRTUAL_STYLE` | (Optional) Set `1` to indicate virtual style access . Defaults to `0` (Path style) | `1` |
 
 ### Test virtual style access against Minio server
 
 To test Minio server virtual style access with Mint, follow these steps:
 
-- Set a domain in your Minio server using environment variable MINIO_DOMAIN. For example `export MINIO_DOMAIN=mydomain.com`.
-- Start Minio server.
-- For testing Minio server via domain `mydomain.com` or sub-domain name like `bucket-name.mydomain.com`, the domain should be resolvable from Mint container via DNS. Mint uses the domain
-`mydomain.com` for testing purposes. This is configured via `dnsmasq`. Edit the `dnsmasq` [config file](./dnsmasq.conf) and build custom Docker image to change this setting.
-- You can execute Mint against Minio server (with `MINIO_DOMAIN` set to `mydomain.com`) using this command,
-
-
+- Set a domain in your Minio server using environment variable MINIO_DOMAIN. For example `export MINIO_DOMAIN=myminio.com`.
+- Start Minio server. 
+- Execute Mint against Minio server (with `MINIO_DOMAIN` set to `myminio.com`) using this command
 ```sh
-$ sudo docker run -e "SERVER_ENDPOINT=minio.com:9000" -e "ACCESS_KEY=minio" \
--e "SECRET_KEY=minio123" -e "ENABLE_HTTPS=0" -e "ENABLE_VIRTUAL_STYLE=1" \
---net=host --add-host="mydomain.com:127.0.0.1" minio/mint awscli
+$ docker run -e "SERVER_ENDPOINT=192.168.86.133:9000" -e "DOMAIN=minio.com"  \
+	     -e "ACCESS_KEY=minio" -e "SECRET_KEY=minio123" -e "ENABLE_HTTPS=0" \
+	     -e "ENABLE_VIRTUAL_STYLE=1" minio/mint		
 ```
-
-We set the `ENABLE_VIRTUAL_STYLE` flag to `1` to indicate that virtual style tests be run.
-
+   
 ### Mint log format
 
 All test logs are stored in `/mint/log/log.json` as multiple JSON document.  Below is the JSON format for every entry in the log file.

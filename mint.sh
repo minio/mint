@@ -29,6 +29,23 @@ if [ -z "$SERVER_ENDPOINT" ]; then
     ENABLE_HTTPS=1
 fi
 
+if [ "$ENABLE_VIRTUAL_STYLE" -eq 1 ]; then
+        SERVER_IP="${SERVER_ENDPOINT%%:*}"
+        SERVER_PORT="${SERVER_ENDPOINT/*:/}"
+        # Check if SERVER_IP is actually IPv4 address
+        octets=("${SERVER_IP//./ }")
+        if [ "${#octets[@]}" -ne 4 ]; then
+            echo "$SERVER_IP must be an IP address"
+            exit 1
+        fi
+        for octet in "${octets[@]}"; do
+	    if [ "$octet" -lt 0 ] 2>/dev/null || [ "$octet" -gt 255 ] 2>/dev/null; then
+		echo "$SERVER_IP must be an IP address"
+		exit 1
+	    fi
+        done
+fi
+
 ROOT_DIR="$PWD"
 TESTS_DIR="$ROOT_DIR/run/core"
 
@@ -85,7 +102,6 @@ function run_test()
             jq . <<<"$entry"
         fi
     fi
-
     return $rv
 }
 
@@ -94,12 +110,15 @@ function main()
     export MINT_DATA_DIR
     export MINT_MODE
     export SERVER_ENDPOINT
+    export SERVER_IP
+    export SERVER_PORT
+    
     export ACCESS_KEY
     export SECRET_KEY
-    export SERVER_REGION
     export ENABLE_HTTPS
+    export SERVER_REGION
     export ENABLE_VIRTUAL_STYLE
-
+    
     echo "Running with"
     echo "SERVER_ENDPOINT:      $SERVER_ENDPOINT"
     echo "ACCESS_KEY:           $ACCESS_KEY"
@@ -110,20 +129,17 @@ function main()
     echo "MINT_MODE:            $MINT_MODE"
     echo "ENABLE_VIRTUAL_STYLE: $ENABLE_VIRTUAL_STYLE"
     echo
-
     echo "To get logs, run 'docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
-
+    
     declare -a run_list
     ## Populate values from command line argument
     for sdk in "$@"; do
         run_list=( "${run_list[@]}" "$TESTS_DIR/$sdk" )
     done
-
     ## On empty command line argument, populate all SDK names from $TESTS_DIR
     if [ "${#run_list[@]}" -eq 0 ]; then
         run_list=( "$TESTS_DIR"/* )
     fi
-
     count="${#run_list[@]}"
     i=0
     for sdk_dir in "${run_list[@]}"; do
@@ -139,7 +155,6 @@ function main()
             break
         fi
     done
-
     ## Report when all tests in run_list are run
     if [ $i -eq "$count" ]; then
         echo -e "\nAll tests ran successfully"
@@ -148,5 +163,4 @@ function main()
         exit 1
     fi
 }
-
 main "$@"
