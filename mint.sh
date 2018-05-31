@@ -20,6 +20,7 @@ MINT_DATA_DIR=${MINT_DATA_DIR:-/mint/data}
 MINT_MODE=${MINT_MODE:-core}
 SERVER_REGION=${SERVER_REGION:-us-east-1}
 ENABLE_HTTPS=${ENABLE_HTTPS:-0}
+ENABLE_VIRTUAL_STYLE=${ENABLE_VIRTUAL_STYLE:-0}
 
 if [ -z "$SERVER_ENDPOINT" ]; then
     SERVER_ENDPOINT="play.minio.io:9000"
@@ -95,17 +96,19 @@ function main()
     export SERVER_ENDPOINT
     export ACCESS_KEY
     export SECRET_KEY
-    export ENABLE_HTTPS
     export SERVER_REGION
+    export ENABLE_HTTPS
+    export ENABLE_VIRTUAL_STYLE
 
     echo "Running with"
-    echo "SERVER_ENDPOINT: $SERVER_ENDPOINT"
-    echo "ACCESS_KEY:      $ACCESS_KEY"
-    echo "SECRET_KEY:      ***REDACTED***"
-    echo "ENABLE_HTTPS:    $ENABLE_HTTPS"
-    echo "SERVER_REGION:   $SERVER_REGION"
-    echo "MINT_DATA_DIR:   $MINT_DATA_DIR"
-    echo "MINT_MODE:       $MINT_MODE"
+    echo "SERVER_ENDPOINT:      $SERVER_ENDPOINT"
+    echo "ACCESS_KEY:           $ACCESS_KEY"
+    echo "SECRET_KEY:           ***REDACTED***"
+    echo "ENABLE_HTTPS:         $ENABLE_HTTPS"
+    echo "SERVER_REGION:        $SERVER_REGION"
+    echo "MINT_DATA_DIR:        $MINT_DATA_DIR"
+    echo "MINT_MODE:            $MINT_MODE"
+    echo "ENABLE_VIRTUAL_STYLE: $ENABLE_VIRTUAL_STYLE"
     echo
 
     echo "To get logs, run 'docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
