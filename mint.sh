@@ -122,7 +122,7 @@ function main()
         sdks=( "$@" )
 
         ## populate all sdks except worm when no argument is given.
-        if [ "$#" -eq 1 ]; then
+        if [ "$#" -eq 0 ]; then
             sdks=( $(ls -I worm "$TESTS_DIR") )
         fi
 
