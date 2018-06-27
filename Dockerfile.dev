@@ -67,6 +67,9 @@ RUN /mint/build/minio-dotnet/install.sh
 COPY build/security /mint/build/security
 RUN build/security/install.sh
 
+COPY build/worm /mint/build/worm
+RUN build/worm/install.sh
+
 COPY remove-packages.list /mint
 COPY postinstall.sh /mint
 RUN /mint/postinstall.sh

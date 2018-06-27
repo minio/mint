@@ -14,6 +14,7 @@ Mint is a testing framework for Minio object server, available as a docker image
 - minio-py
 - minio-dotnet
 - s3cmd
+- worm
 
 ## Running Mint
 
@@ -41,9 +42,10 @@ Below environment variables are required to be passed to the docker container. S
 | `ACCESS_KEY` | Access key of access `SERVER_ENDPOINT` | `Q3AM3UQ867SPQQA43P2F` |
 | `SECRET_KEY` | Secret Key of access `SERVER_ENDPOINT` | `zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG` |
 | `ENABLE_HTTPS` | (Optional) Set `1` to indicate to use HTTPS to access `SERVER_ENDPOINT`. Defaults to `0` (HTTP) | `1` |
-| `MINT_MODE` | (Optional) Set mode indicating what category of tests to be run by values `core` or `full`.  Defaults to `core` | `full` |
+| `MINT_MODE` | (Optional) Set mode indicating what category of tests to be run by values `core`, `full` or `worm`.  Defaults to `core` | `full` |
 | `DOMAIN` | (Optional) Value of MINIO_DOMAIN environment variable used in Minio server | `myminio.com` |
 | `ENABLE_VIRTUAL_STYLE` | (Optional) Set `1` to indicate virtual style access . Defaults to `0` (Path style) | `1` |
+
 
 ### Test virtual style access against Minio server
 
@@ -85,7 +87,10 @@ $ docker run -e SERVER_ENDPOINT=play.minio.io:9000 -e ACCESS_KEY=Q3AM3UQ867SPQQA
              -e SECRET_KEY=zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG \
              -e ENABLE_HTTPS=1 -e MINT_MODE=full minio/mint:latest
 ```
+In case of Worm Mode, start your server with configuration `MINT_MODE` set to `worm`.
+Build/Run of local docker image for Worm mode, is to be tested against your server configuration, by
 
+```
 ### Adding tests with new tool/SDK
 
 Below are the steps need to be followed

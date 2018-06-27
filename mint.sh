@@ -132,14 +132,31 @@ function main()
     echo "To get logs, run 'docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
     
     declare -a run_list
-    ## Populate values from command line argument
-    for sdk in "$@"; do
-        run_list=( "${run_list[@]}" "$TESTS_DIR/$sdk" )
-    done
-    ## On empty command line argument, populate all SDK names from $TESTS_DIR
-    if [ "${#run_list[@]}" -eq 0 ]; then
-        run_list=( "$TESTS_DIR"/* )
+    if [ "$MINT_MODE" == "worm" ]; then
+        if [ "$#" -gt 1 ]; then
+            echo "No argument is accepted for worm mode"
+            exit 1
+        fi
+        
+        run_list=( "$TESTS_DIR/worm" )
+    else
+        sdks=( "$@" )
+
+        ## populate all sdks except worm when no argument is given.
+        if [ "$#" -eq 0 ]; then
+            sdks=( $(ls -I worm "$TESTS_DIR") )
+        fi
+
+        for sdk in "${sdks[@]}"; do
+            if [ "$sdk" == "worm" ]; then
+                echo "worm test cannot be run without worm mode"
+                exit 1
+            fi
+
+            run_list=( "${run_list[@]}" "$TESTS_DIR/$sdk" )
+        done
     fi
+    
     count="${#run_list[@]}"
     i=0
     for sdk_dir in "${run_list[@]}"; do
@@ -155,6 +172,7 @@ function main()
             break
         fi
     done
+    
     ## Report when all tests in run_list are run
     if [ $i -eq "$count" ]; then
         echo -e "\nAll tests ran successfully"
