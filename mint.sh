@@ -20,12 +20,30 @@ MINT_DATA_DIR=${MINT_DATA_DIR:-/mint/data}
 MINT_MODE=${MINT_MODE:-core}
 SERVER_REGION=${SERVER_REGION:-us-east-1}
 ENABLE_HTTPS=${ENABLE_HTTPS:-0}
+ENABLE_VIRTUAL_STYLE=${ENABLE_VIRTUAL_STYLE:-0}
 
 if [ -z "$SERVER_ENDPOINT" ]; then
     SERVER_ENDPOINT="play.minio.io:9000"
     ACCESS_KEY="Q3AM3UQ867SPQQA43P2F"
     SECRET_KEY="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
     ENABLE_HTTPS=1
+fi
+
+if [ "$ENABLE_VIRTUAL_STYLE" -eq 1 ]; then
+        SERVER_IP="${SERVER_ENDPOINT%%:*}"
+        SERVER_PORT="${SERVER_ENDPOINT/*:/}"
+        # Check if SERVER_IP is actually IPv4 address
+        octets=("${SERVER_IP//./ }")
+        if [ "${#octets[@]}" -ne 4 ]; then
+            echo "$SERVER_IP must be an IP address"
+            exit 1
+        fi
+        for octet in "${octets[@]}"; do
+	    if [ "$octet" -lt 0 ] 2>/dev/null || [ "$octet" -gt 255 ] 2>/dev/null; then
+		echo "$SERVER_IP must be an IP address"
+		exit 1
+	    fi
+        done
 fi
 
 ROOT_DIR="$PWD"
@@ -84,7 +102,6 @@ function run_test()
             jq . <<<"$entry"
         fi
     fi
-
     return $rv
 }
 
@@ -93,23 +110,27 @@ function main()
     export MINT_DATA_DIR
     export MINT_MODE
     export SERVER_ENDPOINT
+    export SERVER_IP
+    export SERVER_PORT
+    
     export ACCESS_KEY
     export SECRET_KEY
     export ENABLE_HTTPS
     export SERVER_REGION
-
+    export ENABLE_VIRTUAL_STYLE
+    
     echo "Running with"
-    echo "SERVER_ENDPOINT: $SERVER_ENDPOINT"
-    echo "ACCESS_KEY:      $ACCESS_KEY"
-    echo "SECRET_KEY:      ***REDACTED***"
-    echo "ENABLE_HTTPS:    $ENABLE_HTTPS"
-    echo "SERVER_REGION:   $SERVER_REGION"
-    echo "MINT_DATA_DIR:   $MINT_DATA_DIR"
-    echo "MINT_MODE:       $MINT_MODE"
+    echo "SERVER_ENDPOINT:      $SERVER_ENDPOINT"
+    echo "ACCESS_KEY:           $ACCESS_KEY"
+    echo "SECRET_KEY:           ***REDACTED***"
+    echo "ENABLE_HTTPS:         $ENABLE_HTTPS"
+    echo "SERVER_REGION:        $SERVER_REGION"
+    echo "MINT_DATA_DIR:        $MINT_DATA_DIR"
+    echo "MINT_MODE:            $MINT_MODE"
+    echo "ENABLE_VIRTUAL_STYLE: $ENABLE_VIRTUAL_STYLE"
     echo
-
     echo "To get logs, run 'docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
-
+    
     declare -a run_list
     if [ "$MINT_MODE" == "worm" ]; then
         if [ "$#" -gt 1 ]; then
@@ -135,7 +156,7 @@ function main()
             run_list=( "${run_list[@]}" "$TESTS_DIR/$sdk" )
         done
     fi
-
+    
     count="${#run_list[@]}"
     i=0
     for sdk_dir in "${run_list[@]}"; do
@@ -151,7 +172,7 @@ function main()
             break
         fi
     done
-
+    
     ## Report when all tests in run_list are run
     if [ $i -eq "$count" ]; then
         echo -e "\nAll tests ran successfully"
@@ -160,5 +181,4 @@ function main()
         exit 1
     fi
 }
-
 main "$@"

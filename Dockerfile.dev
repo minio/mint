@@ -12,7 +12,7 @@ ENV PATH $GOPATH/bin:$GOROOT/bin:$PATH
 
 WORKDIR /mint
 
-RUN apt-get --yes update && apt-get --yes upgrade && apt-get --yes --quiet install wget jq curl
+RUN apt-get --yes update && apt-get --yes upgrade && apt-get --yes --quiet install wget jq curl dnsmasq
 
 ENV MINT_ROOT_DIR /mint
 ENV MINT_RUN_CORE_DIR $MINT_ROOT_DIR/run/core
