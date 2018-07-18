@@ -455,6 +455,59 @@ function test_multipart_upload() {
     return $rv
 }
 
+# List number of objects based on the maxKey
+# value set.
+function test_max_key_list() {
+    # log start time
+    start_time=$(get_time)
+
+    function="make_bucket"
+    bucket_name=$(make_bucket)
+    rv=$?
+
+    # if make bucket succeeds upload a file
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-b --bucket ${bucket_name} --key datafile-1-b"
+        out=$($function 2>&1)
+        rv=$?
+    else
+        # if make bucket fails, $bucket_name has the error output
+        out="${bucket_name}"
+    fi
+
+    # copy object server side
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api copy-object --bucket ${bucket_name} --key datafile-1-b-copy --copy-source ${bucket_name}/datafile-1-b"
+        out=$($function)
+        rv=$?
+    fi
+
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --max-keys 1 | jq '.KeyCount==1'"
+        test_function=${function}
+        out=$("$function")
+        rv=$?
+    fi
+
+    if [ $rv -eq 0 ]; then
+        function="delete_bucket"
+        out=$(delete_bucket "$bucket_name")
+        rv=$?
+        # The command passed, but the delete_bucket failed
+        out="delete_bucket for test_max_key_list failed"
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
+}
+
 # Copy object tests for server side copy
 # of the object, validates returned md5sum.
 function test_copy_object() {
@@ -1033,6 +1086,7 @@ main() {
     test_lookup_object_prefix && \
     test_list_objects && \
     test_multipart_upload && \
+    test_max_key_list && \
     test_copy_object && \
     test_presigned_object && \
     test_serverside_encryption && \
