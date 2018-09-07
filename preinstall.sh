@@ -24,14 +24,15 @@ if ! $WGET --output-document=- https://deb.nodesource.com/setup_6.x | bash -; th
     exit 1
 fi
 
-# dotnetcore install commands
-sh -c 'echo "deb [arch=amd64] https://apt-mo.trafficmanager.net/repos/dotnet-release/ xenial main" > /etc/apt/sources.list.d/dotnetdev.list'
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 417A0893
+$APT install apt-transport-https
 
+wget -q https://packages.microsoft.com/config/ubuntu/16.04/packages-microsoft-prod.deb
+dpkg -i packages-microsoft-prod.deb
+rm -f packages-microsoft-prod.deb
 $APT update
 
 # download and install golang
-GO_VERSION="1.8.3"
+GO_VERSION="1.10.4"
 GO_INSTALL_PATH="/usr/local"
 download_url="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
 if ! $WGET --output-document=- "$download_url" | tar -C "${GO_INSTALL_PATH}" -zxf -; then
