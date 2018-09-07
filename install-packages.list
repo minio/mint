@@ -11,7 +11,7 @@ default-jre
 default-jdk
 ant
 dirmngr
-apt-transport-https
-dotnet-dev-1.0.4
+dotnet-sdk-2.1
+aspnetcore-runtime-2.1
 nuget
 libunwind8
