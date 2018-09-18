@@ -499,12 +499,8 @@ public class FunctionalTests {
                 startTime);
     }
 
-    // Tests for huge files
-    public static void runTests() {
-    }
-
-    // Quick tests
-    public static void runQuickTests() throws Exception {
+    // Run tests
+    public static void runTests() throws Exception {
 
         uploadObjectEncryption_test1();
 
@@ -562,17 +558,7 @@ public class FunctionalTests {
 
         try {
             initTests();
-            // For mint environment, run tests based on mint mode
-            if (mintEnv) {
-                if (mintMode != null && mintMode.equals("full")) {
-                    FunctionalTests.runTests();
-                } else {
-                    FunctionalTests.runQuickTests();
-                }
-            } else {
-                FunctionalTests.runQuickTests();
-                FunctionalTests.runTests();
-            }
+            FunctionalTests.runTests();
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
