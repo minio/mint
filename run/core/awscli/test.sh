@@ -606,6 +606,116 @@ function test_presigned_object() {
     return $rv
 }
 
+# Tests creating and deleting an object - 10MiB
+function test_upload_object_10() {
+    # log start time
+    start_time=$(get_time)
+
+    function="make_bucket"
+    bucket_name=$(make_bucket)
+    rv=$?
+
+    # if make bucket succeeds upload a file
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-10-MB --bucket ${bucket_name} --key datafile-10-MB"
+        out=$($function 2>&1)
+        rv=$?
+    else
+        # if make bucket fails, $bucket_name has the error output
+        out="${bucket_name}"
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
+}
+
+# Tests multipart API by making each individual calls with 10MiB part size.
+function test_multipart_upload_10() {
+    # log start time
+    start_time=$(get_time)
+
+    function="make_bucket"
+    bucket_name=$(make_bucket)
+    object_name=${bucket_name}"-object"
+    rv=$?
+
+    if [ $rv -eq 0 ]; then
+        # create multipart
+        function="${AWS} s3api create-multipart-upload --bucket ${bucket_name} --key ${object_name}"
+        test_function=${function}
+        out=$($function)
+        rv=$?
+        upload_id=$(echo "$out" | jq -r .UploadId)
+    fi
+
+    if [ $rv -eq 0 ]; then
+        # Capture etag for part-number 1
+        function="${AWS} s3api upload-part --bucket ${bucket_name} --key ${object_name} --body ${MINT_DATA_DIR}/datafile-10-MB --upload-id ${upload_id} --part-number 1"
+        out=$($function)
+        rv=$?
+        etag1=$(echo "$out" | jq -r .ETag)
+    fi
+
+    if [ $rv -eq 0 ]; then
+        # Capture etag for part-number 2
+        function="${AWS} s3api upload-part --bucket ${bucket_name} --key ${object_name} --body ${MINT_DATA_DIR}/datafile-10-MB --upload-id ${upload_id} --part-number 2"
+        out=$($function)
+        rv=$?
+        etag2=$(echo "$out" | jq -r .ETag)
+        # Create a multipart struct file for completing multipart transaction
+        echo "{
+            \"Parts\": [
+                {
+                    \"ETag\": ${etag1},
+                    \"PartNumber\": 1
+                },
+                {
+                    \"ETag\": ${etag2},
+                    \"PartNumber\": 2
+                }
+            ]
+        }" >> /tmp/multipart
+    fi
+
+    if [ $rv -eq 0 ]; then
+        # Use saved etags to complete the multipart transaction
+        function="${AWS} s3api complete-multipart-upload --multipart-upload file:///tmp/multipart --bucket ${bucket_name} --key ${object_name} --upload-id ${upload_id}"
+        out=$($function)
+        rv=$?
+        finalETag=$(echo "$out" | jq -r .ETag)
+        if [ "${finalETag}" == "" ]; then
+            rv=1
+            out="complete-multipart-upload failed"
+        fi
+    fi
+
+    if [ $rv -eq 0 ]; then
+        function="delete_bucket"
+        out=$(delete_bucket "$bucket_name")
+        rv=$?
+        # remove temp file
+        rm -f /tmp/multipart
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        rm -f /tmp/multipart
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
+}
+
 # Tests `aws s3 cp` by uploading a local file.
 function test_aws_s3_cp() {
     file_name="${MINT_DATA_DIR}/datafile-65-MB"
@@ -1089,6 +1199,8 @@ main() {
     test_max_key_list && \
     test_copy_object && \
     test_presigned_object && \
+    test_upload_object_10 && \
+    test_multipart_upload_10 && \
     test_serverside_encryption && \
     test_serverside_encryption_get_range && \
     test_serverside_encryption_multipart

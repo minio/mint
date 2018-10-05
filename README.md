@@ -115,5 +115,6 @@ Tests may use pre-created data set to perform various object operations on Minio
 | datafile-1.03-MB |1.03MiB |
 | datafile-5-MB |5MiB |
 | datafile-6-MB |6MiB |
+| datafile-10-MB |10MiB |
 | datafile-11-MB |11MiB |
 | datafile-65-MB |65MiB |
