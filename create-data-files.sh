@@ -26,6 +26,7 @@ data_file_map["datafile-1.03-MB"]="1056K"
 data_file_map["datafile-1-MB"]="1M"
 data_file_map["datafile-5-MB"]="5M"
 data_file_map["datafile-6-MB"]="6M"
+data_file_map["datafile-10-MB"]="10M"
 data_file_map["datafile-11-MB"]="11M"
 data_file_map["datafile-65-MB"]="65M"
 
