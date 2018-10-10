@@ -353,6 +353,7 @@ public class FunctionalTests {
         int start = 0;
         int length = 1024*1024;
         try {
+            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
         } catch (Exception e){
             mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
@@ -388,6 +389,7 @@ public class FunctionalTests {
         int length = 1;
         String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
         try {
+            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
         } catch (Exception e){
             mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
@@ -424,6 +426,7 @@ public class FunctionalTests {
         int length = 1024*1024-1;
         String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
         try {
+            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
         } catch (Exception e){
             mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
@@ -459,6 +462,7 @@ public class FunctionalTests {
         int length = 1024*1024-1;
         String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
         try {
+            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
         } catch (Exception e){
             mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
@@ -494,6 +498,7 @@ public class FunctionalTests {
         int length = 64*1024;
         String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
         try {
+            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
         } catch (Exception e){
             mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
@@ -529,6 +534,7 @@ public class FunctionalTests {
         int length = 1024*1024-64*1024;
         String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
         try {
+            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
         } catch (Exception e){
             mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
