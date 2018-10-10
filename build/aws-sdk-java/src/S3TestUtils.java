@@ -49,7 +49,9 @@ class S3TestUtils {
     }
 
     void uploadMultipartObject(String bucketName, String keyName,
-            File file, SSECustomerKey sseKey) {
+            String filePath, SSECustomerKey sseKey) throws IOException {
+
+        File file = new File(filePath);
 
         List<PartETag> partETags = new ArrayList<PartETag>();
 
