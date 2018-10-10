@@ -243,6 +243,7 @@ public class FunctionalTests {
                     "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
                     "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
                     ", replaceDirective: " + false, startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            throw e;
         }
         mintSuccessLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
                 "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
@@ -276,7 +277,7 @@ public class FunctionalTests {
                     "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey3 +
                     "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
                     ", replaceDirective: " + false, startTime, null, ex.toString() + " >>> " + Arrays.toString(ex.getStackTrace()));
-
+            throw ex;
         } catch (Exception e) {
             if (!e.getMessage().contains("Access Denied")) {
                 Exception ex = new Exception("copyObject did not throw S3 Access denied Exception but it did throw: " + e.getMessage());
@@ -285,6 +286,7 @@ public class FunctionalTests {
                         "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey3 +
                         "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
                         ", replaceDirective: " + false, startTime, null, ex.toString() + " >>> " + Arrays.toString(ex.getStackTrace()));
+                throw ex;
             }
             mintSuccessLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
                     "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
@@ -321,6 +323,7 @@ public class FunctionalTests {
                     "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
                     "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
                     ", replaceDirective: " + false, startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            throw e;
         }
         mintSuccessLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
                 "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
@@ -357,6 +360,7 @@ public class FunctionalTests {
                     "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
                     ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                         startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            throw e;
         }
         mintSuccessLog(
                 "downloadObjectGetRange(String bucketName, String objectName, " +
@@ -391,6 +395,7 @@ public class FunctionalTests {
                     "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
                     ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                         startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            throw e;
         }
         mintSuccessLog(
                 "downloadObjectGetRange(String bucketName, String objectName, " +
@@ -426,6 +431,7 @@ public class FunctionalTests {
                     "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
                     ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                         startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            throw e;
         }
         mintSuccessLog(
                 "downloadObjectGetRange(String bucketName, String objectName, " +
@@ -460,6 +466,7 @@ public class FunctionalTests {
                     "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
                     ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                         startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            throw e;
         }
         mintSuccessLog(
                 "downloadObjectGetRange(String bucketName, String objectName, " +
@@ -494,6 +501,7 @@ public class FunctionalTests {
                     "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
                     ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                         startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            throw e;
         }
         mintSuccessLog(
                 "downloadObjectGetRange(String bucketName, String objectName, " +
@@ -528,6 +536,7 @@ public class FunctionalTests {
                     "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
                     ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                         startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            throw e;
         }
         mintSuccessLog(
                 "downloadObjectGetRange(String bucketName, String objectName, " +
