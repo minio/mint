@@ -20,6 +20,7 @@ MINT_DATA_DIR=${MINT_DATA_DIR:-/mint/data}
 MINT_MODE=${MINT_MODE:-core}
 SERVER_REGION=${SERVER_REGION:-us-east-1}
 ENABLE_HTTPS=${ENABLE_HTTPS:-0}
+SELFSIGNED_CERT=${SELFSIGNED_CERT:-0}
 ENABLE_VIRTUAL_STYLE=${ENABLE_VIRTUAL_STYLE:-0}
 
 if [ -z "$SERVER_ENDPOINT" ]; then
@@ -105,6 +106,23 @@ function run_test()
     return $rv
 }
 
+function trust_s3_endpoint_tls_cert()
+{
+    # Download the public certificate from the server
+    openssl s_client -showcerts -connect "$SERVER_ENDPOINT" 2>/dev/null | \
+	    openssl x509 -outform PEM >/usr/local/share/ca-certificates/s3_server_cert.crt || \
+	    exit -1
+
+    # Load the certificate in the system
+    update-ca-certificates --fresh >/dev/null
+
+    # Ask different SDKs/tools to load system certificates
+    export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+    export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
+    export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+}
+
+
 function main()
 {
     export MINT_DATA_DIR
@@ -116,6 +134,7 @@ function main()
     export ACCESS_KEY
     export SECRET_KEY
     export ENABLE_HTTPS
+    export SELFSIGNED_CERT
     export SERVER_REGION
     export ENABLE_VIRTUAL_STYLE
     
@@ -123,14 +142,17 @@ function main()
     echo "SERVER_ENDPOINT:      $SERVER_ENDPOINT"
     echo "ACCESS_KEY:           $ACCESS_KEY"
     echo "SECRET_KEY:           ***REDACTED***"
-    echo "ENABLE_HTTPS:         $ENABLE_HTTPS"
+    echo "ENABLE_HTTPS:         $ENABLE_HTTPS $([ "$SELFSIGNED_CERT" == "1" ] && printf '(Trust self-signed certificate)')"
     echo "SERVER_REGION:        $SERVER_REGION"
     echo "MINT_DATA_DIR:        $MINT_DATA_DIR"
     echo "MINT_MODE:            $MINT_MODE"
     echo "ENABLE_VIRTUAL_STYLE: $ENABLE_VIRTUAL_STYLE"
     echo
     echo "To get logs, run 'docker cp ${CONTAINER_ID}:/mint/log /tmp/mint-logs'"
-    
+    echo
+
+    [ "$ENABLE_HTTPS" == "1" ] && [ "$SELFSIGNED_CERT" == "1" ] && trust_s3_endpoint_tls_cert
+
     declare -a run_list
     if [ "$MINT_MODE" == "worm" ]; then
         if [ "$#" -gt 1 ]; then
