@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-MINIO_JS_VERSION=$(curl -s https://api.github.com/repos/minio/minio-js/releases/latest | jq -r .tag_name)
+MINIO_JS_VERSION=$(curl --retry 10 -s https://api.github.com/repos/minio/minio-js/releases/latest | jq -r .tag_name)
 if [ -z "$MINIO_JS_VERSION" ]; then
     echo "unable to get minio-js version from github"
     exit 1

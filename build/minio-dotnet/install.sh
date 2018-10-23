@@ -19,7 +19,7 @@ set -e
 
 MINIO_DOTNET_SDK_PATH="$MINT_RUN_CORE_DIR/minio-dotnet"
 
-MINIO_DOTNET_SDK_VERSION=$(curl -s https://api.github.com/repos/minio/minio-dotnet/releases/latest | jq -r .tag_name)
+MINIO_DOTNET_SDK_VERSION=$(curl --retry 10 -s https://api.github.com/repos/minio/minio-dotnet/releases/latest | jq -r .tag_name)
 if [ -z "$MINIO_DOTNET_SDK_VERSION" ]; then
     echo "unable to get minio-dotnet version from github"
     exit 1
