@@ -288,6 +288,8 @@ func testListObjects(s3Client *s3.S3) {
 		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go listobjects with prefix '' expected 2 key but got %v, %v", *result.KeyCount, getKeys(result.Contents)), errors.New("AWS S3 key count mismatch")).Fatal()
 		return
 	}
+
+	successLogger(function, args, startTime).Info()
 }
 
 func main() {
