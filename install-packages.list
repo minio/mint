@@ -12,6 +12,7 @@ default-jdk
 ant
 dirmngr
 dotnet-sdk-2.1
+ca-certificates-mono
 aspnetcore-runtime-2.1
 nuget
 libunwind8
