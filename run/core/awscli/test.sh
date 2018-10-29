@@ -258,13 +258,6 @@ function test_lookup_object_prefix() {
         return 1
     fi
 
-    # Lookup for the right prefix.
-    function="${AWS} s3api head-object --bucket ${bucket_name} --key prefix/directory/"
-    # save the ref to function being tested, so it can be logged
-    test_function=${function}
-    out=$($function 2>&1)
-
-    rv=$?
     if [ $rv -ne 0 ]; then
         # clean up and log error
         ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
@@ -1203,7 +1196,7 @@ main() {
     test_multipart_upload_10 && \
     test_serverside_encryption && \
     test_serverside_encryption_get_range && \
-    test_serverside_encryption_multipart
+    test_serverside_encryption_multipart && \
     # Success cli ops.
     test_aws_s3_cp && \
     test_aws_s3_sync && \
