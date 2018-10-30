@@ -42,7 +42,6 @@ Below environment variables are required to be passed to the docker container. S
 | `ACCESS_KEY` | Access key of access `SERVER_ENDPOINT` | `Q3AM3UQ867SPQQA43P2F` |
 | `SECRET_KEY` | Secret Key of access `SERVER_ENDPOINT` | `zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG` |
 | `ENABLE_HTTPS` | (Optional) Set `1` to indicate to use HTTPS to access `SERVER_ENDPOINT`. Defaults to `0` (HTTP) | `1` |
-| `SELFSIGNED_CERT` | (Optional) Set `1` to indicate that Minio server is loaded with a self-signed certificate. Defaults to `0` | `1` |
 | `MINT_MODE` | (Optional) Set mode indicating what category of tests to be run by values `core`, `full` or `worm`.  Defaults to `core` | `full` |
 | `DOMAIN` | (Optional) Value of MINIO_DOMAIN environment variable used in Minio server | `myminio.com` |
 | `ENABLE_VIRTUAL_STYLE` | (Optional) Set `1` to indicate virtual style access . Defaults to `0` (Path style) | `1` |
