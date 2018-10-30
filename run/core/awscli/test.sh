@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Mint (C) 2017 Minio, Inc.
+#  Mint (C) 2017, 2018 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ function make_bucket() {
     # Make bucket
     bucket_name="awscli-mint-test-bucket-$RANDOM"
     function="${AWS} s3api create-bucket --bucket ${bucket_name}"
-    
+
     # execute the test
     out=$($function 2>&1)
     rv=$?
@@ -61,7 +61,7 @@ function make_bucket() {
     # if command is successful print bucket_name or print error
     if [ $rv -eq 0 ]; then
         echo "${bucket_name}"
-    else    
+    else
         echo "${out}"
     fi
 
@@ -94,9 +94,9 @@ function test_create_bucket() {
     # if make_bucket is successful stat the bucket
     if [ $rv -eq 0 ]; then
         function="${AWS} s3api head-bucket --bucket ${bucket_name}"
-        out=$($function 2>&1) 
+        out=$($function 2>&1)
         rv=$?
-    else 
+    else
         # if make bucket failes, $bucket_name has the error output
         out="${bucket_name}"
     fi
@@ -104,7 +104,7 @@ function test_create_bucket() {
      # if stat bucket is successful remove the bucket
     if [ $rv -eq 0 ]; then
         function="delete_bucket"
-        out=$(delete_bucket "${bucket_name}") 
+        out=$(delete_bucket "${bucket_name}")
         rv=$?
     else
         # if make bucket failes, $bucket_name has the error output
@@ -128,7 +128,7 @@ function test_upload_object() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket)  
+    bucket_name=$(make_bucket)
     rv=$?
 
     # if make bucket succeeds upload a file
@@ -142,7 +142,7 @@ function test_upload_object() {
     fi
 
     # if upload succeeds download the file
-    if [ $rv -eq 0 ]; then 
+    if [ $rv -eq 0 ]; then
         function="${AWS} s3api get-object --bucket ${bucket_name} --key datafile-1-MB /tmp/datafile-1-MB"
         # save the ref to function being tested, so it can be logged
         test_function=${function}
@@ -153,10 +153,10 @@ function test_upload_object() {
     fi
 
     # if download succeeds, verify downloaded file
-    if [ $rv -eq 0 ]; then 
+    if [ $rv -eq 0 ]; then
         if [ "$HASH_1_MB" == "$hash2" ]; then
             function="delete_bucket"
-            out=$(delete_bucket "$bucket_name") 
+            out=$(delete_bucket "$bucket_name")
             rv=$?
             # remove download file
             rm -f /tmp/datafile-1-MB
@@ -205,13 +205,17 @@ function test_lookup_object_prefix() {
         function="${AWS} s3api put-object --bucket ${bucket_name} --key prefix/directory/"
         # save the ref to function being tested, so it can be logged
         test_function=${function}
-
         out=$($function 2>&1)
-
         rv=$?
-    else
-        # if make_bucket fails, $bucket_name has the error output
-        out="${bucket_name}"
+    fi
+
+    # if upload succeeds lookup for the prefix.
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api head-object --bucket ${bucket_name} --key prefix/directory/"
+        # save the ref to function being tested, so it can be logged
+        test_function=${function}
+        out=$($function 2>&1)
+        rv=$?
     fi
 
     # if directory create succeeds, upload the object.
@@ -241,21 +245,11 @@ function test_lookup_object_prefix() {
         rv=$?
     fi
 
-    # if upload succeeds lookup for the prefix.
+    # delete bucket
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api head-object --bucket ${bucket_name} --key prefix/directory"
-        # save the ref to function being tested, so it can be logged
-        test_function=${function}
-        out=$($function 2>&1)
+        function="delete_bucket"
+        out=$(delete_bucket "$bucket_name")
         rv=$?
-    fi
-
-    # Request should fail.
-    if [ $rv -eq 0 ]; then
-        # clean up and log error
-        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
-        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
-        return 1
     fi
 
     if [ $rv -ne 0 ]; then
@@ -275,7 +269,7 @@ function test_list_objects() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket)  
+    bucket_name=$(make_bucket)
     rv=$?
 
     # if make bucket succeeds upload a file
@@ -283,13 +277,13 @@ function test_list_objects() {
         function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
         out=$($function 2>&1)
         rv=$?
-    else 
+    else
         # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
     # if upload objects succeeds, list objects with existing prefix
-    if [ $rv -eq 0 ]; then 
+    if [ $rv -eq 0 ]; then
         function="${AWS} s3api list-objects --bucket ${bucket_name} --prefix datafile-1-MB"
         test_function=${function}
         out=$($function)
@@ -303,7 +297,7 @@ function test_list_objects() {
     fi
 
     # if upload objects succeeds, list objects without existing prefix
-    if [ $rv -eq 0 ]; then 
+    if [ $rv -eq 0 ]; then
         function="${AWS} s3api list-objects --bucket ${bucket_name} --prefix linux"
         out=$($function)
         rv=$?
@@ -315,7 +309,7 @@ function test_list_objects() {
     fi
 
     # if upload objects succeeds, list objectsv2 with existing prefix
-    if [ $rv -eq 0 ]; then 
+    if [ $rv -eq 0 ]; then
         function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix datafile-1-MB"
         out=$($function)
         rv=$?
@@ -327,7 +321,7 @@ function test_list_objects() {
     fi
 
     # if upload objects succeeds, list objectsv2 without existing prefix
-    if [ $rv -eq 0 ]; then 
+    if [ $rv -eq 0 ]; then
         function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix linux"
         out=$($function)
         rv=$?
@@ -337,10 +331,10 @@ function test_list_objects() {
             out="list-objects-v2 without existing prefix failed"
         fi
     fi
-    
-    if [ $rv -eq 0 ]; then 
+
+    if [ $rv -eq 0 ]; then
         function="delete_bucket"
-        out=$(delete_bucket "$bucket_name") 
+        out=$(delete_bucket "$bucket_name")
         rv=$?
         # remove download file
         rm -f /tmp/datafile-1-MB
@@ -364,7 +358,7 @@ function test_multipart_upload() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket)  
+    bucket_name=$(make_bucket)
     object_name=${bucket_name}"-object"
     rv=$?
 
@@ -373,7 +367,7 @@ function test_multipart_upload() {
         function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
         out=$($function 2>&1)
         rv=$?
-    else 
+    else
         # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
@@ -428,9 +422,9 @@ function test_multipart_upload() {
         fi
     fi
 
-    if [ $rv -eq 0 ]; then 
+    if [ $rv -eq 0 ]; then
         function="delete_bucket"
-        out=$(delete_bucket "$bucket_name") 
+        out=$(delete_bucket "$bucket_name")
         rv=$?
         # remove temp file
         rm -f /tmp/multipart
@@ -476,10 +470,14 @@ function test_max_key_list() {
     fi
 
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --max-keys 1 | jq '.KeyCount==1'"
+        function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --max-keys 1"
         test_function=${function}
-        out=$("$function")
+        out=$($function 2>&1)
         rv=$?
+        if [ $rv -eq 0 ]; then
+            out=$(echo "$out" | jq '.KeyCount')
+            rv=$?
+        fi
     fi
 
     if [ $rv -eq 0 ]; then
@@ -508,7 +506,7 @@ function test_copy_object() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket)  
+    bucket_name=$(make_bucket)
     rv=$?
 
     # if make bucket succeeds upload a file
@@ -516,13 +514,13 @@ function test_copy_object() {
         function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
         out=$($function 2>&1)
         rv=$?
-    else 
+    else
         # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
 
     # copy object server side
-    if [ $rv -eq 0 ]; then 
+    if [ $rv -eq 0 ]; then
         function="${AWS} s3api copy-object --bucket ${bucket_name} --key datafile-1-MB-copy --copy-source ${bucket_name}/datafile-1-MB"
         test_function=${function}
         out=$($function)
@@ -530,7 +528,7 @@ function test_copy_object() {
         hash2=$(echo "$out" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
         if [ $rv -eq 0 ] && [ "$HASH_1_MB" == "$hash2" ]; then
             function="delete_bucket"
-            out=$(delete_bucket "$bucket_name") 
+            out=$(delete_bucket "$bucket_name")
             rv=$?
             # The command passed, but the verification failed
             out="Verification failed for copied object"
@@ -556,7 +554,7 @@ function test_presigned_object() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket)  
+    bucket_name=$(make_bucket)
     rv=$?
 
     # if make bucket succeeds upload a file
@@ -564,7 +562,7 @@ function test_presigned_object() {
         function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
         out=$($function 2>&1)
         rv=$?
-    else 
+    else
         # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
@@ -578,7 +576,7 @@ function test_presigned_object() {
         hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
         if [ "$HASH_1_MB" == "$hash2" ]; then
             function="delete_bucket"
-            out=$(delete_bucket "$bucket_name") 
+            out=$(delete_bucket "$bucket_name")
             rv=$?
             # remove download file
             rm -f /tmp/datafile-1-MB
@@ -717,7 +715,7 @@ function test_aws_s3_cp() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket) 
+    bucket_name=$(make_bucket)
     rv=$?
 
     # if make bucket succeeds upload a file using cp
@@ -726,7 +724,7 @@ function test_aws_s3_cp() {
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
-    else 
+    else
         # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
@@ -742,7 +740,7 @@ function test_aws_s3_cp() {
         out=$($function 2>&1)
         rv=$?
     fi
-    
+
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
@@ -761,7 +759,7 @@ function test_aws_s3_sync() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket) 
+    bucket_name=$(make_bucket)
     rv=$?
 
     # if make bucket succeeds sync all the files in a directory
@@ -770,7 +768,7 @@ function test_aws_s3_sync() {
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
-    else 
+    else
         # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
@@ -785,9 +783,9 @@ function test_aws_s3_sync() {
     # delete bucket
     if [ $rv -eq 0 ]; then
         function="delete_bucket"
-        out=$(delete_bucket "$bucket_name") 
+        out=$(delete_bucket "$bucket_name")
         rv=$?
-    fi 
+    fi
 
     if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
@@ -808,7 +806,7 @@ function test_list_objects_error() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket)  
+    bucket_name=$(make_bucket)
     rv=$?
 
     # if make bucket succeeds upload a file
@@ -816,7 +814,7 @@ function test_list_objects_error() {
         function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
         out=$($function 2>&1)
         rv=$?
-    else 
+    else
         # if make bucket fails, $bucket_name has the error output
         out="${bucket_name}"
     fi
@@ -829,7 +827,7 @@ function test_list_objects_error() {
         rv=$?
         if [ $rv -ne 255 ]; then
             rv=1
-        else 
+        else
             rv=0
         fi
     fi
@@ -842,7 +840,7 @@ function test_list_objects_error() {
         rv=$?
         if [ $rv -ne 255 ]; then
             rv=1
-        else 
+        else
             rv=0
         fi
     fi
@@ -854,7 +852,7 @@ function test_list_objects_error() {
         rv=$?
         if [ $rv -eq 0 ]; then
             function="delete_bucket"
-            out=$(delete_bucket "$bucket_name") 
+            out=$(delete_bucket "$bucket_name")
             rv=$?
         fi
     fi
@@ -879,7 +877,7 @@ function test_put_object_error() {
     start_time=$(get_time)
 
     function="make_bucket"
-    bucket_name=$(make_bucket)  
+    bucket_name=$(make_bucket)
     rv=$?
 
     # if make bucket succeeds upload an object without content-md5.
@@ -890,7 +888,7 @@ function test_put_object_error() {
         rv=$?
         if [ $rv -ne 255 ]; then
             rv=1
-        else 
+        else
             rv=0
         fi
     fi
@@ -903,14 +901,14 @@ function test_put_object_error() {
         rv=$?
         if [ $rv -ne 255 ]; then
             rv=1
-        else 
+        else
             rv=0
         fi
     fi
 
     if [ $rv -eq 0 ]; then
         function="delete_bucket"
-        out=$(delete_bucket "$bucket_name") 
+        out=$(delete_bucket "$bucket_name")
         rv=$?
     fi
 
