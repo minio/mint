@@ -18,6 +18,7 @@
 MINT_DATA_DIR="$MINT_ROOT_DIR/data"
 
 declare -A data_file_map
+data_file_map["datafile-0-b"]="0"
 data_file_map["datafile-1-b"]="1"
 data_file_map["datafile-10-kB"]="10K"
 data_file_map["datafile-33-kB"]="33K"
