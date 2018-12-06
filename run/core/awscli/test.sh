@@ -407,7 +407,7 @@ function test_multipart_upload_0byte() {
         function="${AWS} s3api complete-multipart-upload --multipart-upload file:///tmp/multipart --bucket ${bucket_name} --key ${object_name} --upload-id ${upload_id}"
         out=$($function)
         rv=$?
-        etag=$(echo "$out" | jq -r .ETag)
+        etag=$(echo "$out" | jq -r .ETag | sed -e 's/^"//' -e 's/"$//')
         if [ "${etag}" == "" ]; then
             rv=1
             out="complete-multipart-upload failed"
@@ -514,7 +514,7 @@ function test_multipart_upload() {
         function="${AWS} s3api complete-multipart-upload --multipart-upload file:///tmp/multipart --bucket ${bucket_name} --key ${object_name} --upload-id ${upload_id}"
         out=$($function)
         rv=$?
-        finalETag=$(echo "$out" | jq -r .ETag)
+        finalETag=$(echo "$out" | jq -r .ETag | sed -e 's/^"//' -e 's/"$//')
         if [ "${finalETag}" == "" ]; then
             rv=1
             out="complete-multipart-upload failed"
@@ -779,7 +779,7 @@ function test_multipart_upload_10() {
         function="${AWS} s3api complete-multipart-upload --multipart-upload file:///tmp/multipart --bucket ${bucket_name} --key ${object_name} --upload-id ${upload_id}"
         out=$($function)
         rv=$?
-        finalETag=$(echo "$out" | jq -r .ETag)
+        finalETag=$(echo "$out" | jq -r .ETag | sed -e 's/^"//' -e 's/"$//')
         if [ "${finalETag}" == "" ]; then
             rv=1
             out="complete-multipart-upload failed"
