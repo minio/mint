@@ -1167,6 +1167,97 @@ function test_serverside_encryption_multipart() {
     return $rv
 }
 
+# tests encrypted copy from multipart encrypted object to 
+# single part encrypted object. This test in particular checks if copy 
+# succeeds for the case where encryption overhead for individually
+# encrypted parts vs encryption overhead for the original datastream
+# differs.
+function test_serverside_encryption_multipart_copy() {
+    #skip server side encryption tests if HTTPS disabled.
+    if [ "$ENABLE_HTTPS" != "1" ]; then
+        return 0
+    fi
+    # log start time
+    start_time=$(get_time)
+
+    function="make_bucket"
+    bucket_name=$(make_bucket)
+    object_name=${bucket_name}"-object"
+    rv=$?
+
+    if [ $rv -eq 0 ]; then
+        # create multipart
+        function="${AWS} s3api create-multipart-upload --bucket ${bucket_name} --key ${object_name} --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        out=$($function)
+        rv=$?
+        upload_id=$(echo "$out" | jq -r .UploadId)
+    fi
+
+    if [ $rv -eq 0 ]; then
+        # Capture etag for part-number 1
+        function="${AWS} s3api upload-part --bucket ${bucket_name} --key ${object_name} --body ${MINT_DATA_DIR}/datafile-5243880-b --upload-id ${upload_id} --part-number 1 --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        out=$($function)
+        rv=$?
+        etag1=$(echo "$out" | jq -r .ETag)
+    fi
+
+    if [ $rv -eq 0 ]; then
+        # Capture etag for part-number 2
+        function="${AWS} s3api upload-part --bucket ${bucket_name} --key ${object_name} --body ${MINT_DATA_DIR}/datafile-5243880-b --upload-id ${upload_id} --part-number 2 --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        out=$($function)
+        rv=$?
+        etag2=$(echo "$out" | jq -r .ETag)
+        # Create a multipart struct file for completing multipart transaction
+        echo "{
+            \"Parts\": [
+                {
+                    \"ETag\": ${etag1},
+                    \"PartNumber\": 1
+                },
+                {
+                    \"ETag\": ${etag2},
+                    \"PartNumber\": 2
+                }
+            ]
+        }" >> /tmp/multipart
+    fi
+
+    if [ $rv -eq 0 ]; then
+        # Use saved etags to complete the multipart transaction
+        function="${AWS} s3api complete-multipart-upload --multipart-upload file:///tmp/multipart --bucket ${bucket_name} --key ${object_name} --upload-id ${upload_id}"
+        out=$($function)
+        rv=$?
+        finalETag=$(echo "$out" | jq -r .ETag | sed -e 's/^"//' -e 's/"$//')
+        if [ "${finalETag}" == "" ]; then
+            rv=1
+            out="complete-multipart-upload failed"
+        fi
+    fi
+
+     # copy object server side
+    if [ $rv -eq 0 ]; then
+        function="${AWS} s3api copy-object --bucket ${bucket_name} --key ${object_name}-copy --copy-source ${bucket_name}/${object_name} --copy-source-sse-customer-algorithm AES256 --copy-source-sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --copy-source-sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg== --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        test_function=${function}
+        out=$($function)
+        rv=$?
+        if [ $rv -ne 255 ]; then
+            rv=1
+        else
+            rv=0
+        fi
+    fi
+
+    if [ $rv -eq 0 ]; then
+        log_success "$(get_duration "$start_time")" "${test_function}"
+    else
+        # clean up and log error
+        ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+        rm -f /tmp/multipart
+        log_failure "$(get_duration "$start_time")" "${function}" "${out}"
+    fi
+
+    return $rv
+}
 # tests server side encryption headers for range get calls
 function test_serverside_encryption_get_range() {
     #skip server side encryption tests if HTTPS disabled.
@@ -1306,6 +1397,7 @@ main() {
     test_serverside_encryption && \
     test_serverside_encryption_get_range && \
     test_serverside_encryption_multipart && \
+    test_serverside_encryption_multipart_copy && \
     # Success cli ops.
     test_aws_s3_cp && \
     test_aws_s3_sync && \
