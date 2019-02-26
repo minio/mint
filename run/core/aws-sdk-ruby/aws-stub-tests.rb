@@ -830,9 +830,9 @@ end
 
 # Create test Class instance and call the tests
 aws = AwsSdkRubyTest.new
-file_name1 = 'datafile-1-MB'
-file_new_name = 'datafile-1-MB-copy'
-file_name_list = ['datafile-1-MB', 'datafile-5-MB', 'datafile-6-MB']
+file_name1 = 'datafile-1-kB'
+file_new_name = 'datafile-1-kB-copy'
+file_name_list = ['datafile-1-kB', 'datafile-1-b', 'datafile-6-MB']
 # Add data_dir in front of each file name in file_name_list
 # The location where the bucket and file
 # objects are going to be created.

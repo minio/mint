@@ -109,6 +109,7 @@ Tests may use pre-created data set to perform various object operations on Minio
 |:--- |:--- |
 | datafile-0-b | 0B |
 | datafile-1-b | 1B |
+| datafile-1-kB |1KiB |
 | datafile-10-kB |10KiB |
 | datafile-33-kB |33KiB |
 | datafile-100-kB |100KiB |

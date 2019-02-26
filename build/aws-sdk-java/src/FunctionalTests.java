@@ -45,7 +45,6 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.SSECustomerKey;
 
-
 // Main Testing class
 public class FunctionalTests {
 
@@ -63,9 +62,9 @@ public class FunctionalTests {
     private static String bucketName = getRandomName();
     private static boolean mintEnv = false;
 
+    private static String file1Kb;
     private static String file1Mb;
     private static String file6Mb;
-    private static String file65Mb;
 
     private static SSECustomerKey sseKey1;
     private static SSECustomerKey sseKey2;
@@ -83,8 +82,8 @@ public class FunctionalTests {
      */
     public static void mintSuccessLog(String function, String args, long startTime) {
         if (mintEnv) {
-            System.out.println(new MintLogger(function, args, System.currentTimeMillis() - startTime,
-                        PASS, null, null, null));
+            System.out.println(
+                    new MintLogger(function, args, System.currentTimeMillis() - startTime, PASS, null, null, null));
         }
     }
 
@@ -93,8 +92,8 @@ public class FunctionalTests {
      */
     public static void mintFailedLog(String function, String args, long startTime, String message, String error) {
         if (mintEnv) {
-            System.out.println(new MintLogger(function, args, System.currentTimeMillis() - startTime,
-                        FAILED, null, message, error));
+            System.out.println(new MintLogger(function, args, System.currentTimeMillis() - startTime, FAILED, null,
+                    message, error));
         }
     }
 
@@ -103,8 +102,8 @@ public class FunctionalTests {
      */
     public static void mintIgnoredLog(String function, String args, long startTime) {
         if (mintEnv) {
-            System.out.println(new MintLogger(function, args, System.currentTimeMillis() - startTime,
-                        IGNORED, null, null, null));
+            System.out.println(
+                    new MintLogger(function, args, System.currentTimeMillis() - startTime, IGNORED, null, null, null));
         }
     }
 
@@ -134,26 +133,26 @@ public class FunctionalTests {
         // TODO: use multi delete API instead
         ObjectListing objectListing = s3Client.listObjects(bucketName);
         while (true) {
-            for (Iterator<?> iterator =
-                    objectListing.getObjectSummaries().iterator();
-                    iterator.hasNext();) {
-                S3ObjectSummary summary = (S3ObjectSummary)iterator.next();
+            for (Iterator<?> iterator = objectListing.getObjectSummaries().iterator(); iterator.hasNext();) {
+                S3ObjectSummary summary = (S3ObjectSummary) iterator.next();
                 s3Client.deleteObject(bucketName, summary.getKey());
-                    }
+            }
             // more objectListing to retrieve?
             if (objectListing.isTruncated()) {
                 objectListing = s3Client.listNextBatchOfObjects(objectListing);
             } else {
                 break;
             }
-        };
+        }
+        ;
         s3Client.deleteBucket(bucketName);
     }
 
     // Test regular object upload using encryption
     public static void uploadObjectEncryption_test1() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: uploadObject(String bucketName, String objectName, String f, SSECustomerKey sseKey)");
+            System.out.println(
+                    "Test: uploadObject(String bucketName, String objectName, String f, SSECustomerKey sseKey)");
         }
 
         if (!enableHTTPS) {
@@ -161,19 +160,19 @@ public class FunctionalTests {
         }
 
         long startTime = System.currentTimeMillis();
-        String file1MbMD5 = Utils.getFileMD5(file1Mb);
+        String file1KbMD5 = Utils.getFileMD5(file1Kb);
         String objectName = "testobject";
         try {
-            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
-            s3TestUtils.downloadObject(bucketName, objectName, sseKey1, file1MbMD5);
+            s3TestUtils.uploadObject(bucketName, objectName, file1Kb, sseKey1);
+            s3TestUtils.downloadObject(bucketName, objectName, sseKey1, file1KbMD5);
             mintSuccessLog("uploadObject(String bucketName, String objectName, String f, SSECustomerKey sseKey)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName +
-                    ", String: " + file1Mb + ", SSECustomerKey: " + sseKey1, startTime);
-
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", String: " + file1Kb
+                            + ", SSECustomerKey: " + sseKey1,
+                    startTime);
         } catch (Exception e) {
             mintFailedLog("uploadObject(String bucketName, String objectName, String f, SSECustomerKey sseKey)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName +
-                    ", String: " + file1Mb + ", SSECustomerKey: " + sseKey1,
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", String: " + file1Kb
+                            + ", SSECustomerKey: " + sseKey1,
                     startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
             throw e;
         }
@@ -189,14 +188,13 @@ public class FunctionalTests {
             return;
         }
 
-
         long startTime = System.currentTimeMillis();
 
-        String file1MbMD5 = Utils.getFileMD5(file1Mb);
+        String file1KbMD5 = Utils.getFileMD5(file1Kb);
         String objectName = "testobject";
 
         try {
-            s3TestUtils.uploadObject(bucketName, "testobject", file1Mb, sseKey1);
+            s3TestUtils.uploadObject(bucketName, "testobject", file1Kb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey2);
             Exception ex = new Exception("downloadObject did not throw an S3 Access denied exception");
             mintFailedLog("downloadObject(String bucketName, String objectName, SSECustomerKey sseKey)",
@@ -205,23 +203,24 @@ public class FunctionalTests {
             throw ex;
         } catch (Exception e) {
             if (!e.getMessage().contains("Access Denied")) {
-                Exception ex = new Exception("downloadObject did not throw S3 Access denied Exception but it did throw: " + e.getMessage());
+                Exception ex = new Exception(
+                        "downloadObject did not throw S3 Access denied Exception but it did throw: " + e.getMessage());
                 mintFailedLog("downloadObject(String bucketName, String objectName, SSECustomerKey sseKey)",
                         "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey2,
                         startTime, null, ex.toString() + " >>> " + Arrays.toString(ex.getStackTrace()));
                 throw ex;
             }
             mintSuccessLog("downloadObject(String bucketName, String objectName, SSECustomerKey sseKey)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " +
-                    sseKey2, startTime);
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey2,
+                    startTime);
         }
     }
 
     // Test copying object with a new different encryption key
     public static void copyObjectEncryption_test1() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)");
+            System.out.println("Test: copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                    + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)");
         }
 
         if (!enableHTTPS) {
@@ -229,35 +228,36 @@ public class FunctionalTests {
         }
 
         long startTime = System.currentTimeMillis();
-        String file1MbMD5 = Utils.getFileMD5(file1Mb);
+        String file1KbMD5 = Utils.getFileMD5(file1Kb);
         String objectName = "testobject";
         String dstObjectName = "dir/newobject";
 
         try {
-            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
+            s3TestUtils.uploadObject(bucketName, objectName, file1Kb, sseKey1);
             s3TestUtils.copyObject(bucketName, objectName, sseKey1, bucketName, dstObjectName, sseKey2, false);
-            s3TestUtils.downloadObject(bucketName, dstObjectName, sseKey2, file1MbMD5);
+            s3TestUtils.downloadObject(bucketName, dstObjectName, sseKey2, file1KbMD5);
         } catch (Exception e) {
-            mintFailedLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                    "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                    "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
-                    ", replaceDirective: " + false, startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            mintFailedLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                    + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                            + "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName
+                            + ", SSECustomerKey: " + sseKey2 + ", replaceDirective: " + false,
+                    startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
             throw e;
         }
-        mintSuccessLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
-                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
-                ", replaceDirective: " + false,
+        mintSuccessLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
+                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                        + "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: "
+                        + sseKey2 + ", replaceDirective: " + false,
                 startTime);
     }
 
     // Test copying object with wrong source encryption key
     public static void copyObjectEncryption_test2() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                    "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)");
+            System.out.println("Test: copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                    + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)");
         }
 
         if (!enableHTTPS) {
@@ -272,27 +272,30 @@ public class FunctionalTests {
         try {
             s3TestUtils.copyObject(bucketName, objectName, sseKey3, bucketName, dstObjectName, sseKey2, false);
             Exception ex = new Exception("copyObject did not throw an S3 Access denied exception");
-            mintFailedLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                    "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey3 +
-                    "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
-                    ", replaceDirective: " + false, startTime, null, ex.toString() + " >>> " + Arrays.toString(ex.getStackTrace()));
+            mintFailedLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                    + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey3
+                            + "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName
+                            + ", SSECustomerKey: " + sseKey2 + ", replaceDirective: " + false,
+                    startTime, null, ex.toString() + " >>> " + Arrays.toString(ex.getStackTrace()));
             throw ex;
         } catch (Exception e) {
             if (!e.getMessage().contains("Access Denied")) {
-                Exception ex = new Exception("copyObject did not throw S3 Access denied Exception but it did throw: " + e.getMessage());
-                mintFailedLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                        "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
-                        "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey3 +
-                        "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
-                        ", replaceDirective: " + false, startTime, null, ex.toString() + " >>> " + Arrays.toString(ex.getStackTrace()));
+                Exception ex = new Exception(
+                        "copyObject did not throw S3 Access denied Exception but it did throw: " + e.getMessage());
+                mintFailedLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                        + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
+                        "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey3
+                                + "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName
+                                + ", SSECustomerKey: " + sseKey2 + ", replaceDirective: " + false,
+                        startTime, null, ex.toString() + " >>> " + Arrays.toString(ex.getStackTrace()));
                 throw ex;
             }
-            mintSuccessLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                    "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey3 +
-                    "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
-                    ", replaceDirective: " + false,
+            mintSuccessLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                    + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey3
+                            + "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName
+                            + ", SSECustomerKey: " + sseKey2 + ", replaceDirective: " + false,
                     startTime);
         }
     }
@@ -300,8 +303,8 @@ public class FunctionalTests {
     // Test copying multipart object
     public static void copyObjectEncryption_test3() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)");
+            System.out.println("Test: copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                    + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)");
         }
 
         if (!enableHTTPS) {
@@ -318,28 +321,27 @@ public class FunctionalTests {
             s3TestUtils.copyObject(bucketName, objectName, sseKey1, bucketName, dstObjectName, sseKey2, false);
             s3TestUtils.downloadObject(bucketName, dstObjectName, sseKey2, file6MbMD5);
         } catch (Exception e) {
-            mintFailedLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                    "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                    "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
-                    ", replaceDirective: " + false, startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+            mintFailedLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                    + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                            + "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName
+                            + ", SSECustomerKey: " + sseKey2 + ", replaceDirective: " + false,
+                    startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
             throw e;
         }
-        mintSuccessLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, " +
-                "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
-                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: " + sseKey2 +
-                ", replaceDirective: " + false,
+        mintSuccessLog("copyObject(String bucketName, String objectName, SSECustomerKey sseKey, "
+                + "String destBucketName, String dstObjectName, SSECustomerKey sseKey2, boolean replaceDirective)",
+                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                        + "DstbucketName: " + bucketName + ", DstObjectName: " + dstObjectName + ", SSECustomerKey: "
+                        + sseKey2 + ", replaceDirective: " + false,
                 startTime);
     }
 
-
-
-    // Test downloading encrypted object with Get Range, 0 -> 1024*1024
+    // Test downloading encrypted object with Get Range, 0 -> 1024
     public static void downloadGetRangeEncryption_test1() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, "
+                    + "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
         }
 
         if (!enableHTTPS) {
@@ -349,33 +351,34 @@ public class FunctionalTests {
         long startTime = System.currentTimeMillis();
 
         String objectName = "testobject";
-        String range1MD5 = Utils.getFileMD5(file1Mb);
+        String range1MD5 = Utils.getFileMD5(file1Kb);
         int start = 0;
-        int length = 1024*1024;
+        int length = 1024;
         try {
-            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
+            s3TestUtils.uploadObject(bucketName, objectName, file1Kb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
-        } catch (Exception e){
-            mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                    ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
-                        startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+        } catch (Exception e) {
+            mintFailedLog(
+                    "downloadObjectGetRange(String bucketName, String objectName, "
+                            + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                            + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                    startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
             throw e;
         }
         mintSuccessLog(
-                "downloadObjectGetRange(String bucketName, String objectName, " +
-                "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                "downloadObjectGetRange(String bucketName, String objectName, "
+                        + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                        + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                 startTime);
     }
 
     // Test downloading encrypted object with Get Range, 0 -> 1
     public static void downloadGetRangeEncryption_test2() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, "
+                    + "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
         }
 
         if (!enableHTTPS) {
@@ -387,32 +390,32 @@ public class FunctionalTests {
         String objectName = "testobject";
         int start = 0;
         int length = 1;
-        String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
+        String range1MD5 = Utils.getFileMD5(file1Kb, start, length);
         try {
-            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
+            s3TestUtils.uploadObject(bucketName, objectName, file1Kb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
-        } catch (Exception e){
-            mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                    ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
-                        startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+        } catch (Exception e) {
+            mintFailedLog(
+                    "downloadObjectGetRange(String bucketName, String objectName, "
+                            + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                            + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                    startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
             throw e;
         }
         mintSuccessLog(
-                "downloadObjectGetRange(String bucketName, String objectName, " +
-                "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                "downloadObjectGetRange(String bucketName, String objectName, "
+                        + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                        + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                 startTime);
     }
 
-
-    // Test downloading encrypted object with Get Range, 0 -> 1024*1024-1
+    // Test downloading encrypted object with Get Range, 0 -> 1024-1
     public static void downloadGetRangeEncryption_test3() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, "
+                    + "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
         }
 
         if (!enableHTTPS) {
@@ -423,32 +426,33 @@ public class FunctionalTests {
 
         String objectName = "testobject";
         int start = 0;
-        int length = 1024*1024-1;
-        String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
+        int length = 1023;
+        String range1MD5 = Utils.getFileMD5(file1Kb, start, length);
         try {
-            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
+            s3TestUtils.uploadObject(bucketName, objectName, file1Kb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
-        } catch (Exception e){
-            mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                    ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
-                        startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+        } catch (Exception e) {
+            mintFailedLog(
+                    "downloadObjectGetRange(String bucketName, String objectName, "
+                            + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                            + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                    startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
             throw e;
         }
         mintSuccessLog(
-                "downloadObjectGetRange(String bucketName, String objectName, " +
-                "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                "downloadObjectGetRange(String bucketName, String objectName, "
+                        + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                        + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                 startTime);
     }
 
-    // Test downloading encrypted object with Get Range, 1 -> 1024*1024-1
+    // Test downloading encrypted object with Get Range, 1 -> 1024-1
     public static void downloadGetRangeEncryption_test4() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, "
+                    + "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
         }
 
         if (!enableHTTPS) {
@@ -459,32 +463,33 @@ public class FunctionalTests {
 
         String objectName = "testobject";
         int start = 1;
-        int length = 1024*1024-1;
-        String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
+        int length = 1023;
+        String range1MD5 = Utils.getFileMD5(file1Kb, start, length);
         try {
-            s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
+            s3TestUtils.uploadObject(bucketName, objectName, file1Kb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
-        } catch (Exception e){
-            mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                    ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
-                        startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+        } catch (Exception e) {
+            mintFailedLog(
+                    "downloadObjectGetRange(String bucketName, String objectName, "
+                            + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                            + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                    startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
             throw e;
         }
         mintSuccessLog(
-                "downloadObjectGetRange(String bucketName, String objectName, " +
-                "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                "downloadObjectGetRange(String bucketName, String objectName, "
+                        + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                        + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                 startTime);
     }
 
     // Test downloading encrypted object with Get Range, 64*1024 -> 64*1024
     public static void downloadGetRangeEncryption_test5() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, "
+                    + "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
         }
 
         if (!enableHTTPS) {
@@ -494,33 +499,35 @@ public class FunctionalTests {
         long startTime = System.currentTimeMillis();
 
         String objectName = "testobject";
-        int start = 64*1024;
-        int length = 64*1024;
+        int start = 64 * 1024;
+        int length = 64 * 1024;
         String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
         try {
             s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
-        } catch (Exception e){
-            mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                    ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
-                        startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+        } catch (Exception e) {
+            mintFailedLog(
+                    "downloadObjectGetRange(String bucketName, String objectName, "
+                            + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                            + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                    startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
             throw e;
         }
         mintSuccessLog(
-                "downloadObjectGetRange(String bucketName, String objectName, " +
-                "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                "downloadObjectGetRange(String bucketName, String objectName, "
+                        + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                        + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                 startTime);
     }
 
-    // Test downloading encrypted object with Get Range, 64*1024 -> 1024*1024-64*1024
+    // Test downloading encrypted object with Get Range, 64*1024 ->
+    // 1024*1024-64*1024
     public static void downloadGetRangeEncryption_test6() throws Exception {
         if (!mintEnv) {
-            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
+            System.out.println("Test: downloadObjectGetRange(String bucketName, String objectName, "
+                    + "SSECustomerKey sseKey, String expectedMD5, int start, int length)");
         }
 
         if (!enableHTTPS) {
@@ -530,25 +537,26 @@ public class FunctionalTests {
         long startTime = System.currentTimeMillis();
 
         String objectName = "testobject";
-        int start = 64*1024;
-        int length = 1024*1024-64*1024;
+        int start = 64 * 1024;
+        int length = 1024 * 1024 - 64 * 1024;
         String range1MD5 = Utils.getFileMD5(file1Mb, start, length);
         try {
             s3TestUtils.uploadObject(bucketName, objectName, file1Mb, sseKey1);
             s3TestUtils.downloadObject(bucketName, objectName, sseKey1, range1MD5, start, length);
-        } catch (Exception e){
-            mintFailedLog("downloadObjectGetRange(String bucketName, String objectName, " +
-                    "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                    ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
-                        startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
+        } catch (Exception e) {
+            mintFailedLog(
+                    "downloadObjectGetRange(String bucketName, String objectName, "
+                            + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                    "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                            + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                    startTime, null, e.toString() + " >>> " + Arrays.toString(e.getStackTrace()));
             throw e;
         }
         mintSuccessLog(
-                "downloadObjectGetRange(String bucketName, String objectName, " +
-                "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
-                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1 +
-                ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
+                "downloadObjectGetRange(String bucketName, String objectName, "
+                        + "SSECustomerKey sseKey, String expectedMD5, int start, int length)",
+                "bucketName: " + bucketName + ", objectName: " + objectName + ", SSECustomerKey: " + sseKey1
+                        + ", expectedMD5: " + range1MD5 + ", start: " + start + ", length: " + length,
                 startTime);
     }
 
@@ -569,10 +577,9 @@ public class FunctionalTests {
         downloadGetRangeEncryption_test4();
         downloadGetRangeEncryption_test5();
         downloadGetRangeEncryption_test6();
-   }
+    }
 
-    public static void main(String[] args) throws Exception,
-           IOException, NoSuchAlgorithmException {
+    public static void main(String[] args) throws Exception, IOException, NoSuchAlgorithmException {
 
         endpoint = System.getenv("SERVER_ENDPOINT");
         accessKey = System.getenv("ACCESS_KEY");
@@ -590,9 +597,9 @@ public class FunctionalTests {
         String dataDir = System.getenv("MINT_DATA_DIR");
         if (dataDir != null && !dataDir.equals("")) {
             mintEnv = true;
+            file1Kb = Paths.get(dataDir, "datafile-1-kB").toString();
             file1Mb = Paths.get(dataDir, "datafile-1-MB").toString();
             file6Mb = Paths.get(dataDir, "datafile-6-MB").toString();
-            file65Mb = Paths.get(dataDir, "datafile-65-MB").toString();
         }
 
         String mintMode = null;
@@ -601,7 +608,8 @@ public class FunctionalTests {
         }
 
         AWSCredentials credentials = new BasicAWSCredentials(accessKey, secretKey);
-        AmazonS3ClientBuilder.EndpointConfiguration endpointConfiguration = new AmazonS3ClientBuilder.EndpointConfiguration(endpoint, region);
+        AmazonS3ClientBuilder.EndpointConfiguration endpointConfiguration = new AmazonS3ClientBuilder.EndpointConfiguration(
+                endpoint, region);
 
         AmazonS3ClientBuilder clientBuilder = AmazonS3ClientBuilder.standard();
         clientBuilder.setCredentials(new AWSStaticCredentialsProvider(credentials));
