@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-MINIO_PY_VERSION=$(curl --retry 10 -s https://api.github.com/repos/minio/minio-py/releases/latest | jq -r .tag_name)
+MINIO_PY_VERSION=$(curl --retry 10 -Ls -o /dev/null -w "%{url_effective}" https://github.com/minio/minio-py/releases/latest | sed "s/https:\/\/github.com\/minio\/minio-py\/releases\/tag\///")
 if [ -z "$MINIO_PY_VERSION" ]; then
     echo "unable to get minio-py version from github"
     exit 1
