@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-MINIO_JAVA_VERSION=$(curl --retry 10 -s https://api.github.com/repos/minio/minio-java/releases/latest | jq -r .tag_name)
+MINIO_JAVA_VERSION=$(curl --retry 10 -Ls -o /dev/null -w "%{url_effective}" https://github.com/minio/minio-java/releases/latest | sed "s/https:\/\/github.com\/minio\/minio-java\/releases\/tag\///")
 if [ -z "$MINIO_JAVA_VERSION" ]; then
     echo "unable to get minio-java version from github"
     exit 1
