@@ -70,6 +70,9 @@ RUN build/security/install.sh
 COPY build/worm /mint/build/worm
 RUN build/worm/install.sh
 
+COPY build/healthcheck /mint/build/healthcheck
+RUN build/healthcheck/install.sh
+
 COPY remove-packages.list /mint
 COPY postinstall.sh /mint
 RUN /mint/postinstall.sh
