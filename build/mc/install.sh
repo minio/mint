@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-MC_VERSION=$(curl --retry 10 -s https://api.github.com/repos/minio/mc/releases/latest | jq -r .tag_name)
+MC_VERSION=$(curl --retry 10 -Ls -o /dev/null -w "%{url_effective}" https://github.com/minio/mc/releases/latest | sed "s/https:\/\/github.com\/minio\/mc\/releases\/tag\///")
 if [ -z "$MC_VERSION" ]; then
     echo "unable to get mc version from github"
     exit 1
