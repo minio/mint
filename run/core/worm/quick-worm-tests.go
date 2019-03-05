@@ -248,7 +248,7 @@ func testPutMultipart(s3Client *s3.S3) {
 		"expiry":     expiry,
 	}
 	function := "PutMultiPart"
-	file, err := os.Open("/mint/data/datafile-65-MB")
+	file, err := os.Open("/mint/data/datafile-5-MB")
 
 	if err != nil {
 		failureLog(function, args, startTime, "", "WORM_MODE ON err opening file", err).Fatal()

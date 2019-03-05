@@ -26,7 +26,7 @@ use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Client;
 
 // Constants
-const FILE_10KB = "datafile-10-kB";
+const FILE_1_KB = "datafile-1-kB";
 const FILE_5_MB = "datafile-5-MB";
 const HTTP_OK = "200";
 const HTTP_NOCONTENT = "204";
@@ -353,10 +353,10 @@ function initSetup(S3Client $s3Client, $objects) {
         $s3Client->createBucket(['Bucket' => $bucket]);
         $stream = NULL;
         try {
-            if (!file_exists($MINT_DATA_DIR . '/' . FILE_10KB))
-                throw new Exception('File not found ' . $MINT_DATA_DIR . '/' . FILE_10KB);
+            if (!file_exists($MINT_DATA_DIR . '/' . FILE_1_KB))
+                throw new Exception('File not found ' . $MINT_DATA_DIR . '/' . FILE_1_KB);
 
-            $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_10KB, 'r'));
+            $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_1_KB, 'r'));
             $result = $s3Client->putObject([
                 'Bucket' => $bucket,
                 'Key' => $object,
@@ -398,7 +398,7 @@ function testGetPutObject($s3Client, $params) {
     // Upload a 10KB file
     $MINT_DATA_DIR = $GLOBALS['MINT_DATA_DIR'];
     try {
-        $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_10KB, 'r'));
+        $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_1_KB, 'r'));
         $result = $s3Client->putObject([
             'Bucket' => $bucket,
             'Key' => $object,
@@ -426,7 +426,7 @@ function testGetPutObject($s3Client, $params) {
         $bodyLen += strlen($body->read(4096));
     }
 
-    if ($bodyLen != 10 * 1024) {
+    if ($bodyLen != 1 * 1024) {
         throw new Exception("Object downloaded has different content length than uploaded object "
                             . $bucket . '/' . $object);
     }
@@ -879,10 +879,10 @@ function testBucketPolicy($s3Client, $params) {
         $MINT_DATA_DIR = $GLOBALS['MINT_DATA_DIR'];
         // Create an object to test anonymous GET object
         $object = 'test-anon';
-        if (!file_exists($MINT_DATA_DIR . '/' . FILE_10KB))
-            throw new Exception('File not found ' . $MINT_DATA_DIR . '/' . FILE_10KB);
+        if (!file_exists($MINT_DATA_DIR . '/' . FILE_1_KB))
+            throw new Exception('File not found ' . $MINT_DATA_DIR . '/' . FILE_1_KB);
 
-        $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_10KB, 'r'));
+        $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_1_KB, 'r'));
         $result = $s3Client->putObject([
                 'Bucket' => $bucket,
                 'Key' => $object,

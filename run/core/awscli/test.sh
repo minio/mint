@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-HASH_1_MB=$(md5sum "${MINT_DATA_DIR}/datafile-1-MB" | awk '{print $1}')
+HASH_1_KB=$(md5sum "${MINT_DATA_DIR}/datafile-1-kB" | awk '{print $1}')
 HASH_65_MB=$(md5sum "${MINT_DATA_DIR}/datafile-65-MB" | awk '{print $1}')
 
 _init() {
@@ -134,7 +134,7 @@ function test_upload_object() {
 
     # if make bucket succeeds upload a file
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB"
         out=$($function 2>&1)
         rv=$?
     else
@@ -144,23 +144,23 @@ function test_upload_object() {
 
     # if upload succeeds download the file
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api get-object --bucket ${bucket_name} --key datafile-1-MB /tmp/datafile-1-MB"
+        function="${AWS} s3api get-object --bucket ${bucket_name} --key datafile-1-kB /tmp/datafile-1-kB"
         # save the ref to function being tested, so it can be logged
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
         # calculate the md5 hash of downloaded file
-        hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
+        hash2=$(md5sum /tmp/datafile-1-kB | awk '{print $1}')
     fi
 
     # if download succeeds, verify downloaded file
     if [ $rv -eq 0 ]; then
-        if [ "$HASH_1_MB" == "$hash2" ]; then
+        if [ "$HASH_1_KB" == "$hash2" ]; then
             function="delete_bucket"
             out=$(delete_bucket "$bucket_name")
             rv=$?
             # remove download file
-            rm -f /tmp/datafile-1-MB
+            rm -f /tmp/datafile-1-kB
         else
             rv=1
             out="Checksum verification failed for uploaded object"
@@ -221,7 +221,7 @@ function test_lookup_object_prefix() {
 
     # if directory create succeeds, upload the object.
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key prefix/directory/datafile-1-MB"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key prefix/directory/datafile-1-kB"
         # save the ref to function being tested, so it can be logged
         test_function=${function}
         out=$($function 2>&1)
@@ -239,7 +239,7 @@ function test_lookup_object_prefix() {
 
     # if upload succeeds lookup for the object should succeed.
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api head-object --bucket ${bucket_name} --key prefix/directory/datafile-1-MB"
+        function="${AWS} s3api head-object --bucket ${bucket_name} --key prefix/directory/datafile-1-kB"
         # save the ref to function being tested, so it can be logged
         test_function=${function}
         out=$($function 2>&1)
@@ -275,7 +275,7 @@ function test_list_objects() {
 
     # if make bucket succeeds upload a file
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB"
         out=$($function 2>&1)
         rv=$?
     else
@@ -285,12 +285,12 @@ function test_list_objects() {
 
     # if upload objects succeeds, list objects with existing prefix
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api list-objects --bucket ${bucket_name} --prefix datafile-1-MB"
+        function="${AWS} s3api list-objects --bucket ${bucket_name} --prefix datafile-1-kB"
         test_function=${function}
         out=$($function)
         rv=$?
         key_name=$(echo "$out" | jq -r .Contents[].Key)
-        if [ $rv -eq 0 ] && [ "$key_name" != "datafile-1-MB" ]; then
+        if [ $rv -eq 0 ] && [ "$key_name" != "datafile-1-kB" ]; then
             rv=1
             # since rv is 0, command passed, but didn't return expected value. In this case set the output
             out="list-objects with existing prefix failed"
@@ -311,11 +311,11 @@ function test_list_objects() {
 
     # if upload objects succeeds, list objectsv2 with existing prefix
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix datafile-1-MB"
+        function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix datafile-1-kB"
         out=$($function)
         rv=$?
         key_name=$(echo "$out" | jq -r .Contents[].Key)
-        if [ $rv -eq 0 ] && [ "$key_name" != "datafile-1-MB" ]; then
+        if [ $rv -eq 0 ] && [ "$key_name" != "datafile-1-kB" ]; then
             rv=1
             out="list-objects-v2 with existing prefix failed"
         fi
@@ -338,7 +338,7 @@ function test_list_objects() {
         out=$(delete_bucket "$bucket_name")
         rv=$?
         # remove download file
-        rm -f /tmp/datafile-1-MB
+        rm -f /tmp/datafile-1-kB
     fi
 
     if [ $rv -eq 0 ]; then
@@ -346,7 +346,7 @@ function test_list_objects() {
     else
         # clean up and log error
         ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
-        rm -f /tmp/datafile-1-MB
+        rm -f /tmp/datafile-1-kB
         log_failure "$(get_duration "$start_time")" "${function}" "${out}"
     fi
 
@@ -463,7 +463,7 @@ function test_multipart_upload() {
 
     # if make bucket succeeds upload a file
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB"
         out=$($function 2>&1)
         rv=$?
     else
@@ -490,7 +490,7 @@ function test_multipart_upload() {
 
     if [ $rv -eq 0 ]; then
         # Capture etag for part-number 2
-        function="${AWS} s3api upload-part --bucket ${bucket_name} --key ${object_name} --body ${MINT_DATA_DIR}/datafile-1-MB --upload-id ${upload_id} --part-number 2"
+        function="${AWS} s3api upload-part --bucket ${bucket_name} --key ${object_name} --body ${MINT_DATA_DIR}/datafile-1-kB --upload-id ${upload_id} --part-number 2"
         out=$($function)
         rv=$?
         etag2=$(echo "$out" | jq -r .ETag)
@@ -610,7 +610,7 @@ function test_copy_object() {
 
     # if make bucket succeeds upload a file
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB"
         out=$($function 2>&1)
         rv=$?
     else
@@ -620,12 +620,12 @@ function test_copy_object() {
 
     # copy object server side
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api copy-object --bucket ${bucket_name} --key datafile-1-MB-copy --copy-source ${bucket_name}/datafile-1-MB"
+        function="${AWS} s3api copy-object --bucket ${bucket_name} --key datafile-1-kB-copy --copy-source ${bucket_name}/datafile-1-kB"
         test_function=${function}
         out=$($function)
         rv=$?
         hash2=$(echo "$out" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
-        if [ $rv -eq 0 ] && [ "$HASH_1_MB" == "$hash2" ]; then
+        if [ $rv -eq 0 ] && [ "$HASH_1_KB" == "$hash2" ]; then
             function="delete_bucket"
             out=$(delete_bucket "$bucket_name")
             rv=$?
@@ -658,7 +658,7 @@ function test_presigned_object() {
 
     # if make bucket succeeds upload a file
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB"
         out=$($function 2>&1)
         rv=$?
     else
@@ -667,18 +667,18 @@ function test_presigned_object() {
     fi
 
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3 presign s3://${bucket_name}/datafile-1-MB"
+        function="${AWS} s3 presign s3://${bucket_name}/datafile-1-kB"
         test_function=${function}
         url=$($function)
         rv=$?
-        curl -sS -X GET "${url}" > /tmp/datafile-1-MB
-        hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
-        if [ "$HASH_1_MB" == "$hash2" ]; then
+        curl -sS -X GET "${url}" > /tmp/datafile-1-kB
+        hash2=$(md5sum /tmp/datafile-1-kB | awk '{print $1}')
+        if [ "$HASH_1_KB" == "$hash2" ]; then
             function="delete_bucket"
             out=$(delete_bucket "$bucket_name")
             rv=$?
             # remove download file
-            rm -f /tmp/datafile-1-MB
+            rm -f /tmp/datafile-1-kB
         else
             rv=1
             out="Checksum verification failed for downloaded object"
@@ -910,7 +910,7 @@ function test_list_objects_error() {
 
     # if make bucket succeeds upload a file
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB"
         out=$($function 2>&1)
         rv=$?
     else
@@ -920,7 +920,7 @@ function test_list_objects_error() {
 
     if [ $rv -eq 0 ]; then
         # Server replies an error for v1 with max-key=-1
-        function="${AWS} s3api list-objects --bucket ${bucket_name} --prefix datafile-1-MB --max-keys=-1"
+        function="${AWS} s3api list-objects --bucket ${bucket_name} --prefix datafile-1-kB --max-keys=-1"
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
@@ -933,7 +933,7 @@ function test_list_objects_error() {
 
     if [ $rv -eq 0 ]; then
         # Server replies an error for v2 with max-keys=-1
-        function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix datafile-1-MB --max-keys=-1"
+        function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix datafile-1-kB --max-keys=-1"
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
@@ -946,7 +946,7 @@ function test_list_objects_error() {
 
     if [ $rv -eq 0 ]; then
         # Server returns success with no keys when max-keys=0
-        function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix datafile-1-MB --max-keys=0"
+        function="${AWS} s3api list-objects-v2 --bucket ${bucket_name} --prefix datafile-1-kB --max-keys=0"
         out=$($function 2>&1)
         rv=$?
         if [ $rv -eq 0 ]; then
@@ -981,7 +981,7 @@ function test_put_object_error() {
 
     # if make bucket succeeds upload an object without content-md5.
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB --content-md5 invalid"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB --content-md5 invalid"
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
@@ -994,7 +994,7 @@ function test_put_object_error() {
 
     # upload an object without content-length.
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB --content-length -1"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB --content-length -1"
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
@@ -1036,7 +1036,7 @@ function test_serverside_encryption() {
 
     # put object with server side encryption headers
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
@@ -1047,7 +1047,7 @@ function test_serverside_encryption() {
         sse_customer_key1=$(echo "$out" | jq -r .SSECustomerKeyMD5)
         sse_customer_algo1=$(echo "$out" | jq -r .SSECustomerAlgorithm)
 
-        function="${AWS} s3api get-object --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg== /tmp/datafile-1-MB"
+        function="${AWS} s3api get-object --bucket ${bucket_name} --key datafile-1-kB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg== /tmp/datafile-1-kB"
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
@@ -1056,14 +1056,14 @@ function test_serverside_encryption() {
         etag2=$(echo "$out" | jq -r .ETag)
         sse_customer_key2=$(echo "$out" | jq -r .SSECustomerKeyMD5)
         sse_customer_algo2=$(echo "$out" | jq -r .SSECustomerAlgorithm)
-        hash2=$(md5sum /tmp/datafile-1-MB | awk '{print $1}')
+        hash2=$(md5sum /tmp/datafile-1-kB | awk '{print $1}')
         # match downloaded object's hash to original
-        if [ "$HASH_1_MB" == "$hash2" ]; then
+        if [ "$HASH_1_KB" == "$hash2" ]; then
             function="delete_bucket"
             out=$(delete_bucket "$bucket_name")
             rv=$?
             # remove download file
-            rm -f /tmp/datafile-1-MB
+            rm -f /tmp/datafile-1-kB
         else
             rv=1
             out="Checksum verification failed for downloaded object"
@@ -1318,7 +1318,7 @@ function test_serverside_encryption_error() {
 
     # put object with server side encryption headers  with MD5Sum mismatch for sse-customer-key-md5 header
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg"
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg"
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
@@ -1331,7 +1331,7 @@ function test_serverside_encryption_error() {
     fi
     # put object with missing server side encryption header sse-customer-algorithm
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB  --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB  --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
@@ -1345,7 +1345,7 @@ function test_serverside_encryption_error() {
 
     # put object with server side encryption headers successfully
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-MB --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
+        function="${AWS} s3api put-object --body ${MINT_DATA_DIR}/datafile-1-kB --bucket ${bucket_name} --key datafile-1-kB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc2xvbmdzZWNyZXRrZXltdXN0cHJvdmlkZWQ= --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg=="
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
@@ -1353,7 +1353,7 @@ function test_serverside_encryption_error() {
 
     # now test get on encrypted object with nonmatching sse-customer-key and sse-customer-md5 headers
     if [ $rv -eq 0 ]; then
-        function="${AWS} s3api get-object --bucket ${bucket_name} --key datafile-1-MB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg== /tmp/datafile-1-MB"
+        function="${AWS} s3api get-object --bucket ${bucket_name} --key datafile-1-kB --sse-customer-algorithm AES256 --sse-customer-key MzJieXRlc --sse-customer-key-md5 7PpPLAK26ONlVUGOWlusfg== /tmp/datafile-1-kB"
         test_function=${function}
         out=$($function 2>&1)
         rv=$?
