@@ -21,6 +21,7 @@ MINT_MODE=${MINT_MODE:-core}
 SERVER_REGION=${SERVER_REGION:-us-east-1}
 ENABLE_HTTPS=${ENABLE_HTTPS:-0}
 ENABLE_VIRTUAL_STYLE=${ENABLE_VIRTUAL_STYLE:-0}
+GO111MODULE=on
 
 if [ -z "$SERVER_ENDPOINT" ]; then
     SERVER_ENDPOINT="play.minio.io:9000"
@@ -129,13 +130,14 @@ function main()
     export SERVER_ENDPOINT
     export SERVER_IP
     export SERVER_PORT
-    
+
     export ACCESS_KEY
     export SECRET_KEY
     export ENABLE_HTTPS
     export SERVER_REGION
     export ENABLE_VIRTUAL_STYLE
-    
+    export GO111MODULE
+
     echo "Running with"
     echo "SERVER_ENDPOINT:      $SERVER_ENDPOINT"
     echo "ACCESS_KEY:           $ACCESS_KEY"
@@ -157,7 +159,7 @@ function main()
             echo "No argument is accepted for worm mode"
             exit 1
         fi
-        
+
         run_list=( "$TESTS_DIR/worm" )
     else
         sdks=( "$@" )
@@ -176,7 +178,7 @@ function main()
             run_list=( "${run_list[@]}" "$TESTS_DIR/$sdk" )
         done
     fi
-    
+
     count="${#run_list[@]}"
     i=0
     for sdk_dir in "${run_list[@]}"; do
@@ -192,7 +194,7 @@ function main()
             break
         fi
     done
-    
+
     ## Report when all tests in run_list are run
     if [ $i -eq "$count" ]; then
         echo -e "\nAll tests ran successfully"
