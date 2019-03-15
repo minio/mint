@@ -16,5 +16,4 @@
 #
 
 test_run_dir="$MINT_RUN_CORE_DIR/security"
-go get -u github.com/sirupsen/logrus/...
-go build -o "$test_run_dir/tls-tests" "$test_run_dir/tls-tests.go"
+GO111MODULE=on go build -o "$test_run_dir/tls-tests" "$test_run_dir/tls-tests.go"

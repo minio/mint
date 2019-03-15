@@ -16,5 +16,4 @@
 #
 
 test_run_dir="$MINT_RUN_CORE_DIR/healthcheck"
-go get -u github.com/sirupsen/logrus/...
-go build -o "$test_run_dir/healthcheck" "$test_run_dir/healthcheck.go"
+GO111MODULE=on go build -o "$test_run_dir/healthcheck" "$test_run_dir/healthcheck.go"
