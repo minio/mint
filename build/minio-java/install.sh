@@ -15,9 +15,9 @@
 #  limitations under the License.
 #
 
-MINIO_JAVA_VERSION=$(curl --retry 10 -Ls -o /dev/null -w "%{url_effective}" https://github.com/minio/minio-java/releases/latest | sed "s/https:\/\/github.com\/minio\/minio-java\/releases\/tag\///")
+MINIO_JAVA_VERSION=$(curl --retry 10 -s "http://repo1.maven.org/maven2/io/minio/minio/maven-metadata.xml" | sed -n "/<latest>/{s/<.[^>]*>//g;p;q}" | sed "s/  *//g")
 if [ -z "$MINIO_JAVA_VERSION" ]; then
-    echo "unable to get minio-java version from github"
+    echo "unable to get latest minio-java version from maven"
     exit 1
 fi
 
