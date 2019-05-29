@@ -32,6 +32,7 @@ data_file_map["datafile-6-MB"]="6M"
 data_file_map["datafile-10-MB"]="10M"
 data_file_map["datafile-11-MB"]="11M"
 data_file_map["datafile-65-MB"]="65M"
+data_file_map["datafile-129-MB"]="129M"
 
 mkdir -p "$MINT_DATA_DIR"
 for filename in "${!data_file_map[@]}"; do
