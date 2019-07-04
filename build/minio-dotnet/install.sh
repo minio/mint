@@ -32,6 +32,9 @@ fi
 
 curl https://raw.githubusercontent.com/minio/minio-dotnet/"${MINIO_DOTNET_SDK_VERSION}"/Minio.Functional.Tests/FunctionalTest.cs > "${MINIO_DOTNET_SDK_PATH}/FunctionalTest.cs"
 curl https://raw.githubusercontent.com/minio/minio-dotnet/"${MINIO_DOTNET_SDK_VERSION}"/Minio.Functional.Tests/MintLogger.cs > "${MINIO_DOTNET_SDK_PATH}/MintLogger.cs"
+curl https://raw.githubusercontent.com/minio/minio-dotnet/"${MINIO_DOTNET_SDK_VERSION}"/Minio.Functional.Tests/JsonNetLogger.cs > "${MINIO_DOTNET_SDK_PATH}/JsonNetLogger.cs"
+curl https://raw.githubusercontent.com/minio/minio-dotnet/"${MINIO_DOTNET_SDK_VERSION}"/Minio.Functional.Tests/Program.cs > "${MINIO_DOTNET_SDK_PATH}/Program.cs"
+curl https://raw.githubusercontent.com/minio/minio-dotnet/"${MINIO_DOTNET_SDK_VERSION}"/Minio.Functional.Tests/RandomStreamGenerator.cs > "${MINIO_DOTNET_SDK_PATH}/RandomStreamGenerator.cs"
 curl https://raw.githubusercontent.com/minio/minio-dotnet/"${MINIO_DOTNET_SDK_VERSION}"/Minio.Functional.Tests/Minio.Functional.Tests.csproj > "${MINIO_DOTNET_SDK_PATH}/Minio.Functional.Tests.csproj"
 
 cd "$MINIO_DOTNET_SDK_PATH"
