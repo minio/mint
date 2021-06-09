@@ -965,6 +965,14 @@ function test_bucket_lifecycle() {
         out="${bucket_name}"
     fi
 
+    if [ $rv -ne 0 ]; then
+        # if this functionality is not implemented return right away.
+        if echo "$out" | grep -q "NotImplemented"; then
+            ${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
+            return 0
+        fi
+    fi
+
     # if put bucket lifecycle succeeds get bucket lifecycle
     if [ $rv -eq 0 ]; then
         function="${AWS} s3api get-bucket-lifecycle-configuration --bucket ${bucket_name}"
@@ -1594,18 +1602,17 @@ function test_serverside_encryption_error() {
 #             return 0
 #         fi
 #     fi
-
 #     # if make bucket succeeds set object lock configuration
 #     if [ $rv -eq 0 ]; then
 #         function="${AWS} s3api put-object-lock-configuration --bucket ${bucket_name} --object-lock-configuration ObjectLockEnabled=Enabled"
 #         out=$($function 2>&1)
 #         rv=$?
 # 	if [ $rv -ne 0 ]; then
-#             # if this functionality is not implemented return right away.
-#             if echo "$out" | grep -q "NotImplemented"; then
+#           # if this functionality is not implemented return right away.
+#           if echo "$out" | grep -q "NotImplemented"; then
 # 		${AWS} s3 rb s3://"${bucket_name}" --force > /dev/null 2>&1
 # 		return 0
-#             fi
+#           fi
 # 	fi
 #     else
 #         # if make bucket fails, $bucket_name has the error output
