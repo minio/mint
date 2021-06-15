@@ -24,12 +24,15 @@ import (
 	"fmt"
 	"math/rand"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
+
+var etagRegex = regexp.MustCompile(`\"(.*)\"`)
 
 // Put two objects with the same name but with different content
 func testPutObject() {
@@ -124,7 +127,7 @@ func testPutObject() {
 		return
 	}
 
-	if *vid1.ETag != "\"e847032b45d3d76230058a80d8ca909b\"" || *vid2.ETag != "\"094459df8fcebffc70d9aa08d75f9944\"" {
+	if !etagRegex.MatchString(*vid1.ETag) || !etagRegex.MatchString(*vid2.ETag) {
 		failureLog(function, args, startTime, "", "Unexpected list content", errors.New("unexpected ETag field")).Fatal()
 		return
 	}

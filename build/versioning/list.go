@@ -20,6 +20,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -157,7 +158,7 @@ func testListObjectVersionsSimple() {
 			failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected VersionId field", nil).Fatal()
 			return
 		}
-		if *v.ETag != "\"094459df8fcebffc70d9aa08d75f9944\"" {
+		if !etagRegex.MatchString(*v.ETag) {
 			failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected ETag field", nil).Fatal()
 			return
 		}
@@ -624,7 +625,6 @@ func testListObjectsVersionsWithEmptyDirObject() {
 
 	type objectResult struct {
 		name     string
-		etag     string
 		isLatest bool
 	}
 	type listResult struct {
@@ -632,14 +632,16 @@ func testListObjectsVersionsWithEmptyDirObject() {
 		commonPrefixes []string
 	}
 
-	simplifyListingResult := func(out *s3.ListObjectVersionsOutput) (result listResult) {
+	simplifyListingResult := func(out *s3.ListObjectVersionsOutput) (result listResult, err error) {
 		for _, commonPrefix := range out.CommonPrefixes {
 			result.commonPrefixes = append(result.commonPrefixes, *commonPrefix.Prefix)
 		}
 		for _, version := range out.Versions {
+			if !etagRegex.MatchString(*version.ETag) {
+				return listResult{}, errors.New("unexpected ETag")
+			}
 			result.versions = append(result.versions, objectResult{
 				name:     *version.Key,
-				etag:     *version.ETag,
 				isLatest: *version.IsLatest,
 			})
 		}
@@ -655,11 +657,15 @@ func testListObjectsVersionsWithEmptyDirObject() {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
 	}
-	gotResult := simplifyListingResult(result)
+	gotResult, err := simplifyListingResult(result)
+	if err != nil {
+		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", err).Fatal()
+		return
+	}
 	expectedResult := listResult{
 		versions: []objectResult{
-			objectResult{name: "dir/", etag: "\"d41d8cd98f00b204e9800998ecf8427e\"", isLatest: true},
-			objectResult{name: "dir/object", etag: "\"d41d8cd98f00b204e9800998ecf8427e\"", isLatest: true},
+			objectResult{name: "dir/", isLatest: true},
+			objectResult{name: "dir/object", isLatest: true},
 		}}
 	if !reflect.DeepEqual(gotResult, expectedResult) {
 		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", nil).Fatal()
@@ -676,7 +682,10 @@ func testListObjectsVersionsWithEmptyDirObject() {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
 	}
-	gotResult = simplifyListingResult(result)
+	gotResult, err = simplifyListingResult(result)
+	if err != nil {
+		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", err).Fatal()
+	}
 	expectedResult = listResult{
 		commonPrefixes: []string{"dir/"}}
 	if !reflect.DeepEqual(gotResult, expectedResult) {
@@ -695,11 +704,15 @@ func testListObjectsVersionsWithEmptyDirObject() {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
 	}
-	gotResult = simplifyListingResult(result)
+	gotResult, err = simplifyListingResult(result)
+	if err != nil {
+		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", err).Fatal()
+		return
+	}
 	expectedResult = listResult{
 		versions: []objectResult{
-			{name: "dir/", etag: "\"d41d8cd98f00b204e9800998ecf8427e\"", isLatest: true},
-			{name: "dir/object", etag: "\"d41d8cd98f00b204e9800998ecf8427e\"", isLatest: true},
+			{name: "dir/", isLatest: true},
+			{name: "dir/object", isLatest: true},
 		},
 	}
 	if !reflect.DeepEqual(gotResult, expectedResult) {
