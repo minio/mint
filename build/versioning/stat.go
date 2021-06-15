@@ -113,13 +113,12 @@ func testStatObject() {
 	testCases := []struct {
 		size         int64
 		versionId    string
-		etag         string
 		contentType  string
 		deleteMarker bool
 	}{
-		{0, *(*result.DeleteMarkers[0]).VersionId, "", "", true},
-		{14, *(*result.Versions[0]).VersionId, "\"e847032b45d3d76230058a80d8ca909b\"", "binary/octet-stream", false},
-		{12, *(*result.Versions[1]).VersionId, "\"094459df8fcebffc70d9aa08d75f9944\"", "binary/octet-stream", false},
+		{0, *(*result.DeleteMarkers[0]).VersionId, "", true},
+		{14, *(*result.Versions[0]).VersionId, "binary/octet-stream", false},
+		{12, *(*result.Versions[1]).VersionId, "binary/octet-stream", false},
 	}
 
 	for i, testCase := range testCases {
@@ -158,7 +157,7 @@ func testStatObject() {
 			return
 		}
 
-		if *result.ETag != testCase.etag {
+		if !etagRegex.MatchString(*result.ETag) {
 			failureLog(function, args, startTime, "", fmt.Sprintf("StatObject (%d) unexpected ETag", i+1), err).Fatal()
 			return
 		}
