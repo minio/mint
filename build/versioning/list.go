@@ -435,6 +435,9 @@ func testListObjectVersionsKeysContinuation() {
 			for _, v := range page.Versions {
 				resultPage.versions = append(resultPage.versions, *v.Key)
 			}
+			if resultPage.nextKeyMarker != "" {
+				resultPage.nextKeyMarker = "set"
+			}
 			gotResult = append(gotResult, resultPage)
 			return true
 		})
@@ -450,12 +453,12 @@ func testListObjectVersionsKeysContinuation() {
 	}
 
 	expectedResult := []resultPage{
-		resultPage{versions: []string{"testobject-0", "testobject-1", "testobject-2", "testobject-3", "testobject-4"}, nextKeyMarker: "testobject-4", lastPage: false},
+		resultPage{versions: []string{"testobject-0", "testobject-1", "testobject-2", "testobject-3", "testobject-4"}, nextKeyMarker: "set", lastPage: false},
 		resultPage{versions: []string{"testobject-5", "testobject-6", "testobject-7", "testobject-8", "testobject-9"}, nextKeyMarker: "", lastPage: true},
 	}
 
 	if !reflect.DeepEqual(expectedResult, gotResult) {
-		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", nil).Fatal()
+		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", fmt.Errorf("want %+v, got %+v", expectedResult, gotResult)).Fatal()
 		return
 	}
 
@@ -668,7 +671,7 @@ func testListObjectsVersionsWithEmptyDirObject() {
 			objectResult{name: "dir/object", isLatest: true},
 		}}
 	if !reflect.DeepEqual(gotResult, expectedResult) {
-		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", nil).Fatal()
+		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", fmt.Errorf("want %+v, got %+v", expectedResult, gotResult)).Fatal()
 		return
 	}
 
