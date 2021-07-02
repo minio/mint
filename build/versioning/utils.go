@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"runtime"
 	"strings"
 	"time"
 
@@ -109,6 +110,9 @@ func failureLog(function string, args map[string]interface{}, startTime time.Tim
 	duration := time.Since(startTime)
 	var fields log.Fields
 	// log with the fields as per mint
+	if pc, file , line , ok  := runtime.Caller(1); ok {
+		function = fmt.Sprintf("%s:%d: %s", file, line, runtime.FuncForPC(pc).Name())
+	}
 	if err != nil {
 		fields = log.Fields{"name": "versioning", "function": function, "args": args,
 			"duration": duration.Nanoseconds() / 1000000, "status": FAIL, "alert": alert, "message": message, "error": err}
