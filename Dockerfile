@@ -10,8 +10,9 @@ ENV MINT_ROOT_DIR /mint
 RUN apt-get --yes update && apt-get --yes upgrade && \
     apt-get --yes --quiet install wget jq curl git dnsmasq
 
-RUN git clone https://github.com/minio/mint && \
-    cd /mint && /mint/release.sh
+COPY . /mint
+
+RUN cd /mint && /mint/release.sh
 
 WORKDIR /mint
 
