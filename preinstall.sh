@@ -26,7 +26,7 @@ fi
 
 $APT install apt-transport-https
 
-if ! $WGET --output-document=packages-microsoft-prod.deb https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb | bash -; then
+if ! $WGET --output-document=packages-microsoft-prod.deb https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb | bash -; then
     echo "unable to download dotnet packages"
     exit 1
 fi
@@ -49,6 +49,6 @@ fi
 xargs --arg-file="${MINT_ROOT_DIR}/install-packages.list" apt --quiet --yes install
 
 # set python 3.6 as default
-update-alternatives --install /usr/bin/python python /usr/bin/python3.6 1
+update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
 
 sync

@@ -39,4 +39,4 @@ rm -fr "${temp_dir}"
 
 cd "$MINIO_DOTNET_SDK_PATH"
 dotnet restore /p:Configuration=Mint
-dotnet publish --runtime ubuntu.18.04-x64 --output out /p:Configuration=Mint
+dotnet publish --runtime ubuntu.20.04-x64 --output out /p:Configuration=Mint
