@@ -25,12 +25,15 @@ error_log_file="$2"
 
 BUCKET="my-test-bucket"
 
-(./kitchensink create $SERVER_ENDPOINT $ACCESS_KEY $SECRET_KEY $BUCKET  1>>"$output_log_file" 2>"$error_log_file")
+./kitchensink create $SERVER_ENDPOINT $ACCESS_KEY $SECRET_KEY $BUCKET  1>>"$output_log_file" 2>"$error_log_file"
 rv=$?
 if [ "$rv" -ne 0 ]; then
     exit 1
     
 ./kitchensink verify $SERVER_ENDPOINT $ACCESS_KEY $SECRET_KEY $BUCKET  1>>"$output_log_file" 2>"$error_log_file"
+rv=$?
+if [ "$rv" -ne 0 ]; then
+    exit 1
 
 #deletes all the objects after verifying
 ./kitchensink delete $SERVER_ENDPOINT $ACCESS_KEY $SECRET_KEY $BUCKET  1>>"$output_log_file" 2>"$error_log_file"
