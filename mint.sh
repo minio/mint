@@ -19,7 +19,6 @@ CONTAINER_ID=$(grep -o -e '[0-f]\{12,\}' /proc/1/cpuset | awk '{print substr($1,
 MINT_DATA_DIR=${MINT_DATA_DIR:-/mint/data}
 MINT_MODE=${MINT_MODE:-core}
 SERVER_REGION=${SERVER_REGION:-us-east-1}
-BUCKET="my-test-bucket"
 ENABLE_HTTPS=${ENABLE_HTTPS:-0}
 ENABLE_VIRTUAL_STYLE=${ENABLE_VIRTUAL_STYLE:-0}
 RUN_ON_FAIL=${RUN_ON_FAIL:-0}

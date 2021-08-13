@@ -23,6 +23,8 @@ fi
 output_log_file="$1"
 error_log_file="$2"
 
+BUCKET="my-test-bucket"
+
 (./kitchensink create $SERVER_ENDPOINT $ACCESS_KEY $SECRET_KEY $BUCKET  1>>"$output_log_file" 2>"$error_log_file")
 rv=$?
 if [ "$rv" -ne 0 ]; then
