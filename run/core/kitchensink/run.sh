@@ -31,3 +31,6 @@ if [ "$rv" -ne 0 ]; then
     exit 1
     
 ./kitchensink verify $SERVER_ENDPOINT $ACCESS_KEY $SECRET_KEY $BUCKET  1>>"$output_log_file" 2>"$error_log_file"
+
+#deletes all the objects after verifying
+./kitchensink delete $SERVER_ENDPOINT $ACCESS_KEY $SECRET_KEY $BUCKET  1>>"$output_log_file" 2>"$error_log_file"
