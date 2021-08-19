@@ -854,6 +854,12 @@ function test_upload_object_10() {
     fi
 
     if [ $rv -eq 0 ]; then
+        function="delete_bucket"
+        out=$(delete_bucket "$bucket_name")
+        rv=$?
+    fi
+
+    if [ $rv -eq 0 ]; then
         log_success "$(get_duration "$start_time")" "${test_function}"
     else
         # clean up and log error
