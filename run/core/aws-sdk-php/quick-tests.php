@@ -64,7 +64,7 @@ class ClientConfig {
   * @return string
   */
 function randomName():string {
-    return uniqid("aws-sdk-php-");
+    return str_replace('.', '', uniqid('aws-sdk-php-', true));
 }
 
  /**
