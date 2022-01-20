@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "functional_test.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha"
   },
   "keywords": [],
   "author": "",
@@ -11,7 +11,7 @@
   "description": "",
   "dependencies": {
     "app-module-path": "*",
-      "async": "*",
+    "async": "*",
     "block-stream2": "*",
     "concat-stream": "*",
     "es6-error": "*",
@@ -31,19 +31,17 @@
     "gulp": "*",
     "gulp-babel": "*",
     "gulp-jscs": "*",
-    "jshint":"2.*",
     "gulp-jshint": "*",
     "gulp-mocha": "*",
     "gulp-notify": "*",
     "gulp-sourcemaps": "*",
+    "jshint": "2.*",
     "jshint-stylish": "*",
     "mocha": "*",
     "mocha-steps": "*",
     "nock": "*",
     "rewire": "*",
+    "split-file": "^2.2.2",
     "superagent": "*"
-  },
-  "scripts": {
-    "test": "mocha"
   }
 }
