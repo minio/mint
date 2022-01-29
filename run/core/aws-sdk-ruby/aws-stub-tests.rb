@@ -790,11 +790,12 @@ class AwsSdkRubyTest
                            body: IO.read(File.join(data_dir, file_name)),
                            filename: file_name,
                            content_type: 'application/octet-stream'
-      parts = [file_part]
+      parts = []
       # Add POST fields into parts array
       post.fields.each do |field, value|
         parts.push(Part.new(field, value))
       end
+      parts.push(file_part)
       boundary = "---------------------------#{rand(10_000_000_000_000_000)}"
       body_parts = MultipartBody.new parts, boundary
 
