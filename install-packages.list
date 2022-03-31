@@ -5,7 +5,7 @@ openjdk-8-jdk
 openjdk-8-jdk-headless
 dirmngr
 apt-transport-https
-dotnet-sdk-2.1
+dotnet-sdk-6.0
 ca-certificates-mono
 libunwind8
 ruby
