@@ -31,12 +31,11 @@ if [ -z "$out_dir" ]; then
 fi
 
 temp_dir="$MINIO_DOTNET_SDK_PATH/temp"
-git clone --quiet https://github.com/minio/minio-dotnet.git "${temp_dir}/minio-dotnet.git/"
-(cd "${temp_dir}/minio-dotnet.git"; git checkout --quiet "tags/${MINIO_DOTNET_SDK_VERSION}")
+git clone --quiet https://github.com/minio/minio-dotnet.git "${temp_dir}"
+pushd "${temp_dir}" > /dev/null
+git checkout --quiet "tags/${MINIO_DOTNET_SDK_VERSION}"
 
-cp -a "${temp_dir}/minio-dotnet.git/Minio.Functional.Tests/"* "${MINIO_DOTNET_SDK_PATH}/"
+dotnet publish Minio.Functional.Tests --configuration Mint --framework net6.0 --output ../out
+
+popd > /dev/null
 rm -fr "${temp_dir}"
-
-cd "$MINIO_DOTNET_SDK_PATH"
-dotnet restore /p:Configuration=Mint
-dotnet publish --runtime ubuntu.20.04-x64 --output out /p:Configuration=Mint
