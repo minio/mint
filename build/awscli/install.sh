@@ -20,7 +20,7 @@ die() {
 	exit 1
 }
 
-PWD="$(dirname "$(realpath $0)")"
+ROOTDIR="$(dirname "$(realpath $0)")"
 TMPDIR="$(mktemp -d)"
 
 cd "$TMPDIR"
@@ -28,7 +28,7 @@ cd "$TMPDIR"
 # Download botocore and apply @y4m4's expect 100 continue fix
 ( git clone --depth 1 -b 1.27.1 https://github.com/boto/botocore && \
 	cd botocore && \
-	patch -p1 "$PWD/expect-100.patch" && \
+	patch -p1 <"$ROOTDIR/expect-100.patch" && \
 	python3 -m pip install . ) ||
 	die "Unable to install botocore.."
 
