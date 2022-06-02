@@ -1,6 +1,6 @@
 #!/bin/bash -e
 #
-#  Mint (C) 2017-2020 Minio, Inc.
+#  Mint (C) 2017-2022 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,4 +15,30 @@
 #  limitations under the License.
 #
 
-pip3 install awscli --upgrade
+die() {
+	echo "$*" 1>&2
+	exit 1
+}
+
+PWD="$(dirname "$(realpath $0)")"
+TMPDIR="$(mktemp -d)"
+
+cd "$TMPDIR"
+
+# Download botocore and apply @y4m4's expect 100 continue fix
+( git clone --depth 1 -b 1.27.1 https://github.com/boto/botocore && \
+	cd botocore && \
+	patch -p1 "$PWD/expect-100.patch" && \
+	python3 -m pip install . ) ||
+	die "Unable to install botocore.."
+
+
+# Download and install aws cli
+( git clone --depth 1 -b 1.25.1 https://github.com/aws/aws-cli &&
+	cd aws-cli && \
+	python3 -m pip install . ) ||
+	die "Unable to install aws-cli.."
+
+
+# Clean-up
+rm -r $TMPDIR
