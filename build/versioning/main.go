@@ -117,6 +117,7 @@ func main() {
 	testGetObject()
 	testStatObject()
 	testDeleteObject()
+	testDeleteObjects()
 	testListObjectVersionsSimple()
 	testListObjectVersionsWithPrefixAndDelimiter()
 	testListObjectVersionsKeysContinuation()

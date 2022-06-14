@@ -172,3 +172,128 @@ func testDeleteObject() {
 
 	successLogger(function, args, startTime).Info()
 }
+
+// Test deletion using multi delete API
+func testDeleteObjects() {
+	startTime := time.Now()
+	function := "testDeleteObjects"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "versioning-test-")
+	object := "testObject"
+	objectContent := "my object content"
+	expiry := 1 * time.Minute
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+		"expiry":     expiry,
+	}
+
+	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(bucket, function, args, startTime)
+
+	putVersioningInput := &s3.PutBucketVersioningInput{
+		Bucket: aws.String(bucket),
+		VersioningConfiguration: &s3.VersioningConfiguration{
+			Status: aws.String("Enabled"),
+		},
+	}
+
+	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	if err != nil {
+		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
+			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
+			return
+		}
+		failureLog(function, args, startTime, "", "Put versioning failed", err).Fatal()
+		return
+	}
+
+	putInput := &s3.PutObjectInput{
+		Body:   aws.ReadSeekCloser(strings.NewReader(objectContent)),
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	}
+
+	_, err = s3Client.PutObject(putInput)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
+		return
+	}
+
+	// First delete without version ID
+	del := &s3.Delete{
+		Objects: []*s3.ObjectIdentifier{
+			&s3.ObjectIdentifier{
+				Key: aws.String(object),
+			},
+		},
+	}
+	deleteInput := &s3.DeleteObjectsInput{
+		Bucket: aws.String(bucket),
+		Delete: del,
+	}
+
+	_, err = s3Client.DeleteObjects(deleteInput)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("Delete expected to succeed but got %v", err), err).Fatal()
+		return
+	}
+
+	// Check listing output: expected one version and one delete marker
+	listInput := &s3.ListObjectVersionsInput{
+		Bucket: aws.String(bucket),
+	}
+	listOutput, err := s3Client.ListObjectVersions(listInput)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
+		return
+	}
+	if len(listOutput.DeleteMarkers) != 1 || len(listOutput.Versions) != 1 {
+		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected result", nil).Fatal()
+		return
+	}
+
+	// Delete all versions for the object
+	del = &s3.Delete{
+		Objects: []*s3.ObjectIdentifier{
+			&s3.ObjectIdentifier{
+				Key:       listOutput.DeleteMarkers[0].Key,
+				VersionId: listOutput.DeleteMarkers[0].VersionId,
+			},
+			&s3.ObjectIdentifier{
+				Key:       listOutput.Versions[0].Key,
+				VersionId: listOutput.Versions[0].VersionId,
+			},
+		},
+	}
+	deleteInput = &s3.DeleteObjectsInput{
+		Bucket: aws.String(bucket),
+		Delete: del,
+	}
+	_, err = s3Client.DeleteObjects(deleteInput)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("Delete expected to succeed but got %v", err), err).Fatal()
+		return
+	}
+
+	// List and expect empty list
+	listInput = &s3.ListObjectVersionsInput{
+		Bucket: aws.String(bucket),
+	}
+	listOutput, err = s3Client.ListObjectVersions(listInput)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
+		return
+	}
+	if len(listOutput.DeleteMarkers) != 0 || len(listOutput.Versions) != 0 {
+		failureLog(function, args, startTime, "", "ListObjectVersions returned non empty result", nil).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
