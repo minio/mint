@@ -1,6 +1,6 @@
 #!/bin/bash -e
 #
-#  Mint (C) 2017-2020 Minio, Inc.
+#  Mint (C) 2017-2022 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ $APT update
 $APT install gnupg ca-certificates
 
 # download and install golang
-GO_VERSION="1.17.9"
+GO_VERSION="1.18.3"
 GO_INSTALL_PATH="/usr/local"
 download_url="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
 if ! $WGET --output-document=- "$download_url" | tar -C "${GO_INSTALL_PATH}" -zxf -; then
