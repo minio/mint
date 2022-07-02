@@ -190,7 +190,7 @@ func testPrometheusEndpoint(endpoint string) {
 
 	if resp.StatusCode != http.StatusOK {
 		// Status not 200 OK
-		failureLog(function, nil, startTime, "", "GET /minio/prometheus/metrics returned non OK status", err).Fatal()
+		failureLog(function, nil, startTime, "", "GET "+endpoint+" returned non OK status", err).Fatal()
 	}
 
 	defer resp.Body.Close()
@@ -237,7 +237,7 @@ func testPrometheusEndpointV2(endpoint string) {
 
 	if resp.StatusCode != http.StatusOK {
 		// Status not 200 OK
-		failureLog(function, nil, startTime, "", "GET /minio/prometheus/metrics returned non OK status", err).Fatal()
+		failureLog(function, nil, startTime, "", "GET "+endpoint+" returned non OK status", err).Fatal()
 	}
 
 	defer resp.Body.Close()
