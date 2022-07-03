@@ -1,15 +1,20 @@
+name: 'Trigger: Shell scripts formatting action'
+
 on:
   pull_request:
     branches:
     - master
 
-name: 'Trigger: PR Action'
-
 jobs:
-  shellcheck:
-    name: Shellcheck
+  sh-checker:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Run ShellCheck
-      uses: ludeeus/action-shellcheck@master
+      - uses: actions/checkout@v1
+      - name: Run the sh-checker
+        uses: luizm/action-sh-checker@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHFMT_OPTS: -s # arguments to shfmt.
+        with:
+          sh_checker_comment: true
+

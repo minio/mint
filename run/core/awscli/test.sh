@@ -955,7 +955,7 @@ function test_bucket_lifecycle() {
 	# log start time
 	start_time=$(get_time)
 
-	echo "{ \"Rules\": [ { \"Expiration\": { \"Days\": 365 },\"ID\": \"Bucketlifecycle test\", \"Filter\": { \"Prefix\": \"\" }, \"Status\": \"Enabled\" } ] }" >>/tmp/lifecycle.json
+	echo '{ "Rules": [ { "Expiration": { "Days": 365 },"ID": "Bucketlifecycle test", "Filter": { "Prefix": "" }, "Status": "Enabled" } ] }' >>/tmp/lifecycle.json
 
 	function="make_bucket"
 	bucket_name=$(make_bucket)
