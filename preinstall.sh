@@ -20,15 +20,15 @@ export WGET="wget --quiet --no-check-certificate"
 
 # install nodejs source list
 if ! $WGET --output-document=- https://deb.nodesource.com/setup_14.x | bash -; then
-    echo "unable to set nodejs repository"
-    exit 1
+	echo "unable to set nodejs repository"
+	exit 1
 fi
 
 $APT install apt-transport-https
 
 if ! $WGET --output-document=packages-microsoft-prod.deb https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb | bash -; then
-    echo "unable to download dotnet packages"
-    exit 1
+	echo "unable to download dotnet packages"
+	exit 1
 fi
 
 dpkg -i packages-microsoft-prod.deb
@@ -42,8 +42,8 @@ GO_VERSION="1.18.3"
 GO_INSTALL_PATH="/usr/local"
 download_url="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
 if ! $WGET --output-document=- "$download_url" | tar -C "${GO_INSTALL_PATH}" -zxf -; then
-    echo "unable to install go$GO_VERSION"
-    exit 1
+	echo "unable to install go$GO_VERSION"
+	exit 1
 fi
 
 xargs --arg-file="${MINT_ROOT_DIR}/install-packages.list" apt --quiet --yes install

@@ -21,21 +21,21 @@ MINIO_DOTNET_SDK_PATH="$MINT_RUN_CORE_DIR/minio-dotnet"
 
 MINIO_DOTNET_SDK_VERSION=$(curl --retry 10 -Ls -o /dev/null -w "%{url_effective}" https://github.com/minio/minio-dotnet/releases/latest | sed "s/https:\/\/github.com\/minio\/minio-dotnet\/releases\/tag\///")
 if [ -z "$MINIO_DOTNET_SDK_VERSION" ]; then
-    echo "unable to get minio-dotnet version from github"
-    exit 1
+	echo "unable to get minio-dotnet version from github"
+	exit 1
 fi
 
 out_dir="$MINIO_DOTNET_SDK_PATH/out"
 if [ -z "$out_dir" ]; then
-    mkdir "$out_dir"
+	mkdir "$out_dir"
 fi
 
 temp_dir="$MINIO_DOTNET_SDK_PATH/temp"
 git clone --quiet https://github.com/minio/minio-dotnet.git "${temp_dir}"
-pushd "${temp_dir}" > /dev/null
+pushd "${temp_dir}" >/dev/null
 git checkout --quiet "tags/${MINIO_DOTNET_SDK_VERSION}"
 
 dotnet publish Minio.Functional.Tests --configuration Mint --framework net6.0 --output ../out
 
-popd > /dev/null
+popd >/dev/null
 rm -fr "${temp_dir}"
