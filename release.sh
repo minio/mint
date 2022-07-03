@@ -25,8 +25,8 @@ export WGET="wget --quiet --no-check-certificate"
 
 # install mint app packages
 for pkg in "$MINT_ROOT_DIR/build"/*/install.sh; do
-    echo "Running $pkg"
-    $pkg
+	echo "Running $pkg"
+	$pkg
 done
 
 "${MINT_ROOT_DIR}"/postinstall.sh

@@ -36,9 +36,9 @@ data_file_map["datafile-129-MB"]="129M"
 
 mkdir -p "$MINT_DATA_DIR"
 for filename in "${!data_file_map[@]}"; do
-    echo "creating $MINT_DATA_DIR/$filename"
-    if ! shred -n 1 -s "${data_file_map[$filename]}" - 1>"$MINT_DATA_DIR/$filename" 2>/dev/null; then
-        echo "unable to create data file $MINT_DATA_DIR/$filename"
-        exit 1
-    fi
+	echo "creating $MINT_DATA_DIR/$filename"
+	if ! shred -n 1 -s "${data_file_map[$filename]}" - 1>"$MINT_DATA_DIR/$filename" 2>/dev/null; then
+		echo "unable to create data file $MINT_DATA_DIR/$filename"
+		exit 1
+	fi
 done

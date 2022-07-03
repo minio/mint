@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-./mint.sh "$@"  &
+./mint.sh "$@" &
 
 # Get the pid to be used for kill command if required
 main_pid="$!"

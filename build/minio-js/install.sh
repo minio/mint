@@ -17,8 +17,8 @@
 
 MINIO_JS_VERSION=$(curl --retry 10 -Ls -o /dev/null -w "%{url_effective}" https://github.com/minio/minio-js/releases/latest | sed "s/https:\/\/github.com\/minio\/minio-js\/releases\/tag\///")
 if [ -z "$MINIO_JS_VERSION" ]; then
-    echo "unable to get minio-js version from github"
-    exit 1
+	echo "unable to get minio-js version from github"
+	exit 1
 fi
 
 test_run_dir="$MINT_RUN_CORE_DIR/minio-js"
