@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-#  Mint (C) 2017, 2018 Minio, Inc.
+#  Mint (C) 2017-2022 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -31,20 +31,20 @@ if [ -z "$SERVER_ENDPOINT" ]; then
 fi
 
 if [ "$ENABLE_VIRTUAL_STYLE" -eq 1 ]; then
-        SERVER_IP="${SERVER_ENDPOINT%%:*}"
-        SERVER_PORT="${SERVER_ENDPOINT/*:/}"
-        # Check if SERVER_IP is actually IPv4 address
-        IFS=. read -ra octets <<< "$SERVER_IP"
-        if [ "${#octets[@]}" -ne 4 ]; then
-            echo "$SERVER_IP must be an IP address"
-            exit 1
-        fi
-        for octet in "${octets[@]}"; do
-	    if [ "$octet" -lt 0 ] 2>/dev/null || [ "$octet" -gt 255 ] 2>/dev/null; then
-		echo "$SERVER_IP must be an IP address"
-		exit 1
-	    fi
-        done
+    SERVER_IP="${SERVER_ENDPOINT%%:*}"
+    SERVER_PORT="${SERVER_ENDPOINT/*:/}"
+    # Check if SERVER_IP is actually IPv4 address
+    IFS=. read -ra octets <<< "$SERVER_IP"
+    if [ "${#octets[@]}" -ne 4 ]; then
+	echo "$SERVER_IP must be an IP address"
+	exit 1
+    fi
+    for octet in "${octets[@]}"; do
+	if [ "$octet" -lt 0 ] 2>/dev/null || [ "$octet" -gt 255 ] 2>/dev/null; then
+	    echo "$SERVER_IP must be an IP address"
+	    exit 1
+	fi
+    done
 fi
 
 ROOT_DIR="$PWD"
@@ -73,7 +73,7 @@ function humanize_time()
 function run_test()
 {
     if [ ! -d "$1" ]; then
-        return 1
+	return 1
     fi
 
     start=$(date +%s)
@@ -86,22 +86,22 @@ function run_test()
     duration=$(humanize_time $(( end - start )))
 
     if [ "$rv" -eq 0 ]; then
-        echo "done in $duration"
+	echo "done in $duration"
     else
-        echo "FAILED in $duration"
-        entry=$(tail -n 1 "$BASE_LOG_DIR/$LOG_FILE")
-        status=$(jq -e -r .status <<<"$entry")
-        jq_rv=$?
-        if [ "$jq_rv" -ne 0 ]; then
-            echo "$entry"
-        fi
-        ## Show error.log when status is empty or not "FAIL".
-        ## This may happen when test run failed without providing logs.
-        if [ "$jq_rv" -ne 0 ] || [ -z "$status" ] || { [ "$status" != "FAIL" ] && [ "$status" != "fail" ]; }; then
-            cat "$BASE_LOG_DIR/$sdk_name/$ERROR_FILE"
-        else
-            jq . <<<"$entry"
-        fi
+	echo "FAILED in $duration"
+	entry=$(tail -n 1 "$BASE_LOG_DIR/$LOG_FILE")
+	status=$(jq -e -r .status <<<"$entry")
+	jq_rv=$?
+	if [ "$jq_rv" -ne 0 ]; then
+	    echo "$entry"
+	fi
+	## Show error.log when status is empty or not "FAIL".
+	## This may happen when test run failed without providing logs.
+	if [ "$jq_rv" -ne 0 ] || [ -z "$status" ] || { [ "$status" != "FAIL" ] && [ "$status" != "fail" ]; }; then
+	    cat "$BASE_LOG_DIR/$sdk_name/$ERROR_FILE"
+	else
+	    jq . <<<"$entry"
+	fi
     fi
     return $rv
 }
@@ -109,9 +109,11 @@ function run_test()
 function trust_s3_endpoint_tls_cert()
 {
     # Download the public certificate from the server
-    openssl s_client -showcerts -connect "$SERVER_ENDPOINT" </dev/null 2>/dev/null | \
-	openssl x509 -outform PEM -out /usr/local/share/ca-certificates/s3_server_cert.crt || \
-	exit 1
+    openssl s_client -showcerts -verify 5 -connect "$SERVER_ENDPOINT" < /dev/null |
+	awk '/BEGIN CERTIFICATE/,/END CERTIFICATE/{ if(/BEGIN CERTIFICATE/){a++}; out="cert"a".pem"; print >out}'
+    for cert in *.pem; do
+	mv -vf "${cert}" /usr/local/share/ca-certificates/
+    done
 
     # Load the certificate in the system
     update-ca-certificates --fresh >/dev/null
@@ -158,37 +160,37 @@ function main()
     sdks=( "$@" )
 
     if [ "$#" -eq 0 ]; then
-        cd "$TESTS_DIR" || exit
-        sdks=(*)
-        cd .. || exit
+	cd "$TESTS_DIR" || exit
+	sdks=(*)
+	cd .. || exit
     fi
 
     for sdk in "${sdks[@]}"; do
-        sdk=$(basename "$sdk")
-        run_list=( "${run_list[@]}" "$TESTS_DIR/$sdk" )
+	sdk=$(basename "$sdk")
+	run_list=( "${run_list[@]}" "$TESTS_DIR/$sdk" )
     done
 
     count="${#run_list[@]}"
     i=0
     for sdk_dir in "${run_list[@]}"; do
-        sdk_name=$(basename "$sdk_dir")
-        (( i++ ))
-        if [ ! -d "$sdk_dir" ]; then
-            echo "Test $sdk_name not found. Exiting Mint."
-            exit 1
-        fi
-        echo -n "($i/$count) Running $sdk_name tests ... "
-        if ! run_test "$sdk_dir"; then
-            (( i-- ))
-        fi
+	sdk_name=$(basename "$sdk_dir")
+	(( i++ ))
+	if [ ! -d "$sdk_dir" ]; then
+	    echo "Test $sdk_name not found. Exiting Mint."
+	    exit 1
+	fi
+	echo -n "($i/$count) Running $sdk_name tests ... "
+	if ! run_test "$sdk_dir"; then
+	    (( i-- ))
+	fi
     done
 
     ## Report when all tests in run_list are run
     if [ "$i" -eq "$count" ]; then
-        echo -e "\nAll tests ran successfully"
+	echo -e "\nAll tests ran successfully"
     else
-        echo -e "\nExecuted $i out of $count tests successfully."
-        exit 1
+	echo -e "\nExecuted $i out of $count tests successfully."
+	exit 1
     fi
 }
 main "$@"

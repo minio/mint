@@ -20,6 +20,7 @@ die() {
 	exit 1
 }
 
+# shellcheck disable=SC2086
 ROOTDIR="$(dirname "$(realpath $0)")"
 TMPDIR="$(mktemp -d)"
 
@@ -41,4 +42,4 @@ cd "$TMPDIR"
 
 
 # Clean-up
-rm -r $TMPDIR
+rm -r "$TMPDIR"
