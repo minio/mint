@@ -102,7 +102,7 @@ func testListObjectVersionsSimple() {
 	}
 
 	// Accumulate all versions IDs
-	var versionIDs = make(map[string]struct{})
+	versionIDs := make(map[string]struct{})
 
 	result, err := s3Client.ListObjectVersions(input)
 	if err != nil {
@@ -304,10 +304,11 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 	gotResult := simplifyListingResult(result)
 	expectedResult := listResult{
 		versions: []objectResult{
-			objectResult{name: "dir/dir/object", isLatest: true},
-			objectResult{name: "dir/object", isLatest: true},
-			objectResult{name: "object", isLatest: true},
-		}}
+			{name: "dir/dir/object", isLatest: true},
+			{name: "dir/object", isLatest: true},
+			{name: "object", isLatest: true},
+		},
+	}
 	if !reflect.DeepEqual(gotResult, expectedResult) {
 		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", nil).Fatal()
 		return
@@ -326,9 +327,10 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 	gotResult = simplifyListingResult(result)
 	expectedResult = listResult{
 		versions: []objectResult{
-			objectResult{name: "object", isLatest: true},
+			{name: "object", isLatest: true},
 		},
-		commonPrefixes: []string{"dir/"}}
+		commonPrefixes: []string{"dir/"},
+	}
 	if !reflect.DeepEqual(gotResult, expectedResult) {
 		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", nil).Fatal()
 		return
@@ -348,9 +350,10 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 	gotResult = simplifyListingResult(result)
 	expectedResult = listResult{
 		versions: []objectResult{
-			objectResult{name: "dir/object", isLatest: true},
+			{name: "dir/object", isLatest: true},
 		},
-		commonPrefixes: []string{"dir/dir/"}}
+		commonPrefixes: []string{"dir/dir/"},
+	}
 	if !reflect.DeepEqual(gotResult, expectedResult) {
 		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", nil).Fatal()
 		return
@@ -453,8 +456,8 @@ func testListObjectVersionsKeysContinuation() {
 	}
 
 	expectedResult := []resultPage{
-		resultPage{versions: []string{"testobject-0", "testobject-1", "testobject-2", "testobject-3", "testobject-4"}, nextKeyMarker: "set", lastPage: false},
-		resultPage{versions: []string{"testobject-5", "testobject-6", "testobject-7", "testobject-8", "testobject-9"}, nextKeyMarker: "", lastPage: true},
+		{versions: []string{"testobject-0", "testobject-1", "testobject-2", "testobject-3", "testobject-4"}, nextKeyMarker: "set", lastPage: false},
+		{versions: []string{"testobject-5", "testobject-6", "testobject-7", "testobject-8", "testobject-9"}, nextKeyMarker: "", lastPage: true},
 	}
 
 	if !reflect.DeepEqual(expectedResult, gotResult) {
@@ -562,8 +565,8 @@ func testListObjectVersionsVersionIDContinuation() {
 	}
 
 	expectedResult := []resultPage{
-		resultPage{versions: []string{"testobject", "testobject", "testobject", "testobject", "testobject"}, nextVersionIDMarker: gotNextVersionIDMarker, lastPage: false},
-		resultPage{versions: []string{"testobject", "testobject", "testobject", "testobject", "testobject"}, lastPage: true},
+		{versions: []string{"testobject", "testobject", "testobject", "testobject", "testobject"}, nextVersionIDMarker: gotNextVersionIDMarker, lastPage: false},
+		{versions: []string{"testobject", "testobject", "testobject", "testobject", "testobject"}, lastPage: true},
 	}
 
 	if !reflect.DeepEqual(expectedResult, gotResult) {
@@ -667,9 +670,10 @@ func testListObjectsVersionsWithEmptyDirObject() {
 	}
 	expectedResult := listResult{
 		versions: []objectResult{
-			objectResult{name: "dir/", isLatest: true},
-			objectResult{name: "dir/object", isLatest: true},
-		}}
+			{name: "dir/", isLatest: true},
+			{name: "dir/object", isLatest: true},
+		},
+	}
 	if !reflect.DeepEqual(gotResult, expectedResult) {
 		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", fmt.Errorf("want %+v, got %+v", expectedResult, gotResult)).Fatal()
 		return
@@ -690,7 +694,8 @@ func testListObjectsVersionsWithEmptyDirObject() {
 		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", err).Fatal()
 	}
 	expectedResult = listResult{
-		commonPrefixes: []string{"dir/"}}
+		commonPrefixes: []string{"dir/"},
+	}
 	if !reflect.DeepEqual(gotResult, expectedResult) {
 		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected listing result", nil).Fatal()
 		return

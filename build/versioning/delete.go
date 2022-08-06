@@ -228,7 +228,7 @@ func testDeleteObjects() {
 	// First delete without version ID
 	del := &s3.Delete{
 		Objects: []*s3.ObjectIdentifier{
-			&s3.ObjectIdentifier{
+			{
 				Key: aws.String(object),
 			},
 		},
@@ -261,11 +261,11 @@ func testDeleteObjects() {
 	// Delete all versions for the object
 	del = &s3.Delete{
 		Objects: []*s3.ObjectIdentifier{
-			&s3.ObjectIdentifier{
+			{
 				Key:       listOutput.DeleteMarkers[0].Key,
 				VersionId: listOutput.DeleteMarkers[0].VersionId,
 			},
-			&s3.ObjectIdentifier{
+			{
 				Key:       listOutput.Versions[0].Key,
 				VersionId: listOutput.Versions[0].VersionId,
 			},

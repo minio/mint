@@ -62,8 +62,7 @@ type errorResponse struct {
 	Headers http.Header `xml:"-" json:"-"`
 }
 
-type mintJSONFormatter struct {
-}
+type mintJSONFormatter struct{}
 
 func (f *mintJSONFormatter) Format(entry *log.Entry) ([]byte, error) {
 	data := make(log.Fields, len(entry.Data))
@@ -99,8 +98,10 @@ func ignoreLog(function string, args map[string]interface{}, startTime time.Time
 	// calculate the test case duration
 	duration := time.Since(startTime)
 	// log with the fields as per mint
-	fields := log.Fields{"name": "versioning", "function": function, "args": args,
-		"duration": duration.Nanoseconds() / 1000000, "status": "NA", "alert": strings.Split(alert, " ")[0] + " is NotImplemented"}
+	fields := log.Fields{
+		"name": "versioning", "function": function, "args": args,
+		"duration": duration.Nanoseconds() / 1000000, "status": "NA", "alert": strings.Split(alert, " ")[0] + " is NotImplemented",
+	}
 	return log.WithFields(fields)
 }
 
@@ -110,15 +111,19 @@ func failureLog(function string, args map[string]interface{}, startTime time.Tim
 	duration := time.Since(startTime)
 	var fields log.Fields
 	// log with the fields as per mint
-	if pc, file , line , ok  := runtime.Caller(1); ok {
+	if pc, file, line, ok := runtime.Caller(1); ok {
 		function = fmt.Sprintf("%s:%d: %s", file, line, runtime.FuncForPC(pc).Name())
 	}
 	if err != nil {
-		fields = log.Fields{"name": "versioning", "function": function, "args": args,
-			"duration": duration.Nanoseconds() / 1000000, "status": FAIL, "alert": alert, "message": message, "error": err}
+		fields = log.Fields{
+			"name": "versioning", "function": function, "args": args,
+			"duration": duration.Nanoseconds() / 1000000, "status": FAIL, "alert": alert, "message": message, "error": err,
+		}
 	} else {
-		fields = log.Fields{"name": "versioning", "function": function, "args": args,
-			"duration": duration.Nanoseconds() / 1000000, "status": FAIL, "alert": alert, "message": message}
+		fields = log.Fields{
+			"name": "versioning", "function": function, "args": args,
+			"duration": duration.Nanoseconds() / 1000000, "status": FAIL, "alert": alert, "message": message,
+		}
 	}
 	return log.WithFields(fields)
 }

@@ -256,7 +256,7 @@ func testPutObjectWithTaggingAndMetadata() {
 				failureLog(function, args, startTime, "", fmt.Sprintf("GET Object tagging expected to succeed but got %v", err), err).Fatal()
 				return
 			}
-			var vals = make(url.Values)
+			vals := make(url.Values)
 			for _, tag := range tagResult.TagSet {
 				vals.Add(*tag.Key, *tag.Value)
 			}
