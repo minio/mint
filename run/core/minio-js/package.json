@@ -10,6 +10,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "browser-or-node": "*",
+    "buffer-crc32": "*",
+    "crypto-browserify": "*",
+    "fast-xml-parser": "*",
+    "ipaddr.js": "*",
+    "query-string": "*",
+    "web-encoding": "*",
     "app-module-path": "*",
     "async": "*",
     "block-stream2": "*",
@@ -31,17 +38,17 @@
     "gulp": "*",
     "gulp-babel": "*",
     "gulp-jscs": "*",
+    "jshint": "2.*",
     "gulp-jshint": "*",
     "gulp-mocha": "*",
     "gulp-notify": "*",
     "gulp-sourcemaps": "*",
-    "jshint": "2.*",
     "jshint-stylish": "*",
     "mocha": "*",
     "mocha-steps": "*",
     "nock": "*",
     "rewire": "*",
-    "split-file": "^2.2.2",
+    "split-file": "*",
     "superagent": "*"
   }
 }
