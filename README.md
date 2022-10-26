@@ -1,4 +1,4 @@
-# Mint [![Slack](https://slack.minio.io/slack?type=svg)](https://slack.minio.io) [![Podman Pulls](https://img.shields.io/podman/pulls/minio/mint.svg?maxAge=604800)](https://hub.podman.com/r/minio/mint/)
+# Mint [![Slack](https://slack.minio.io/slack?type=svg)](https://slack.minio.io) [![Docker Pulls](https://img.shields.io/docker/pulls/minio/mint.svg?maxAge=604800)](https://hub.docker.com/r/minio/mint/)
 
 Mint is a testing framework for Minio object server, available as a podman image. It runs correctness, benchmarking and stress tests. Following are the SDKs/tools used in correctness tests.
 
@@ -17,7 +17,7 @@ Mint is a testing framework for Minio object server, available as a podman image
 
 ## Running Mint
 
-Mint is run by `podman run` command which requires Podman to be installed. For Podman installation follow the steps [here](https://docs.podman.com/engine/installation/linux/podman-ce/ubuntu/).
+Mint is run by `podman run` command which requires Podman to be installed. For Podman installation follow the steps [here](https://podman.io/getting-started/installation#installing-on-linux).
 
 To run Mint with Minio Play server as test target,
 
