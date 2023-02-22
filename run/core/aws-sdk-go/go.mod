@@ -3,7 +3,7 @@ module mint.minio.io/aws-sdk-go
 go 1.17
 
 require (
-	github.com/aws/aws-sdk-go v1.44.204
+	github.com/aws/aws-sdk-go v1.44.206
 	github.com/sirupsen/logrus v1.9.0
 )
 
