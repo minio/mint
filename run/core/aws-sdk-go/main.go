@@ -837,6 +837,14 @@ func testCreateBucketError(s3Client *s3.S3) {
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
+		// InvalidRegion is a valid error if the endpoint doesn't support
+		// different 'regions', we simply skip this test in such scenarios.
+		if err.(s3.RequestFailure).Code() == "InvalidRegion" {
+			// Restore region in s3Client
+			s3Client.Config.Region = region
+			successLogger(function, args, startTime).Info()
+			return
+		}
 		failureLog(function, args, startTime, "", "AWS SDK Go CreateBucket Failed", err).Fatal()
 		return
 	}

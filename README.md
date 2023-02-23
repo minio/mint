@@ -4,16 +4,18 @@ Mint is a testing framework for Minio object server, available as a podman image
 
 - awscli
 - aws-sdk-go
+- aws-sdk-java
 - aws-sdk-php
 - aws-sdk-ruby
-- aws-sdk-java
+- healthcheck
 - mc
 - minio-go
 - minio-java
 - minio-js
 - minio-py
-- minio-dotnet
 - s3cmd
+- s3select
+- versioning
 
 ## Running Mint
 
@@ -46,7 +48,6 @@ Below environment variables are required to be passed to the podman container. S
 | `ENABLE_VIRTUAL_STYLE` | (Optional) Set `1` to indicate virtual style access . Defaults to `0` (Path style)                                                             | `1`                                        |
 | `RUN_ON_FAIL`          | (Optional) Set `1` to indicate execute all tests independent of failures (currently implemented for minio-go and minio-java) . Defaults to `0` | `1`                                        |
 | `SERVER_REGION`        | (Optional) Set custom region for region specific tests                                                                                         | `us-west-1`                                |
-
 
 ### Test virtual style access against Minio server
 
@@ -103,19 +104,19 @@ Below are the steps need to be followed
 #### Test data
 Tests may use pre-created data set to perform various object operations on Minio server.  Below data files are available under `/mint/data` directory.
 
-| File name |  Size |
-|:--- |:--- |
-| datafile-0-b | 0B |
-| datafile-1-b | 1B |
-| datafile-1-kB |1KiB |
-| datafile-10-kB |10KiB |
-| datafile-33-kB |33KiB |
-| datafile-100-kB |100KiB |
-| datafile-1-MB |1MiB |
-| datafile-1.03-MB |1.03MiB |
-| datafile-5-MB |5MiB |
-| datafile-6-MB |6MiB |
-| datafile-10-MB |10MiB |
-| datafile-11-MB |11MiB |
-| datafile-65-MB |65MiB |
-| datafile-129-MB |129MiB |
+| File name        | Size    |
+|:-----------------|:--------|
+| datafile-0-b     | 0B      |
+| datafile-1-b     | 1B      |
+| datafile-1-kB    | 1KiB    |
+| datafile-10-kB   | 10KiB   |
+| datafile-33-kB   | 33KiB   |
+| datafile-100-kB  | 100KiB  |
+| datafile-1-MB    | 1MiB    |
+| datafile-1.03-MB | 1.03MiB |
+| datafile-5-MB    | 5MiB    |
+| datafile-6-MB    | 6MiB    |
+| datafile-10-MB   | 10MiB   |
+| datafile-11-MB   | 11MiB   |
+| datafile-65-MB   | 65MiB   |
+| datafile-129-MB  | 129MiB  |
