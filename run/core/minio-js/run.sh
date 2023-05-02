@@ -28,4 +28,4 @@ error_log_file="$2"
 
 cd ./minio-js/ || echo "missing source directory" && exit
 
-npx mocha tests/functional/functional-tests.js -R ../minio-js/minioreporter.js -b --exit 1>>"$output_log_file" 2>"$error_log_file"
+npx mocha tests/functional/functional-tests.js -R ../minioreporter.js -b --exit 1>>"$output_log_file" 2>"$error_log_file"
