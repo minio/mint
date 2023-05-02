@@ -26,6 +26,4 @@ error_log_file="$2"
 
 # run tests
 
-cd ./minio-js/ || echo "missing source directory" && exit
-
-npm run --silent functional -- -R ./minioreporter.js -b --exit 1>>"$output_log_file" 2>"$error_log_file"
+npm --prefix ./minio-js/ run --silent functional -- -R ./minioreporter.js -b --exit 1>>"$output_log_file" 2>"$error_log_file"
