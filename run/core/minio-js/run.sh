@@ -17,8 +17,8 @@
 
 # handle command line arguments
 if [ $# -ne 2 ]; then
-  echo "usage: run.sh <OUTPUT-LOG-FILE> <ERROR-LOG-FILE>"
-  exit 1
+	echo "usage: run.sh <OUTPUT-LOG-FILE> <ERROR-LOG-FILE>"
+	exit 1
 fi
 
 output_log_file="$1"
@@ -28,4 +28,4 @@ error_log_file="$2"
 
 cd ./minio-js/ || echo "missing source directory" && exit
 
-npx mocha tests/functional/functional-tests.js -R ./minioreporter.js -b --exit 1>>"$output_log_file" 2>"$error_log_file"
+npm run --silent functional -- -R ./minioreporter.js -b --exit 1>>"$output_log_file" 2>"$error_log_file"
