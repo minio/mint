@@ -30,3 +30,5 @@ LATEST=$(git tag | tail -1)
 git checkout "${LATEST}" --force
 
 npm i
+
+cp ../minioreporter.js ./
