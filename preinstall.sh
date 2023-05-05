@@ -19,14 +19,14 @@ export APT="apt --quiet --yes"
 export WGET="wget --quiet --no-check-certificate"
 
 # install nodejs source list
-if ! $WGET --output-document=- https://deb.nodesource.com/setup_14.x | bash -; then
+if ! $WGET --output-document=- https://deb.nodesource.com/setup_20.x | bash -; then
 	echo "unable to set nodejs repository"
 	exit 1
 fi
 
 $APT install apt-transport-https
 
-if ! $WGET --output-document=packages-microsoft-prod.deb https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb | bash -; then
+if ! $WGET --output-document=packages-microsoft-prod.deb https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb | bash -; then
 	echo "unable to download dotnet packages"
 	exit 1
 fi
@@ -38,7 +38,7 @@ $APT update
 $APT install gnupg ca-certificates
 
 # download and install golang
-GO_VERSION="1.18.7"
+GO_VERSION="1.20.4"
 GO_INSTALL_PATH="/usr/local"
 download_url="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
 if ! $WGET --output-document=- "$download_url" | tar -C "${GO_INSTALL_PATH}" -zxf -; then
