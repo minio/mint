@@ -48,7 +48,7 @@ fi
 
 xargs --arg-file="${MINT_ROOT_DIR}/install-packages.list" apt --quiet --yes install
 
-# set python 3.6 as default
-update-alternatives --install /usr/bin/python python /usr/bin/python3.8 1
+# set python 3.10 as default
+update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
 
 sync
