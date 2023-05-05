@@ -25,4 +25,5 @@ output_log_file="$1"
 error_log_file="$2"
 
 # run tests
-./node_modules/mocha/bin/mocha -R minioreporter -b --exit 1>>"$output_log_file" 2>"$error_log_file"
+
+npm --prefix ./minio-js/ run --silent functional -- -R ./minioreporter.js -b --exit 1>>"$output_log_file" 2>"$error_log_file"
