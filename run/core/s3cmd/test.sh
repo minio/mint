@@ -15,6 +15,8 @@
 # limitations under the License.
 #
 
+# shellcheck disable=SC2317
+
 if [ -n "$MINT_MODE" ]; then
 	if [ -z "${MINT_DATA_DIR+x}" ]; then
 		echo "MINT_DATA_DIR not defined"
