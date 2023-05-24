@@ -25,8 +25,8 @@ output_log_file="$1"
 error_log_file="$2"
 
 # Prepare test runner project
-cp -R /mint/test-run/minio-js/  ./minio-js
-npm install --quiet &> /dev/null
+cp -R /mint/test-run/minio-js/ ./minio-js
+npm install --quiet &>/dev/null
 
 # Run tests
 node ./node_modules/mocha/bin/mocha.js "./minio-js/tests/functional/functional-tests.js" -R minioreporter >>"$output_log_file" 2>"$error_log_file"

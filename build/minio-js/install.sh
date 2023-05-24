@@ -29,4 +29,4 @@ LATEST="master" #$(git tag | tail -1)
 
 git checkout "${LATEST}" --force
 
-npm install --quiet &> /dev/null
+npm install --quiet &>/dev/null
