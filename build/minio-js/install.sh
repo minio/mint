@@ -15,14 +15,24 @@
 #  limitations under the License.
 #
 
-MINIO_JS_VERSION=$(curl --retry 10 -Ls -o /dev/null -w "%{url_effective}" https://github.com/minio/minio-js/releases/latest | sed "s/https:\/\/github.com\/minio\/minio-js\/releases\/tag\///")
-if [ -z "$MINIO_JS_VERSION" ]; then
-	echo "unable to get minio-js version from github"
-	exit 1
-fi
+# Checkout at /mint/test-run/minio-js/
+# During run of the test copy it to the the /min/run/core/minio-js/minio-js
 
-test_run_dir="$MINT_RUN_CORE_DIR/minio-js"
-mkdir "${test_run_dir}/test"
-$WGET --output-document="${test_run_dir}/test/functional-tests.js" "https://raw.githubusercontent.com/minio/minio-js/${MINIO_JS_VERSION}/src/test/functional/functional-tests.js"
-npm --prefix "$test_run_dir" install --save "minio@$MINIO_JS_VERSION"
-npm --prefix "$test_run_dir" install
+install_path="./test-run/minio-js/"
+rm -rf $install_path
+
+git clone https://github.com/minio/minio-js.git $install_path
+
+cd $install_path || exit 0
+
+# Get new tags from remote
+git fetch --tags
+# Get latest tag name
+# shellcheck disable=SC2046
+LATEST=$(git describe --tags $(git rev-list --tags --max-count=1))
+
+echo "Using minio-js RELEASE $LATEST"
+
+git checkout "${LATEST}" --force &>/dev/null
+
+npm install --quiet &>/dev/null
