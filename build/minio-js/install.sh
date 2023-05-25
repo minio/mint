@@ -25,8 +25,14 @@ git clone https://github.com/minio/minio-js.git $install_path
 
 cd $install_path || exit 0
 
-LATEST="master" #$(git tag | tail -1)
+# Get new tags from remote
+git fetch --tags
+# Get latest tag name
+# shellcheck disable=SC2046
+LATEST=$(git describe --tags $(git rev-list --tags --max-count=1))
 
-git checkout "${LATEST}" --force
+echo "Using minio-js RELEASE $LATEST"
+
+git checkout "${LATEST}" --force &>/dev/null
 
 npm install --quiet &>/dev/null
