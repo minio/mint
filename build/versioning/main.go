@@ -82,6 +82,7 @@ func cleanupBucket(bucket string, function string, args map[string]interface{}, 
 
 func main() {
 	endpoint := os.Getenv("SERVER_ENDPOINT")
+	region := os.Getenv("SERVER_REGION")
 	accessKey := os.Getenv("ACCESS_KEY")
 	secretKey := os.Getenv("SECRET_KEY")
 	secure := os.Getenv("ENABLE_HTTPS")
@@ -95,7 +96,7 @@ func main() {
 	s3Config := &aws.Config{
 		Credentials:      creds,
 		Endpoint:         aws.String(sdkEndpoint),
-		Region:           aws.String("us-east-1"),
+		Region:           aws.String(region),
 		S3ForcePathStyle: aws.Bool(true),
 	}
 

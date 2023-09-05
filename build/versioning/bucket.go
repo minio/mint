@@ -31,8 +31,6 @@ import (
 
 // Tests bucket versioned bucket and get its versioning configuration to check
 func testMakeBucket() {
-	s3Client.Config.Region = aws.String("us-east-1")
-
 	// initialize logging params
 	startTime := time.Now()
 	function := "testCreateVersioningBucket"
@@ -42,6 +40,9 @@ func testMakeBucket() {
 	}
 	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: s3Client.Config.Region,
+		},
 	})
 	if err != nil {
 		failureLog(function, args, startTime, "", "Versioning CreateBucket Failed", err).Fatal()
