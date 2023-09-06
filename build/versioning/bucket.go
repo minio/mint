@@ -48,7 +48,7 @@ func testMakeBucket() {
 		failureLog(function, args, startTime, "", "Versioning CreateBucket Failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucketName, function, args, startTime)
+	defer cleanupBucket(bucketName, function, args, startTime, false)
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucketName),

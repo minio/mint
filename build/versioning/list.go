@@ -34,8 +34,9 @@ import (
 )
 
 // Test regular listing result with simple use cases:
-//   Upload an object ten times, delete it once (delete marker)
-//   and check listing result
+//
+//	Upload an object ten times, delete it once (delete marker)
+//	and check listing result
 func testListObjectVersionsSimple() {
 	startTime := time.Now()
 	function := "testListObjectVersionsSimple"
@@ -55,7 +56,7 @@ func testListObjectVersionsSimple() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, false)
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
@@ -241,7 +242,7 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, false)
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
@@ -382,7 +383,7 @@ func testListObjectVersionsKeysContinuation() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, false)
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
@@ -488,7 +489,7 @@ func testListObjectVersionsVersionIDContinuation() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, false)
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
@@ -597,7 +598,7 @@ func testListObjectsVersionsWithEmptyDirObject() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, false)
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),

@@ -54,7 +54,7 @@ func testLockingRetentionGovernance() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, true)
 
 	type uploadedObject struct {
 		retention        string
@@ -154,7 +154,7 @@ func testLockingRetentionCompliance() {
 		return
 	}
 
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, true)
 
 	type uploadedObject struct {
 		retention        string
@@ -262,7 +262,7 @@ func testPutGetDeleteLockingRetention(function, retentionMode string) {
 		return
 	}
 
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, true)
 
 	oneMinuteRetention := time.Now().UTC().Add(time.Minute)
 	twoMinutesRetention := oneMinuteRetention.Add(time.Minute)
