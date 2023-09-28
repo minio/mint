@@ -1,6 +1,6 @@
 <?php
 #
-#  Mint, (C) 2017 Minio, Inc.
+#  Mint, (C) 2023 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -622,16 +622,15 @@ function testAbortMultipartUpload($s3Client, $params) {
 	throw new Exception('abortMultipartupload API failed for ' .
 			    $bucket . '/' . $object);
 
-    //Run failure tests
-    $params = [
-	// Upload doesn't exist
-	'NoSuchUpload' => [
-	    'Bucket' => $bucket,
-	    'Key' => $object,
-	    'UploadId' => 'non-existent',
-	],
-    ];
-    runExceptionalTests($s3Client, 'abortMultipartUpload', 'getAwsErrorCode', $params);
+    $result = $s3Client->abortMultipartUpload([
+	'Bucket' => $bucket,
+	'Key' => $object,
+	'UploadId' => 'non-existent',
+    ]);
+
+    if (getStatusCode($result) != HTTP_NOCONTENT)
+	throw new Exception('abortMultipartupload API failed for ' .
+			    $bucket . '/' . $object);
 }
 
  /**

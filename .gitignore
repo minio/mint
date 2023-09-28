@@ -18,3 +18,7 @@ run/core/minio-dotnet/out/*
 run/core/minio-go/main.go
 run/core/healthcheck/healthcheck
 .idea/
+.phive/
+.phplint.cache/
+build/versioning/tests
+tools/
