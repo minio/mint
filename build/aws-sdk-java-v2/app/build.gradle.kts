@@ -5,12 +5,13 @@
  * For more details on building Java & JVM projects, please refer to https://docs.gradle.org/8.5/userguide/building_java_projects.html in the Gradle documentation.
  */
 import org.springframework.boot.gradle.plugin.SpringBootPlugin
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
     application
     id("org.springframework.boot") version "2.6.2"
-    id("io.ktor.plugin") version "2.3.7"
+    id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
 repositories {
@@ -19,14 +20,6 @@ repositories {
 }
 
 dependencies {
-    // Use JUnit Jupiter for testing.
-    testImplementation(libs.junit.jupiter)
-
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-
-    // This dependency is used by the application.
-    implementation(libs.guava)
-
     // AWS SDK dependencies
     implementation(platform("software.amazon.awssdk:bom:2.21.36"))
     implementation("software.amazon.awssdk:s3")
@@ -36,8 +29,6 @@ dependencies {
     implementation(platform("org.apache.logging.log4j:log4j-bom:2.20.0"))
     implementation("org.apache.logging.log4j:log4j-slf4j2-impl")
     implementation("org.apache.logging.log4j:log4j-1.2-api")
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
     implementation("commons-logging:commons-logging:1.2")
 
     // jackson dependency
@@ -47,6 +38,10 @@ dependencies {
     //this version has to be searched for spring boot version
     implementation(platform("org.springframework.cloud:spring-cloud-dependencies:2021.0.0"))
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+}
+
+tasks.withType<ShadowJar> {
+    archiveFileName.set("FunctionalTests.jar")
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
@@ -59,15 +54,4 @@ java {
 application {
     // Define the main class for the application.
     mainClass.set("io.minio.awssdk.v2.tests.FunctionalTests")
-}
-
-ktor {
-    fatJar {
-        archiveFileName.set("FunctionalTests.jar")
-    }
-}
-
-tasks.named<Test>("test") {
-    // Use JUnit Platform for unit tests.
-    useJUnitPlatform()
 }

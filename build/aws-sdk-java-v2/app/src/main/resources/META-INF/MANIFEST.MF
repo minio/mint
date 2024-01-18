@@ -1,3 +1,0 @@
-Manifest-Version: 1.0
-Main-Class: io.minio.awssdk.v2.tests.FunctionalTests
-
