@@ -4,13 +4,11 @@
  * This generated file contains a sample Java application project to get you started.
  * For more details on building Java & JVM projects, please refer to https://docs.gradle.org/8.5/userguide/building_java_projects.html in the Gradle documentation.
  */
-import org.springframework.boot.gradle.plugin.SpringBootPlugin
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     // Apply the application plugin to add support for building a CLI application in Java.
     application
-    id("org.springframework.boot") version "2.6.2"
     id("com.github.johnrengelman.shadow") version "8.1.1"
 }
 
@@ -23,21 +21,10 @@ dependencies {
     // AWS SDK dependencies
     implementation(platform("software.amazon.awssdk:bom:2.21.36"))
     implementation("software.amazon.awssdk:s3")
-    implementation("software.amazon.awssdk:sso")
-    implementation("software.amazon.awssdk:ssooidc")
     implementation("software.amazon.awssdk:netty-nio-client")
-    implementation(platform("org.apache.logging.log4j:log4j-bom:2.20.0"))
-    implementation("org.apache.logging.log4j:log4j-slf4j2-impl")
-    implementation("org.apache.logging.log4j:log4j-1.2-api")
-    implementation("commons-logging:commons-logging:1.2")
 
     // jackson dependency
-    val springBootPlatform = platform(SpringBootPlugin.BOM_COORDINATES)
-    annotationProcessor(springBootPlatform)
-    implementation(springBootPlatform)
-    //this version has to be searched for spring boot version
-    implementation(platform("org.springframework.cloud:spring-cloud-dependencies:2021.0.0"))
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.+")
 }
 
 tasks.withType<ShadowJar> {
