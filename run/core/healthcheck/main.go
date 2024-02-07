@@ -33,13 +33,16 @@ import (
 )
 
 const (
-	pass             = "PASS" // Indicate that a test passed
-	fail             = "FAIL" // Indicate that a test failed
-	livenessPath     = "/minio/health/live"
-	readinessPath    = "/minio/health/ready"
-	prometheusPath   = "/minio/prometheus/metrics"
-	prometheusPathV2 = "/minio/v2/metrics/cluster"
-	timeout          = time.Duration(30 * time.Second)
+	pass                     = "PASS" // Indicate that a test passed
+	fail                     = "FAIL" // Indicate that a test failed
+	livenessPath             = "/minio/health/live"
+	readinessPath            = "/minio/health/ready"
+	prometheusPath           = "/minio/prometheus/metrics"
+	prometheusPathV2Cluster  = "/minio/v2/metrics/cluster"
+	prometheusPathV2Node     = "/minio/v2/metrics/node"
+	prometheusPathV2Bucket   = "/minio/v2/metrics/bucket"
+	prometheusPathV2Resource = "/minio/v2/metrics/resource"
+	timeout                  = time.Duration(30 * time.Second)
 )
 
 type mintJSONFormatter struct{}
@@ -200,11 +203,11 @@ func testPrometheusEndpoint(endpoint string) {
 	defer successLogger(function, nil, startTime).Info()
 }
 
-func testPrometheusEndpointV2(endpoint string) {
+func testPrometheusEndpointV2(endpoint string, metricsPath string) {
 	startTime := time.Now()
 	function := "testPrometheusEndpoint"
 
-	u, err := url.Parse(fmt.Sprintf("%s%s", endpoint, prometheusPathV2))
+	u, err := url.Parse(fmt.Sprintf("%s%s", endpoint, metricsPath))
 	if err != nil {
 		// Could not parse URL successfully
 		failureLog(function, nil, startTime, "", "URL Parsing for Healthcheck Prometheus handler failed", err).Fatal()
@@ -247,6 +250,22 @@ func testPrometheusEndpointV2(endpoint string) {
 	defer successLogger(function, nil, startTime).Info()
 }
 
+func testClusterPrometheusEndpointV2(endpoint string) {
+	testPrometheusEndpointV2(endpoint, prometheusPathV2Cluster)
+}
+
+func testNodePrometheusEndpointV2(endpoint string) {
+	testPrometheusEndpointV2(endpoint, prometheusPathV2Node)
+}
+
+func testBucketPrometheusEndpointV2(endpoint string) {
+	testPrometheusEndpointV2(endpoint, prometheusPathV2Bucket)
+}
+
+func testResourcePrometheusEndpointV2(endpoint string) {
+	testPrometheusEndpointV2(endpoint, prometheusPathV2Resource)
+}
+
 func main() {
 	endpoint := os.Getenv("SERVER_ENDPOINT")
 	secure := os.Getenv("ENABLE_HTTPS")
@@ -268,5 +287,8 @@ func main() {
 	testLivenessEndpoint(endpoint)
 	testReadinessEndpoint(endpoint)
 	testPrometheusEndpoint(endpoint)
-	testPrometheusEndpointV2(endpoint)
+	testClusterPrometheusEndpointV2(endpoint)
+	testNodePrometheusEndpointV2(endpoint)
+	testBucketPrometheusEndpointV2(endpoint)
+	testResourcePrometheusEndpointV2(endpoint)
 }
