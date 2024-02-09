@@ -33,13 +33,15 @@ import (
 )
 
 const (
-	pass             = "PASS" // Indicate that a test passed
-	fail             = "FAIL" // Indicate that a test failed
-	livenessPath     = "/minio/health/live"
-	readinessPath    = "/minio/health/ready"
-	prometheusPath   = "/minio/prometheus/metrics"
-	prometheusPathV2 = "/minio/v2/metrics/cluster"
-	timeout          = time.Duration(30 * time.Second)
+	pass                     = "PASS" // Indicate that a test passed
+	fail                     = "FAIL" // Indicate that a test failed
+	livenessPath             = "/minio/health/live"
+	readinessPath            = "/minio/health/ready"
+	prometheusPathV2Cluster  = "/minio/v2/metrics/cluster"
+	prometheusPathV2Node     = "/minio/v2/metrics/node"
+	prometheusPathV2Bucket   = "/minio/v2/metrics/bucket"
+	prometheusPathV2Resource = "/minio/v2/metrics/resource"
+	timeout                  = time.Duration(30 * time.Second)
 )
 
 type mintJSONFormatter struct{}
@@ -153,11 +155,11 @@ const (
 	defaultPrometheusJWTExpiry = 100 * 365 * 24 * time.Hour
 )
 
-func testPrometheusEndpoint(endpoint string) {
+func testPrometheusEndpointV2(endpoint string, metricsPath string) {
 	startTime := time.Now()
 	function := "testPrometheusEndpoint"
 
-	u, err := url.Parse(fmt.Sprintf("%s%s", endpoint, prometheusPath))
+	u, err := url.Parse(fmt.Sprintf("%s%s", endpoint, metricsPath))
 	if err != nil {
 		// Could not parse URL successfully
 		failureLog(function, nil, startTime, "", "URL Parsing for Healthcheck Prometheus handler failed", err).Fatal()
@@ -200,51 +202,20 @@ func testPrometheusEndpoint(endpoint string) {
 	defer successLogger(function, nil, startTime).Info()
 }
 
-func testPrometheusEndpointV2(endpoint string) {
-	startTime := time.Now()
-	function := "testPrometheusEndpoint"
+func testClusterPrometheusEndpointV2(endpoint string) {
+	testPrometheusEndpointV2(endpoint, prometheusPathV2Cluster)
+}
 
-	u, err := url.Parse(fmt.Sprintf("%s%s", endpoint, prometheusPathV2))
-	if err != nil {
-		// Could not parse URL successfully
-		failureLog(function, nil, startTime, "", "URL Parsing for Healthcheck Prometheus handler failed", err).Fatal()
-	}
+func testNodePrometheusEndpointV2(endpoint string) {
+	testPrometheusEndpointV2(endpoint, prometheusPathV2Node)
+}
 
-	jwt := jwtgo.NewWithClaims(jwtgo.SigningMethodHS512, jwtgo.StandardClaims{
-		ExpiresAt: time.Now().UTC().Add(defaultPrometheusJWTExpiry).Unix(),
-		Subject:   os.Getenv("ACCESS_KEY"),
-		Issuer:    "prometheus",
-	})
+func testBucketPrometheusEndpointV2(endpoint string) {
+	testPrometheusEndpointV2(endpoint, prometheusPathV2Bucket)
+}
 
-	token, err := jwt.SignedString([]byte(os.Getenv("SECRET_KEY")))
-	if err != nil {
-		failureLog(function, nil, startTime, "", "jwt generation failed", err).Fatal()
-	}
-
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: u.Scheme == "https"},
-	}
-	client := &http.Client{Transport: tr, Timeout: timeout}
-
-	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
-	if err != nil {
-		failureLog(function, nil, startTime, "", "Initializing GET request to Prometheus endpoint failed", err).Fatal()
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-
-	resp, err := client.Do(req)
-	if err != nil {
-		// GET request errored
-		failureLog(function, nil, startTime, "", "GET request to Prometheus endpoint failed", err).Fatal()
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		// Status not 200 OK
-		failureLog(function, nil, startTime, "", "GET "+endpoint+" returned non OK status", err).Fatal()
-	}
-
-	defer resp.Body.Close()
-	defer successLogger(function, nil, startTime).Info()
+func testResourcePrometheusEndpointV2(endpoint string) {
+	testPrometheusEndpointV2(endpoint, prometheusPathV2Resource)
 }
 
 func main() {
@@ -268,5 +239,8 @@ func main() {
 	testLivenessEndpoint(endpoint)
 	testReadinessEndpoint(endpoint)
 	testPrometheusEndpoint(endpoint)
-	testPrometheusEndpointV2(endpoint)
+	testClusterPrometheusEndpointV2(endpoint)
+	testNodePrometheusEndpointV2(endpoint)
+	testBucketPrometheusEndpointV2(endpoint)
+	testResourcePrometheusEndpointV2(endpoint)
 }
