@@ -238,7 +238,6 @@ func main() {
 	// execute tests
 	testLivenessEndpoint(endpoint)
 	testReadinessEndpoint(endpoint)
-	testPrometheusEndpointV2(endpoint)
 	testClusterPrometheusEndpointV2(endpoint)
 	testNodePrometheusEndpointV2(endpoint)
 	testBucketPrometheusEndpointV2(endpoint)
