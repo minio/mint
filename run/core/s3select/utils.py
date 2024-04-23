@@ -54,7 +54,7 @@ class LogOutput(object):
     NA = 'NA'
 
     def __init__(self, meth, test_name):
-        self.__args_list = inspect.getargspec(meth).args[1:]
+        self.__args_list = inspect.getfullargspec(meth).args[1:]
         self.__name = 's3select:'+test_name
         self.__function = meth.__name__+'('+', '.join(self.__args_list)+')'
         self.__args = {}
