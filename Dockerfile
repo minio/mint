@@ -16,7 +16,6 @@ WORKDIR /mint
 
 RUN /mint/create-data-files.sh
 RUN /mint/preinstall.sh
-
 RUN /mint/release.sh
 
 ENTRYPOINT ["/mint/entrypoint.sh"]

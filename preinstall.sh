@@ -15,8 +15,7 @@
 #  limitations under the License.
 #
 
-export APT="apt --quiet --yes"
-export WGET="wget --quiet --no-check-certificate"
+source "${MINT_ROOT_DIR}"/source.sh
 
 # install nodejs source list
 if ! $WGET --output-document=- https://deb.nodesource.com/setup_20.x | bash -; then
@@ -35,11 +34,9 @@ dpkg -i packages-microsoft-prod.deb
 rm -f packages-microsoft-prod.deb
 
 $APT update
-$APT install gnupg ca-certificates
+$APT install gnupg ca-certificates unzip busybox
 
 # download and install golang
-GO_VERSION="1.21.9"
-GO_INSTALL_PATH="/usr/local"
 download_url="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
 if ! $WGET --output-document=- "$download_url" | tar -C "${GO_INSTALL_PATH}" -zxf -; then
 	echo "unable to install go$GO_VERSION"
@@ -50,5 +47,14 @@ xargs --arg-file="${MINT_ROOT_DIR}/install-packages.list" apt --quiet --yes inst
 
 # set python 3.10 as default
 update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
+
+mkdir -p ${GRADLE_INSTALL_PATH}
+gradle_url="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
+if ! $WGET --output-document=- "$gradle_url" | busybox unzip -d ${GRADLE_INSTALL_PATH} -; then
+    echo "unable to install gradle-${GRADLE_VERSION}"
+    exit 1
+fi
+
+chmod +x -v ${GRADLE_INSTALL_PATH}/gradle-${GRADLE_VERSION}/bin/gradle
 
 sync
