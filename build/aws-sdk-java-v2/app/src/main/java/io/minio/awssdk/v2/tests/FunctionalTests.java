@@ -386,6 +386,7 @@ public class FunctionalTests {
             s3Client = S3Client
                     .builder()
                     .endpointOverride(URI.create(endpoint))
+                    .forcePathStyle(true)
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .region(region)
                     .httpClient(sdkHttpClient)
@@ -399,6 +400,7 @@ public class FunctionalTests {
             s3AsyncClient = S3AsyncClient
                     .builder()
                     .endpointOverride(URI.create(endpoint))
+                    .forcePathStyle(true)
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .region(region)
                     .httpClient(sdkAsyncHttpClient)
@@ -407,12 +409,14 @@ public class FunctionalTests {
             s3Client = S3Client
                     .builder()
                     .endpointOverride(URI.create(endpoint))
+                    .forcePathStyle(true)
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .region(region)
                     .build();
             s3AsyncClient = S3AsyncClient
                     .builder()
                     .endpointOverride(URI.create(endpoint))
+                    .forcePathStyle(true)
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .region(region)
                     .build();
