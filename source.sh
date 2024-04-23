@@ -1,6 +1,6 @@
 #!/bin/bash -e
 #
-#  Minio Cloud Storage, (C) 2017 Minio, Inc.
+#  Minio Cloud Storage, (C) 2024 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,13 +15,7 @@
 #  limitations under the License.
 #
 
-export MINT_ROOT_DIR=${MINT_ROOT_DIR:-/mint}
-source "${MINT_ROOT_DIR}"/source.sh
+export MINT_RUN_CORE_DIR="$MINT_ROOT_DIR/run/core"
+export MINT_RUN_BUILD_DIR="$MINT_ROOT_DIR/build"
+export WGET="wget --quiet --no-check-certificate"
 
-# install mint app packages
-for pkg in "$MINT_ROOT_DIR/build"/*/install.sh; do
-	echo "Running $pkg"
-	$pkg
-done
-
-"${MINT_ROOT_DIR}"/postinstall.sh

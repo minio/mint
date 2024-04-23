@@ -12,8 +12,11 @@ RUN apt-get --yes update && apt-get --yes upgrade && \
 
 COPY . /mint
 
-RUN cd /mint && /mint/release.sh
-
 WORKDIR /mint
+
+RUN /mint/create-data-files.sh
+RUN /mint/preinstall.sh
+
+RUN /mint/release.sh
 
 ENTRYPOINT ["/mint/entrypoint.sh"]
