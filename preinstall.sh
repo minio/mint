@@ -50,7 +50,7 @@ update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
 
 mkdir -p ${GRADLE_INSTALL_PATH}
 gradle_url="https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip"
-if ! $WGET --output-document=- "$gradle_url" | busybox unzip -d ${GRADLE_INSTALL_PATH} -; then
+if ! $WGET --output-document=- "$gradle_url" | busybox unzip -qq -d ${GRADLE_INSTALL_PATH} -; then
 	echo "unable to install gradle-${GRADLE_VERSION}"
 	exit 1
 fi
