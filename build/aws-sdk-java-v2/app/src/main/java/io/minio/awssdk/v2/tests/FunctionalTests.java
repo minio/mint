@@ -27,6 +27,7 @@ import software.amazon.awssdk.http.nio.netty.NettyNioAsyncHttpClient;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.utils.AttributeMap;
 
@@ -413,9 +414,13 @@ public class FunctionalTests {
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .region(region)
                     .build();
+	    S3Configuration configuration = S3Configuration.builder()
+				.chunkedEncodingEnabled(true)
+				.build();
             s3AsyncClient = S3AsyncClient
                     .builder()
                     .endpointOverride(URI.create(endpoint))
+		    .serviceConfiguration(configuration)
                     .forcePathStyle(true)
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .region(region)
