@@ -18,8 +18,10 @@
 package io.minio.awssdk.v2.tests;
 
 import software.amazon.awssdk.auth.credentials.*;
+import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.core.internal.http.loader.DefaultSdkHttpClientBuilder;
 import software.amazon.awssdk.core.waiters.WaiterResponse;
+import software.amazon.awssdk.http.crt.AwsCrtAsyncHttpClient;
 import software.amazon.awssdk.http.SdkHttpClient;
 import software.amazon.awssdk.http.SdkHttpConfigurationOption;
 import software.amazon.awssdk.http.async.SdkAsyncHttpClient;
@@ -34,6 +36,7 @@ import software.amazon.awssdk.utils.AttributeMap;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -62,6 +65,7 @@ public class FunctionalTests {
 
     private static S3Client s3Client;
     private static S3AsyncClient s3AsyncClient;
+    private static S3AsyncClient s3CrtAsyncClient;
     private static S3TestUtils s3TestUtils;
 
     public static String getRandomName() {
@@ -118,6 +122,7 @@ public class FunctionalTests {
         uploadMultiPart_test();
         uploadMultiPartAsync_test();
         uploadObjectVersions_test();
+	crtClientDownload_test();
 //        uploadSnowballObjects_test();
     }
 
@@ -321,6 +326,45 @@ public class FunctionalTests {
         }
     }
 
+    public static void crtClientDownload_test() throws Exception {
+        if (!mintEnv) {
+            System.out.println("Test: Async S3CrtClient.getObject");
+        }
+        if (!enableHTTPS) {
+            return;
+        }
+
+        String bucket = getRandomName();
+        long startTime = System.currentTimeMillis();
+        String objectName = "testobject";
+        try {
+            s3Client.createBucket(CreateBucketRequest
+                    .builder()
+                    .bucket(bucket)
+                    .build());
+            s3Client.waiter().waitUntilBucketExists(HeadBucketRequest
+                    .builder()
+                    .bucket(bucket)
+                    .build());
+	    s3CrtAsyncClient.putObject(
+		    r -> r.bucket(bucket).key(objectName), AsyncRequestBody.empty()
+		    ).join();
+	    s3CrtAsyncClient.getObject(
+		    r -> r.bucket(bucket).key(objectName), Path.of("/tmp/test")
+		    ).join();
+	    mintSuccessLog("Async S3CrtClient.getObject versions",
+                    "bucket: " + bucket + ", object: " + objectName,
+                    startTime);
+        } catch (Exception ex) {
+            mintFailedLog("Async S3CrtClient.getObject",
+                    "bucket: " + bucket + ", object: " + objectName,
+                    startTime,
+                    null,
+                    ex.toString() + " >>> " + Arrays.toString(ex.getStackTrace()));
+            throw ex;
+        }
+    }
+
     public static void teardown() throws IOException {
         ListBucketsResponse response = s3Client.listBuckets(ListBucketsRequest
                 .builder()
@@ -406,6 +450,20 @@ public class FunctionalTests {
                     .region(region)
                     .httpClient(sdkAsyncHttpClient)
                     .build();
+            SdkAsyncHttpClient crtAsyncHttpClient = AwsCrtAsyncHttpClient
+                    .builder()
+                    .buildWithDefaults(AttributeMap
+                            .builder()
+                            .put(SdkHttpConfigurationOption.TRUST_ALL_CERTIFICATES, true)
+                            .build());
+	    s3CrtAsyncClient = S3AsyncClient
+		    .builder()
+                    .endpointOverride(URI.create(endpoint))
+                    .forcePathStyle(true)
+                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                    .region(region)
+		    .httpClient(crtAsyncHttpClient)
+		    .build();
         } else {
             s3Client = S3Client
                     .builder()
@@ -425,9 +483,17 @@ public class FunctionalTests {
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .region(region)
                     .build();
+	    s3CrtAsyncClient = S3AsyncClient
+		    .crtBuilder()
+		    .checksumValidationEnabled(false)
+		    .endpointOverride(URI.create(endpoint))
+                    .forcePathStyle(true)
+                    .credentialsProvider(StaticCredentialsProvider.create(credentials))
+                    .region(region)
+		    .build();
         }
 
-        s3TestUtils = new S3TestUtils(s3Client, s3AsyncClient);
+        s3TestUtils = new S3TestUtils(s3Client, s3AsyncClient, s3CrtAsyncClient);
 
         try {
             initTests();
