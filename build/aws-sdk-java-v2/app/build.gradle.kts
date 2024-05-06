@@ -22,6 +22,7 @@ dependencies {
     implementation(platform("software.amazon.awssdk:bom:2.25.31"))
     implementation("software.amazon.awssdk:s3")
     implementation("software.amazon.awssdk:netty-nio-client")
+    implementation("software.amazon.awssdk:aws-crt-client")
 
     // jackson dependency
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.13.+")

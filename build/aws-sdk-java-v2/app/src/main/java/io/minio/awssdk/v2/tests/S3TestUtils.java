@@ -36,10 +36,12 @@ import java.util.concurrent.CompletableFuture;
 public class S3TestUtils {
     private final S3Client s3Client;
     private final S3AsyncClient s3AsyncClient;
+    private final S3AsyncClient s3CrtAsyncClient;
 
-    S3TestUtils(S3Client s3Client, S3AsyncClient s3AsyncClient) {
-        this.s3Client = s3Client;
-        this.s3AsyncClient = s3AsyncClient;
+    S3TestUtils(S3Client s3Client, S3AsyncClient s3AsyncClient, S3AsyncClient s3CrtAsyncClient) {
+	this.s3Client = s3Client;
+	this.s3AsyncClient = s3AsyncClient;
+	this.s3CrtAsyncClient = s3CrtAsyncClient;
     }
 
     void uploadMultipartObject(String bucketName, String keyName) throws IOException {
