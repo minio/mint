@@ -40,6 +40,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -54,6 +55,8 @@ public class FunctionalTests {
     private static Region region;
     private static String endpoint;
     private static boolean enableHTTPS;
+
+    private static final List<String> bucketsList = new ArrayList<>();
 
     private static final Random random = new Random(new SecureRandom().nextLong());
     private static final String bucketName = getRandomName();
@@ -112,6 +115,7 @@ public class FunctionalTests {
                 .builder()
                 .bucket(bucketName)
                 .build());
+        bucketsList.add(bucketName);
     }
 
     // Run tests
@@ -145,6 +149,7 @@ public class FunctionalTests {
                     .builder()
                     .bucket(bucket)
                     .build());
+            bucketsList.add(bucket);
             mintSuccessLog("S3Client.createBucket", "bucket: " + bucket, startTime);
         } catch (Exception ex) {
             mintFailedLog(
@@ -184,6 +189,7 @@ public class FunctionalTests {
                             .status(BucketVersioningStatus.ENABLED)
                             .build())
                     .build());
+            bucketsList.add(bucket);
             mintSuccessLog("S3Client.putBucketVersioning", "bucket: " + bucket, startTime);
         } catch (Exception ex) {
             mintFailedLog(
@@ -313,6 +319,9 @@ public class FunctionalTests {
             s3TestUtils.uploadObject(bucketName, objectName, file1Kb);
             s3TestUtils.uploadObject(bucketName, objectName, file1Kb);
             s3TestUtils.downloadObject(bucketName, objectName, "");
+
+            bucketsList.add(bucket);
+
             mintSuccessLog("S3Client.putObject versions",
                     "bucket: " + bucket + ", object: " + objectName,
                     startTime);
@@ -352,6 +361,9 @@ public class FunctionalTests {
 	    s3CrtAsyncClient.getObject(
 		    r -> r.bucket(bucket).key(objectName), Path.of("/tmp/test")
 		    ).join();
+
+            bucketsList.add(bucket);
+
 	    mintSuccessLog("Async S3CrtClient.getObject versions",
                     "bucket: " + bucket + ", object: " + objectName,
                     startTime);
@@ -366,15 +378,11 @@ public class FunctionalTests {
     }
 
     public static void teardown() throws IOException {
-        ListBucketsResponse response = s3Client.listBuckets(ListBucketsRequest
-                .builder()
-                .build());
-        List<Bucket> buckets = response.buckets();
-        for (Bucket bucket : buckets) {
+        for (String bkt : bucketsList) {
             // Remove all objects under the test bucket & the bucket itself
             ListObjectsV2Request request = ListObjectsV2Request
                     .builder()
-                    .bucket(bucket.name())
+                    .bucket(bkt)
                     .build();
             ListObjectsV2Response listObjectsResponse;
             do {
@@ -382,7 +390,7 @@ public class FunctionalTests {
                 for (S3Object obj : listObjectsResponse.contents()) {
                     s3Client.deleteObject(DeleteObjectRequest
                             .builder()
-                            .bucket(bucket.name())
+                            .bucket(bkt)
                             .key(obj.key())
                             .build());
                 }
@@ -390,7 +398,7 @@ public class FunctionalTests {
             // finally remove the bucket
             s3Client.deleteBucket(DeleteBucketRequest
                     .builder()
-                    .bucket(bucket.name())
+                    .bucket(bkt)
                     .build());
         }
     }
