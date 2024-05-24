@@ -109,16 +109,14 @@ function trust_s3_endpoint_tls_cert() {
 	openssl s_client -showcerts -verify 5 -connect "$SERVER_ENDPOINT" </dev/null |
 		awk '/BEGIN CERTIFICATE/,/END CERTIFICATE/{ if(/BEGIN CERTIFICATE/){a++}; out="cert"a".pem"; print >out}'
 	for cert in *.pem; do
-		mv -vf "${cert}" /usr/local/share/ca-certificates/
+		cat "${cert}" >>/etc/ssl/certs/ca-certificates.crt
 	done
-
-	# Load the certificate in the system
-	update-ca-certificates --fresh >/dev/null
 
 	# Ask different SDKs/tools to load system certificates
 	export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 	export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 	export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+	export AWS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 }
 
 function main() {
