@@ -728,8 +728,7 @@ class AwsSdkRubyTest
 
       # Generate presigned Put URL and parse it
       uri = URI.parse(presignedPutWrapper(bucket_name, file_name, log_output))
-      request = Net::HTTP::Put.new(uri.request_uri, 'content-type' => 'application/octet-stream',
-                                   'x-amz-acl' => 'public-read')
+      request = Net::HTTP::Put.new(uri.request_uri, 'content-type' => 'application/octet-stream')
       request.body = IO.read(File.join(data_dir, file_name))
 
       http = Net::HTTP.new(uri.host, uri.port)
