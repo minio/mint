@@ -56,7 +56,7 @@ func testLockingLegalhold() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, true)
 
 	type uploadedObject struct {
 		legalhold        string
@@ -207,7 +207,7 @@ func testLockingLegalhold() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucketWithoutLock, function, args, startTime)
+	defer cleanupBucket(bucketWithoutLock, function, args, startTime, false)
 
 	input = &s3.GetObjectLegalHoldInput{
 		Bucket: aws.String(bucketWithoutLock),
@@ -255,28 +255,16 @@ func testLockingLegalhold() {
 	}
 
 	// object-handlers.go > PutObjectLegalHoldHandler > objectlock.ParseObjectLegalHold
+	// LegalHold has to be removed in the end, otherwise cleanup fails.
 	putInput := &s3.PutObjectInput{
 		Body:                      aws.ReadSeekCloser(strings.NewReader("content")),
 		Bucket:                    aws.String(bucket),
 		Key:                       aws.String(object),
-		ObjectLockLegalHoldStatus: aws.String("test"),
+		ObjectLockLegalHoldStatus: aws.String("OFF"),
 	}
-	output, err := s3Client.PutObject(putInput)
+	_, err = s3Client.PutObject(putInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
-		return
-	}
-	uploads[0].versionId = *output.VersionId
-
-	polhInput := &s3.PutObjectLegalHoldInput{
-		Bucket:    aws.String(bucket),
-		Key:       aws.String(object),
-		VersionId: aws.String(uploads[0].versionId),
-	}
-	// We encountered an internal error, please try again.: cause(EOF)
-	_, err = s3Client.PutObjectLegalHold(polhInput)
-	if err == nil {
-		failureLog(function, args, startTime, "", fmt.Sprintf("PutObjectLegalHold expected to fail but got %v", err), err).Fatal()
 		return
 	}
 

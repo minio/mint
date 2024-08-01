@@ -124,7 +124,7 @@ public class FunctionalTests {
         sseKey3 = new SSECustomerKey(secretKey3);
 
         // Create bucket
-        s3Client.createBucket(new CreateBucketRequest(bucketName));
+        s3Client.createBucket(new CreateBucketRequest(bucketName, region));
     }
 
     public static void teardown() throws IOException {
@@ -582,11 +582,10 @@ public class FunctionalTests {
     public static void main(String[] args) throws Exception, IOException, NoSuchAlgorithmException {
 
         endpoint = System.getenv("SERVER_ENDPOINT");
+        region = System.getenv("SERVER_REGION");
         accessKey = System.getenv("ACCESS_KEY");
         secretKey = System.getenv("SECRET_KEY");
         enableHTTPS = System.getenv("ENABLE_HTTPS").equals("1");
-
-        region = "us-east-1";
 
         if (enableHTTPS) {
             endpoint = "https://" + endpoint;

@@ -54,7 +54,7 @@ func testPutObject() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, false)
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
@@ -165,7 +165,7 @@ func testPutObjectWithTaggingAndMetadata() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, false)
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),

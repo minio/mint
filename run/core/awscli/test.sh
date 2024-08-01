@@ -53,7 +53,7 @@ function log_alert() {
 function make_bucket() {
 	# Make bucket
 	bucket_name="awscli-mint-test-bucket-$RANDOM"
-	function="${AWS} s3api create-bucket --bucket ${bucket_name}"
+	function="${AWS} s3api create-bucket --bucket ${bucket_name} --create-bucket-configuration LocationConstraint=${SERVER_REGION}"
 
 	# execute the test
 	out=$($function 2>&1)
