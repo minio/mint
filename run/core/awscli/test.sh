@@ -598,6 +598,47 @@ function test_max_key_list() {
 	return $rv
 }
 
+# check_if_encrypted_with() <bucket-name> <object-name> <enc-algo> [enc-algo...]
+#    This function helps to check if an object is encrypted with one of the passed
+#    encryption algorithms. Supported list: `kms`, `sse-c`
+# Return:
+#     0: the object is ACTUALLY encrypted with one of the passed encryption list
+#     1: the object is NOT encrypted with one of the passed encryption list
+#   > 1: something went wrong
+function check_if_encrypted_with() {
+	local bucket_name="$1"
+	local object_name="$2"
+	shift 2
+	local encAlgo=("$@")
+
+	function="${AWS} s3api head-object --bucket ${bucket_name} --key ${object_name}"
+	output=$($function 2>&1)
+	local rv=$?
+	if [ $rv -ne 0 ]; then
+		return 255
+	fi
+
+	local found=1
+	for algo in "${encAlgo[@]}"; do
+		case "$algo" in
+		"kms")
+			if [ "$(echo "$output" | jq -r .ServerSideEncryption)" == "aws:kms" ]; then
+				found=0
+			fi
+			;;
+		"sse-c")
+			if [ "$(echo "$output" | jq -r .SSECustomerAlgorithm)" == "AES256" ]; then
+				found=0
+			fi
+			;;
+		*)
+			echo "Unknown algo: $algo"
+			;;
+		esac
+	done
+	return $found
+}
+
 # Copy object tests for server side copy
 # of the object, validates returned md5sum.
 function test_copy_object() {
@@ -624,11 +665,18 @@ function test_copy_object() {
 		test_function=${function}
 		out=$($function)
 		rv=$?
-		hash2=$(echo "$out" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
-		if [ $rv -eq 0 ] && [ "$HASH_1_KB" != "$hash2" ]; then
-			# Verification failed
-			rv=1
-			out="Hash mismatch expected $HASH_1_KB, got $hash2"
+		if [ $rv -eq 0 ]; then
+			check_if_encrypted_with "${bucket_name}" "datafile-1-kB-copy" "kms" "sse-c"
+			enc=$?
+			[ $enc -gt 1 ] && rv=1 # fatal error
+			if [ $rv -eq 0 ] && [ $enc -eq 1 ]; then
+				hash2=$(echo "$out" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
+				if [ "$HASH_1_KB" != "$hash2" ]; then
+					# Verification failed
+					rv=1
+					out="Hash mismatch expected $HASH_1_KB, got $hash2"
+				fi
+			fi
 		fi
 	fi
 
@@ -676,11 +724,18 @@ function test_copy_object_storage_class() {
 				return 0
 			fi
 		fi
-		hash2=$(echo "$out" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
-		if [ $rv -eq 0 ] && [ "$HASH_1_KB" != "$hash2" ]; then
-			# Verification failed
-			rv=1
-			out="Hash mismatch expected $HASH_1_KB, got $hash2"
+		if [ $rv -eq 0 ]; then
+			check_if_encrypted_with "${bucket_name}" "datafile-1-kB-copy" "kms" "sse-c"
+			enc=$?
+			[ $enc -gt 1 ] && rv=1
+			if [ $rv -eq 0 ] && [ $enc -eq 1 ]; then
+				hash2=$(echo "$out" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
+				if [ "$HASH_1_KB" != "$hash2" ]; then
+					# Verification failed
+					rv=1
+					out="Hash mismatch expected $HASH_1_KB, got $hash2"
+				fi
+			fi
 		fi
 		# if copy succeeds stat the object
 		if [ $rv -eq 0 ]; then
@@ -746,11 +801,17 @@ function test_copy_object_storage_class_same() {
 				return 0
 			fi
 		fi
-		hash2=$(echo "$out" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
-		if [ $rv -eq 0 ] && [ "$HASH_1_KB" != "$hash2" ]; then
-			# Verification failed
-			rv=1
-			out="Hash mismatch expected $HASH_1_KB, got $hash2"
+
+		check_if_encrypted_with "${bucket_name}" "datafile-1-kB" "kms" "sse-c"
+		enc=$?
+		[ $enc -gt 1 ] && rv=1
+		if [ $rv -eq 0 ] && [ $enc -eq 1 ]; then
+			hash2=$(echo "$out" | jq -r .CopyObjectResult.ETag | sed -e 's/^"//' -e 's/"$//')
+			if [ "$HASH_1_KB" != "$hash2" ]; then
+				# Verification failed
+				rv=1
+				out="Hash mismatch expected $HASH_1_KB, got $hash2"
+			fi
 		fi
 		# if copy succeeds stat the object
 		if [ $rv -eq 0 ]; then
