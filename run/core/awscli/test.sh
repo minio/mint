@@ -611,8 +611,8 @@ function check_if_encrypted_with() {
 	shift 2
 	local encAlgo=("$@")
 
-	local function="${AWS} s3api head-object --bucket "${bucket_name}" --key "${object_name}""
-	local output=$($function 2>&1)
+	function="${AWS} s3api head-object --bucket ${bucket_name} --key ${object_name}"
+	output=$($function 2>&1)
 	local rv=$?
 	if [ $rv -ne 0 ]; then
 		return 255
