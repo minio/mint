@@ -821,11 +821,6 @@ func testObjectTaggingErrors(s3Client *s3.S3) {
 
 // Tests bucket re-create errors.
 func testCreateBucketError(s3Client *s3.S3) {
-	region := s3Client.Config.Region
-	// Amazon S3 returns error in all AWS Regions except in the North Virginia Region.
-	// More details in https://docs.aws.amazon.com/sdk-for-go/api/service/s3/#S3.CreateBucket
-	s3Client.Config.Region = aws.String("us-west-1")
-
 	// initialize logging params
 	startTime := time.Now()
 	function := "testMakeBucketError"
@@ -835,16 +830,11 @@ func testCreateBucketError(s3Client *s3.S3) {
 	}
 	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: s3Client.Config.Region,
+		},
 	})
 	if err != nil {
-		// InvalidRegion is a valid error if the endpoint doesn't support
-		// different 'regions', we simply skip this test in such scenarios.
-		if err.(s3.RequestFailure).Code() == "InvalidRegion" {
-			// Restore region in s3Client
-			s3Client.Config.Region = region
-			successLogger(function, args, startTime).Info()
-			return
-		}
 		failureLog(function, args, startTime, "", "AWS SDK Go CreateBucket Failed", err).Fatal()
 		return
 	}
@@ -852,6 +842,9 @@ func testCreateBucketError(s3Client *s3.S3) {
 
 	_, errCreating := s3Client.CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: s3Client.Config.Region,
+		},
 	})
 	if errCreating == nil {
 		failureLog(function, args, startTime, "", "AWS SDK Go CreateBucket Should Return Error for Existing bucket", err).Fatal()
@@ -864,8 +857,6 @@ func testCreateBucketError(s3Client *s3.S3) {
 		return
 	}
 
-	// Restore region in s3Client
-	s3Client.Config.Region = region
 	successLogger(function, args, startTime).Info()
 }
 
@@ -1077,6 +1068,7 @@ func testSSECopyObject(s3Client *s3.S3) {
 
 func main() {
 	endpoint := os.Getenv("SERVER_ENDPOINT")
+	region := os.Getenv("SERVER_REGION")
 	accessKey := os.Getenv("ACCESS_KEY")
 	secretKey := os.Getenv("SECRET_KEY")
 	secure := os.Getenv("ENABLE_HTTPS")
@@ -1096,7 +1088,7 @@ func main() {
 	s3Config := &aws.Config{
 		Credentials:      creds,
 		Endpoint:         aws.String(sdkEndpoint),
-		Region:           aws.String("us-east-1"),
+		Region:           aws.String(region),
 		S3ForcePathStyle: aws.Bool(true),
 	}
 
