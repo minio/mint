@@ -16,6 +16,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"time"
 
@@ -29,7 +30,8 @@ import (
 // S3 client for testing
 var s3Client *s3.S3
 
-func cleanupBucket(bucket string, function string, args map[string]interface{}, startTime time.Time) {
+// bypassGovernanceRetention is necessary as always setting BypassGovernanceRetention results in API errors on buckets without Object Locking enabled.
+func cleanupBucket(bucket string, function string, args map[string]interface{}, startTime time.Time, bypassGovernanceRetention bool) {
 	start := time.Now()
 
 	input := &s3.ListObjectVersionsInput{
@@ -41,35 +43,53 @@ func cleanupBucket(bucket string, function string, args map[string]interface{}, 
 			func(page *s3.ListObjectVersionsOutput, lastPage bool) bool {
 				for _, v := range page.Versions {
 					input := &s3.DeleteObjectInput{
-						Bucket:                    &bucket,
-						Key:                       v.Key,
-						VersionId:                 v.VersionId,
-						BypassGovernanceRetention: aws.Bool(true),
+						Bucket:    &bucket,
+						Key:       v.Key,
+						VersionId: v.VersionId,
 					}
+					// Set BypassGovernanceRetention in separate step. Setting the value in the DeleteObjectInput may lead to the header being present with a value of false.
+					// This is not allowed by the S3 API and will result in a 409 error, if Object Locking is disabled.
+					if bypassGovernanceRetention {
+						input.SetBypassGovernanceRetention(true)
+					}
+
 					_, err := s3Client.DeleteObject(input)
 					if err != nil {
-						return true
+						fmt.Printf("Unable to delete object version %s in %s, retrying after 30 seconds: %s\n", *v.Key, bucket, err.Error())
+						return false
 					}
 				}
 				for _, v := range page.DeleteMarkers {
 					input := &s3.DeleteObjectInput{
-						Bucket:                    &bucket,
-						Key:                       v.Key,
-						VersionId:                 v.VersionId,
-						BypassGovernanceRetention: aws.Bool(true),
+						Bucket:    &bucket,
+						Key:       v.Key,
+						VersionId: v.VersionId,
 					}
+					// Set BypassGovernanceRetention in separate step. Setting the value in the DeleteObjectInput may lead to the header being present with a value of false.
+					// This is not allowed by the S3 API and will result in a 409 error, if Object Locking is disabled.
+					if bypassGovernanceRetention {
+						input.SetBypassGovernanceRetention(true)
+					}
+
 					_, err := s3Client.DeleteObject(input)
 					if err != nil {
-						return true
+						fmt.Printf("Unable to remove delete marker %s in %s, retrying after 30 seconds: %s\n", *v.Key, bucket, err.Error())
+						return false
 					}
 				}
 				return true
 			})
+		if err != nil {
+			fmt.Printf("Unable to iterate bucket %s, retrying after 30 seconds: %s\n", bucket, err.Error())
+			time.Sleep(30 * time.Second)
+			continue
+		}
 
 		_, err = s3Client.DeleteBucket(&s3.DeleteBucketInput{
 			Bucket: aws.String(bucket),
 		})
 		if err != nil {
+			fmt.Printf("Unable to delete bucket %s, retrying after 30 seconds: %s\n", bucket, err.Error())
 			time.Sleep(30 * time.Second)
 			continue
 		}
@@ -82,6 +102,7 @@ func cleanupBucket(bucket string, function string, args map[string]interface{}, 
 
 func main() {
 	endpoint := os.Getenv("SERVER_ENDPOINT")
+	region := os.Getenv("SERVER_REGION")
 	accessKey := os.Getenv("ACCESS_KEY")
 	secretKey := os.Getenv("SECRET_KEY")
 	secure := os.Getenv("ENABLE_HTTPS")
@@ -95,7 +116,7 @@ func main() {
 	s3Config := &aws.Config{
 		Credentials:      creds,
 		Endpoint:         aws.String(sdkEndpoint),
-		Region:           aws.String("us-east-1"),
+		Region:           aws.String(region),
 		S3ForcePathStyle: aws.Bool(true),
 	}
 

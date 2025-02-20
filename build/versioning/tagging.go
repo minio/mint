@@ -50,7 +50,7 @@ func testTagging() {
 		failureLog(function, args, startTime, "", "CreateBucket failed", err).Fatal()
 		return
 	}
-	defer cleanupBucket(bucket, function, args, startTime)
+	defer cleanupBucket(bucket, function, args, startTime, false)
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
