@@ -259,7 +259,7 @@ func testLockingLegalhold() {
 		Body:                      aws.ReadSeekCloser(strings.NewReader("content")),
 		Bucket:                    aws.String(bucket),
 		Key:                       aws.String(object),
-		ObjectLockLegalHoldStatus: aws.String("test"),
+		ObjectLockLegalHoldStatus: aws.String("ON"),
 	}
 	output, err := s3Client.PutObject(putInput)
 	if err != nil {
@@ -276,7 +276,19 @@ func testLockingLegalhold() {
 	// We encountered an internal error, please try again.: cause(EOF)
 	_, err = s3Client.PutObjectLegalHold(polhInput)
 	if err == nil {
-		failureLog(function, args, startTime, "", fmt.Sprintf("PutObjectLegalHold expected to fail but got %v", err), err).Fatal()
+		failureLog(function, args, startTime, "", "PutObjectLegalHold expected to fail but got success", nil).Fatal()
+		return
+	}
+
+	polhInput = &s3.PutObjectLegalHoldInput{
+		Bucket:    aws.String(bucket),
+		Key:       aws.String(object),
+		VersionId: aws.String(uploads[0].versionId),
+		LegalHold: &s3.ObjectLockLegalHold{Status: aws.String("OFF")},
+	}
+	_, err = s3Client.PutObjectLegalHold(polhInput)
+	if err != nil {
+		failureLog(function, args, startTime, "", fmt.Sprintf("PutObjectLegalHold to turn-off legalhold expected to succeed, but got%v", err), err).Fatal()
 		return
 	}
 
