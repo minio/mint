@@ -3,6 +3,6 @@ git
 python3-pip
 ruby-dev
 ruby-bundler
-openjdk-8-jdk
+openjdk-21-jdk
 ant
-dotnet
+dotnet-sdk-8.0

@@ -22,6 +22,7 @@ if [ -z "$MINIO_PY_VERSION" ]; then
 fi
 
 test_run_dir="$MINT_RUN_CORE_DIR/minio-py"
-pip3 install --user faker
-pip3 install minio=="${MINIO_PY_VERSION}"
+# Using --break-system-packages for Ubuntu 24.04+ (PEP 668) - safe in containers
+pip3 install --break-system-packages --user faker
+pip3 install --break-system-packages minio=="${MINIO_PY_VERSION}"
 $WGET --output-document="$test_run_dir/tests.py" "https://raw.githubusercontent.com/minio/minio-py/${MINIO_PY_VERSION}/tests/functional/tests.py"

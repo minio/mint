@@ -15,4 +15,5 @@
 #  limitations under the License.
 #
 
-python -m pip install minio
+# Using --break-system-packages for Ubuntu 24.04+ (PEP 668) - safe in containers
+python -m pip install --break-system-packages minio

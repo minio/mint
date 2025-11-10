@@ -24,6 +24,9 @@ fi
 output_log_file="$1"
 error_log_file="$2"
 
+# Enable botocore's empty body handling for Expect: 100-continue
+export BOTO_EXPERIMENTAL__NO_EMPTY_CONTINUE=true
+
 # configure awscli
 aws configure set aws_access_key_id "$ACCESS_KEY"
 aws configure set aws_secret_access_key "$SECRET_KEY"

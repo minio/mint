@@ -1,6 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
 #
-#  Minio Cloud Storage, (C) 2024 Minio, Inc.
+#  Mint (C) 2017-2025 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,17 +15,14 @@
 #  limitations under the License.
 #
 
-export MINT_RUN_CORE_DIR="$MINT_ROOT_DIR/run/core"
-export MINT_RUN_BUILD_DIR="$MINT_ROOT_DIR/build"
-export APT="apt --quiet --yes"
-export WGET="wget --quiet --no-check-certificate"
-export WGET="wget --quiet --no-check-certificate"
+# handle command line arguments
+if [ $# -ne 2 ]; then
+	echo "usage: run.sh <OUTPUT-LOG-FILE> <ERROR-LOG-FILE>"
+	exit 1
+fi
 
-## Software versions
-export GO_VERSION="1.25.4"
-export GRADLE_VERSION="9.2.0"
-export GRADLE_INSTALL_PATH="/opt/gradle"
-export GO_INSTALL_PATH="/usr/local"
+output_log_file="$1"
+error_log_file="$2"
 
-export PATH=${GO_INSTALL_PATH}/bin:$PATH
-export PATH=${GRADLE_INSTALL_PATH}/gradle-${GRADLE_VERSION}/bin:$PATH
+# run tests
+/mint/run/core/aws-sdk-go-v2/aws-sdk-go-v2 1>>"$output_log_file" 2>"$error_log_file"
