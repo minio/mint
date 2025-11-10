@@ -260,8 +260,8 @@ func testPresignedPutInvalidHash(ctx context.Context, s3Client *s3.Client, presi
 		return
 	}
 
-	if errResp.Code != "XAmzContentSHA256Mismatch" {
-		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 presigned PUT expected to fail with XAmzContentSHA256Mismatch but got %v", errResp.Code), errors.New("AWS S3 error code mismatch")).Fatal()
+	if errResp.Code != "SignatureDoesNotMatch" {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 presigned PUT expected to fail with SignatureDoesNotMatch but got %v", errResp.Code), errors.New("AWS S3 error code mismatch")).Fatal()
 		return
 	}
 
