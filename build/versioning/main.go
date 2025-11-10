@@ -16,57 +16,64 @@
 package main
 
 import (
+	"context"
 	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+
 	log "github.com/sirupsen/logrus"
 )
 
 // S3 client for testing
-var s3Client *s3.S3
+var s3Client *s3.Client
 
 func cleanupBucket(bucket string, function string, args map[string]interface{}, startTime time.Time) {
 	start := time.Now()
+	ctx := context.Background()
 
 	input := &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucket),
 	}
 
 	for time.Since(start) < 30*time.Minute {
-		err := s3Client.ListObjectVersionsPages(input,
-			func(page *s3.ListObjectVersionsOutput, lastPage bool) bool {
-				for _, v := range page.Versions {
-					input := &s3.DeleteObjectInput{
-						Bucket:                    &bucket,
-						Key:                       v.Key,
-						VersionId:                 v.VersionId,
-						BypassGovernanceRetention: aws.Bool(true),
-					}
-					_, err := s3Client.DeleteObject(input)
-					if err != nil {
-						return true
-					}
-				}
-				for _, v := range page.DeleteMarkers {
-					input := &s3.DeleteObjectInput{
-						Bucket:                    &bucket,
-						Key:                       v.Key,
-						VersionId:                 v.VersionId,
-						BypassGovernanceRetention: aws.Bool(true),
-					}
-					_, err := s3Client.DeleteObject(input)
-					if err != nil {
-						return true
-					}
-				}
-				return true
-			})
+		paginator := s3.NewListObjectVersionsPaginator(s3Client, input)
+		for paginator.HasMorePages() {
+			page, err := paginator.NextPage(ctx)
+			if err != nil {
+				break
+			}
 
-		_, err = s3Client.DeleteBucket(&s3.DeleteBucketInput{
+			for _, v := range page.Versions {
+				input := &s3.DeleteObjectInput{
+					Bucket:                    &bucket,
+					Key:                       v.Key,
+					VersionId:                 v.VersionId,
+					BypassGovernanceRetention: aws.Bool(true),
+				}
+				_, err := s3Client.DeleteObject(ctx, input)
+				if err != nil {
+					break
+				}
+			}
+			for _, v := range page.DeleteMarkers {
+				input := &s3.DeleteObjectInput{
+					Bucket:                    &bucket,
+					Key:                       v.Key,
+					VersionId:                 v.VersionId,
+					BypassGovernanceRetention: aws.Bool(true),
+				}
+				_, err := s3Client.DeleteObject(ctx, input)
+				if err != nil {
+					break
+				}
+			}
+		}
+
+		_, err := s3Client.DeleteBucket(ctx, &s3.DeleteBucketInput{
 			Bucket: aws.String(bucket),
 		})
 		if err != nil {
@@ -90,17 +97,19 @@ func main() {
 		sdkEndpoint = "https://" + endpoint
 	}
 
-	creds := credentials.NewStaticCredentials(accessKey, secretKey, "")
-	newSession := session.New()
-	s3Config := &aws.Config{
-		Credentials:      creds,
-		Endpoint:         aws.String(sdkEndpoint),
-		Region:           aws.String("us-east-1"),
-		S3ForcePathStyle: aws.Bool(true),
+	cfg, err := config.LoadDefaultConfig(context.Background(),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
+		config.WithRegion("us-east-1"),
+	)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	// Create an S3 service object in the default region.
-	s3Client = s3.New(newSession, s3Config)
+	// Create an S3 service object with custom endpoint resolver
+	s3Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(sdkEndpoint)
+		o.UsePathStyle = true
+	})
 
 	// Output to stdout instead of the default stderr
 	log.SetOutput(os.Stdout)

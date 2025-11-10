@@ -1226,8 +1226,8 @@ func testGetObjectRange(ctx context.Context, s3Client *s3.Client) {
 		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObject suffix range read failed", err).Fatal()
 		return
 	}
-	if string(body3) != "stuvwxyz" && len(body3) >= 8 {
-		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 GetObject suffix range content mismatch: got '%s'", string(body3)), errors.New("suffix range content mismatch")).Fatal()
+	if string(body3) != "qrstuvwxyz" {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 GetObject suffix range content mismatch: expected 'qrstuvwxyz', got '%s'", string(body3)), errors.New("suffix range content mismatch")).Fatal()
 		return
 	}
 

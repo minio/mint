@@ -3,8 +3,7 @@
 Mint is a testing framework for Minio object server, available as a podman image. It runs correctness, benchmarking and stress tests. Following are the SDKs/tools used in correctness tests.
 
 - awscli
-- aws-sdk-go
-- aws-sdk-java
+- aws-sdk-go-v2
 - aws-sdk-java-v2
 - aws-sdk-php
 - aws-sdk-ruby
