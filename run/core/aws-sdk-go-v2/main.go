@@ -22,10 +22,14 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"hash/crc32"
 	"math/rand"
 	"net/http"
 	"os"
@@ -204,6 +208,32 @@ func cleanup(ctx context.Context, s3Client *s3.Client, bucket string, object str
 	}
 }
 
+func cleanupBucket(ctx context.Context, s3Client *s3.Client, bucket string, function string,
+	args map[string]interface{}, startTime time.Time,
+) {
+	// List and delete all objects in bucket
+	listResp, err := s3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+		Bucket: aws.String(bucket),
+	})
+	if err == nil && listResp.Contents != nil {
+		for _, obj := range listResp.Contents {
+			s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+				Bucket: aws.String(bucket),
+				Key:    obj.Key,
+			})
+		}
+	}
+
+	// Delete bucket
+	_, err = s3Client.DeleteBucket(ctx, &s3.DeleteBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 DeleteBucket Failed", err).Fatal()
+		return
+	}
+}
+
 func testPresignedPutInvalidHash(ctx context.Context, s3Client *s3.Client, presignClient *s3.PresignClient) {
 	startTime := time.Now()
 	function := "PresignedPut"
@@ -262,6 +292,945 @@ func testPresignedPutInvalidHash(ctx context.Context, s3Client *s3.Client, presi
 
 	if errResp.Code != "SignatureDoesNotMatch" {
 		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 presigned PUT expected to fail with SignatureDoesNotMatch but got %v", errResp.Code), errors.New("AWS S3 error code mismatch")).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testConditionalDeleteWithCorrectETag(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "ConditionalDeleteWithCorrectETag"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testConditionalDelete"
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Put object and capture ETag
+	putResp, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   bytes.NewReader([]byte("test content")),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject Failed", err).Fatal()
+		return
+	}
+
+	if putResp.ETag == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject returned nil ETag", errors.New("nil ETag")).Fatal()
+		return
+	}
+
+	etag := *putResp.ETag
+
+	// Delete with If-Match using correct ETag
+	_, err = s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		IfMatch: aws.String(etag),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 DeleteObject with If-Match failed", err).Fatal()
+		return
+	}
+
+	// Verify object is deleted
+	_, err = s3Client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	if err == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 object should have been deleted", errors.New("object still exists")).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testConditionalDeleteWithIncorrectETag(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "ConditionalDeleteWithIncorrectETag"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testConditionalDelete"
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Put object
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   bytes.NewReader([]byte("test content")),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject Failed", err).Fatal()
+		return
+	}
+
+	// Delete with If-Match using incorrect ETag
+	_, err = s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		IfMatch: aws.String("\"wrong-etag\""),
+	})
+	if err == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 DeleteObject with wrong ETag should have failed", errors.New("expected precondition failure")).Fatal()
+		return
+	}
+
+	// Verify error is PreconditionFailed
+	if !strings.Contains(err.Error(), "PreconditionFailed") && !strings.Contains(err.Error(), "412") {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 expected PreconditionFailed error but got: %v", err), err).Fatal()
+		return
+	}
+
+	// Verify object still exists
+	_, err = s3Client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 object should still exist after failed conditional delete", err).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testConditionalDeleteWithWildcardExists(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "ConditionalDeleteWithWildcardExists"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testConditionalDelete"
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Put object
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   bytes.NewReader([]byte("test content")),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject Failed", err).Fatal()
+		return
+	}
+
+	// Delete with If-Match: "*" (wildcard - object exists)
+	_, err = s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		IfMatch: aws.String("*"),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 DeleteObject with wildcard If-Match failed", err).Fatal()
+		return
+	}
+
+	// Verify object is deleted
+	_, err = s3Client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	if err == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 object should have been deleted", errors.New("object still exists")).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testConditionalDeleteWithWildcardMissing(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "ConditionalDeleteWithWildcardMissing"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "nonexistent-object"
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Delete non-existent object with If-Match: "*"
+	_, err = s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket:  aws.String(bucket),
+		Key:     aws.String(object),
+		IfMatch: aws.String("*"),
+	})
+	if err == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 DeleteObject with wildcard on missing object should have failed", errors.New("expected precondition failure")).Fatal()
+		return
+	}
+
+	// Verify error is PreconditionFailed
+	if !strings.Contains(err.Error(), "PreconditionFailed") && !strings.Contains(err.Error(), "412") {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 expected PreconditionFailed error but got: %v", err), err).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testChecksumCRC32(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "ChecksumCRC32"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testChecksumCRC32"
+	content := []byte("test content for CRC32 checksum validation")
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+		"algorithm":  "CRC32",
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Calculate CRC32 checksum
+	crc32Hash := crc32.ChecksumIEEE(content)
+	expectedChecksum := base64.StdEncoding.EncodeToString([]byte{
+		byte(crc32Hash >> 24),
+		byte(crc32Hash >> 16),
+		byte(crc32Hash >> 8),
+		byte(crc32Hash),
+	})
+
+	// Put object with CRC32 checksum
+	putResp, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:            aws.String(bucket),
+		Key:               aws.String(object),
+		Body:              bytes.NewReader(content),
+		ChecksumAlgorithm: types.ChecksumAlgorithmCrc32,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject with CRC32 failed", err).Fatal()
+		return
+	}
+
+	// Verify checksum is returned in response
+	if putResp.ChecksumCRC32 == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject response missing ChecksumCRC32", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	if *putResp.ChecksumCRC32 != expectedChecksum {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 ChecksumCRC32 mismatch: expected %s, got %s", expectedChecksum, *putResp.ChecksumCRC32), errors.New("checksum mismatch")).Fatal()
+		return
+	}
+
+	// Get object and verify checksum is returned
+	getResp, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(object),
+		ChecksumMode: types.ChecksumModeEnabled,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObject failed", err).Fatal()
+		return
+	}
+	defer getResp.Body.Close()
+
+	if getResp.ChecksumCRC32 == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObject response missing ChecksumCRC32", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	if *getResp.ChecksumCRC32 != expectedChecksum {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 GetObject ChecksumCRC32 mismatch: expected %s, got %s", expectedChecksum, *getResp.ChecksumCRC32), errors.New("checksum mismatch")).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testChecksumCRC32C(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "ChecksumCRC32C"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testChecksumCRC32C"
+	content := []byte("test content for CRC32C checksum validation")
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+		"algorithm":  "CRC32C",
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Calculate CRC32C checksum (Castagnoli polynomial)
+	crc32cTable := crc32.MakeTable(crc32.Castagnoli)
+	crc32cHash := crc32.Checksum(content, crc32cTable)
+	expectedChecksum := base64.StdEncoding.EncodeToString([]byte{
+		byte(crc32cHash >> 24),
+		byte(crc32cHash >> 16),
+		byte(crc32cHash >> 8),
+		byte(crc32cHash),
+	})
+
+	// Put object with CRC32C checksum
+	putResp, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:            aws.String(bucket),
+		Key:               aws.String(object),
+		Body:              bytes.NewReader(content),
+		ChecksumAlgorithm: types.ChecksumAlgorithmCrc32c,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject with CRC32C failed", err).Fatal()
+		return
+	}
+
+	// Verify checksum is returned
+	if putResp.ChecksumCRC32C == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject response missing ChecksumCRC32C", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	if *putResp.ChecksumCRC32C != expectedChecksum {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 ChecksumCRC32C mismatch: expected %s, got %s", expectedChecksum, *putResp.ChecksumCRC32C), errors.New("checksum mismatch")).Fatal()
+		return
+	}
+
+	// Get object and verify checksum
+	getResp, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(object),
+		ChecksumMode: types.ChecksumModeEnabled,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObject failed", err).Fatal()
+		return
+	}
+	defer getResp.Body.Close()
+
+	if getResp.ChecksumCRC32C == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObject response missing ChecksumCRC32C", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testChecksumSHA1(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "ChecksumSHA1"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testChecksumSHA1"
+	content := []byte("test content for SHA1 checksum validation")
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+		"algorithm":  "SHA1",
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Calculate SHA1 checksum
+	sha1Hash := sha1.Sum(content)
+	expectedChecksum := base64.StdEncoding.EncodeToString(sha1Hash[:])
+
+	// Put object with SHA1 checksum
+	putResp, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:            aws.String(bucket),
+		Key:               aws.String(object),
+		Body:              bytes.NewReader(content),
+		ChecksumAlgorithm: types.ChecksumAlgorithmSha1,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject with SHA1 failed", err).Fatal()
+		return
+	}
+
+	// Verify checksum is returned
+	if putResp.ChecksumSHA1 == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject response missing ChecksumSHA1", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	if *putResp.ChecksumSHA1 != expectedChecksum {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 ChecksumSHA1 mismatch: expected %s, got %s", expectedChecksum, *putResp.ChecksumSHA1), errors.New("checksum mismatch")).Fatal()
+		return
+	}
+
+	// Get object and verify checksum
+	getResp, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(object),
+		ChecksumMode: types.ChecksumModeEnabled,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObject failed", err).Fatal()
+		return
+	}
+	defer getResp.Body.Close()
+
+	if getResp.ChecksumSHA1 == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObject response missing ChecksumSHA1", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testChecksumSHA256(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "ChecksumSHA256"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testChecksumSHA256"
+	content := []byte("test content for SHA256 checksum validation")
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+		"algorithm":  "SHA256",
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Calculate SHA256 checksum
+	sha256Hash := sha256.Sum256(content)
+	expectedChecksum := base64.StdEncoding.EncodeToString(sha256Hash[:])
+
+	// Put object with SHA256 checksum
+	putResp, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:            aws.String(bucket),
+		Key:               aws.String(object),
+		Body:              bytes.NewReader(content),
+		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject with SHA256 failed", err).Fatal()
+		return
+	}
+
+	// Verify checksum is returned
+	if putResp.ChecksumSHA256 == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject response missing ChecksumSHA256", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	if *putResp.ChecksumSHA256 != expectedChecksum {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 ChecksumSHA256 mismatch: expected %s, got %s", expectedChecksum, *putResp.ChecksumSHA256), errors.New("checksum mismatch")).Fatal()
+		return
+	}
+
+	// Get object and verify checksum
+	getResp, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket:       aws.String(bucket),
+		Key:          aws.String(object),
+		ChecksumMode: types.ChecksumModeEnabled,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObject failed", err).Fatal()
+		return
+	}
+	defer getResp.Body.Close()
+
+	if getResp.ChecksumSHA256 == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObject response missing ChecksumSHA256", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testChecksumInvalidValue(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "ChecksumInvalidValue"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testChecksumInvalid"
+	content := []byte("test content")
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Try to put object with wrong CRC32 checksum value
+	wrongChecksum := base64.StdEncoding.EncodeToString([]byte{0x00, 0x00, 0x00, 0x00})
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:        aws.String(bucket),
+		Key:           aws.String(object),
+		Body:          bytes.NewReader(content),
+		ChecksumCRC32: aws.String(wrongChecksum),
+	})
+
+	// Should fail with BadRequest or similar
+	if err == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject with wrong checksum should have failed", errors.New("expected checksum validation failure")).Fatal()
+		return
+	}
+
+	// Verify error indicates checksum mismatch
+	if !strings.Contains(err.Error(), "BadDigest") && !strings.Contains(err.Error(), "InvalidRequest") && !strings.Contains(err.Error(), "400") {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 expected checksum error but got: %v", err), err).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testGetObjectAttributesBasic(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "GetObjectAttributesBasic"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testGetObjectAttributes"
+	content := []byte("test content for GetObjectAttributes")
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Put object
+	putResp, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		Body:   bytes.NewReader(content),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject Failed", err).Fatal()
+		return
+	}
+
+	expectedETag := putResp.ETag
+
+	// GetObjectAttributes requesting ETag, StorageClass, ObjectSize
+	attrResp, err := s3Client.GetObjectAttributes(ctx, &s3.GetObjectAttributesInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		ObjectAttributes: []types.ObjectAttributes{
+			types.ObjectAttributesEtag,
+			types.ObjectAttributesStorageClass,
+			types.ObjectAttributesObjectSize,
+		},
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes Failed", err).Fatal()
+		return
+	}
+
+	// Verify ETag
+	if attrResp.ETag == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing ETag", errors.New("missing etag")).Fatal()
+		return
+	}
+	normalizedExpected := strings.Trim(*expectedETag, "\"")
+	normalizedActual := strings.Trim(*attrResp.ETag, "\"")
+	if normalizedActual != normalizedExpected {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 ETag mismatch: expected %s, got %s", normalizedExpected, normalizedActual), errors.New("etag mismatch")).Fatal()
+		return
+	}
+
+	// Verify ObjectSize
+	if attrResp.ObjectSize == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing ObjectSize", errors.New("missing size")).Fatal()
+		return
+	}
+	if *attrResp.ObjectSize != int64(len(content)) {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 ObjectSize mismatch: expected %d, got %d", len(content), *attrResp.ObjectSize), errors.New("size mismatch")).Fatal()
+		return
+	}
+
+	// Verify StorageClass (should be STANDARD)
+	if attrResp.StorageClass == "" {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing StorageClass", errors.New("missing storage class")).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testGetObjectAttributesWithChecksum(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "GetObjectAttributesWithChecksum"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testGetObjectAttributesChecksum"
+	content := []byte("test content for checksum attributes")
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+		"algorithm":  "CRC32C",
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Put object with CRC32C checksum
+	putResp, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:            aws.String(bucket),
+		Key:               aws.String(object),
+		Body:              bytes.NewReader(content),
+		ChecksumAlgorithm: types.ChecksumAlgorithmCrc32c,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject Failed", err).Fatal()
+		return
+	}
+
+	expectedChecksum := putResp.ChecksumCRC32C
+
+	// GetObjectAttributes requesting Checksum
+	attrResp, err := s3Client.GetObjectAttributes(ctx, &s3.GetObjectAttributesInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		ObjectAttributes: []types.ObjectAttributes{
+			types.ObjectAttributesChecksum,
+			types.ObjectAttributesObjectSize,
+		},
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes Failed", err).Fatal()
+		return
+	}
+
+	// Verify Checksum is returned
+	if attrResp.Checksum == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing Checksum", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	// Verify ChecksumCRC32C
+	if attrResp.Checksum.ChecksumCRC32C == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing ChecksumCRC32C", errors.New("missing crc32c")).Fatal()
+		return
+	}
+
+	if *attrResp.Checksum.ChecksumCRC32C != *expectedChecksum {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 ChecksumCRC32C mismatch: expected %s, got %s", *expectedChecksum, *attrResp.Checksum.ChecksumCRC32C), errors.New("checksum mismatch")).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testGetObjectAttributesMultipart(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "GetObjectAttributesMultipart"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testGetObjectAttributesMultipart"
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Create multipart upload
+	createResp, err := s3Client.CreateMultipartUpload(ctx, &s3.CreateMultipartUploadInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateMultipartUpload Failed", err).Fatal()
+		return
+	}
+
+	uploadID := createResp.UploadId
+
+	// Upload 3 parts (each part must be >= 5MB except the last one)
+	// Create 5MB + 1 byte parts to satisfy S3 minimum part size requirement
+	minPartSize := 5*1024*1024 + 1 // 5MB + 1 byte
+	var completedParts []types.CompletedPart
+	for i := 1; i <= 3; i++ {
+		// Create part content of minimum required size
+		partContent := make([]byte, minPartSize)
+		// Add some identifiable content at the beginning
+		copy(partContent, []byte(fmt.Sprintf("Part %d content - ", i)))
+
+		uploadResp, err := s3Client.UploadPart(ctx, &s3.UploadPartInput{
+			Bucket:     aws.String(bucket),
+			Key:        aws.String(object),
+			PartNumber: aws.Int32(int32(i)),
+			UploadId:   uploadID,
+			Body:       bytes.NewReader(partContent),
+		})
+		if err != nil {
+			failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 UploadPart %d Failed", i), err).Fatal()
+			return
+		}
+		completedParts = append(completedParts, types.CompletedPart{
+			ETag:       uploadResp.ETag,
+			PartNumber: aws.Int32(int32(i)),
+		})
+	}
+
+	// Complete multipart upload
+	_, err = s3Client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
+		Bucket:   aws.String(bucket),
+		Key:      aws.String(object),
+		UploadId: uploadID,
+		MultipartUpload: &types.CompletedMultipartUpload{
+			Parts: completedParts,
+		},
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CompleteMultipartUpload Failed", err).Fatal()
+		return
+	}
+
+	// GetObjectAttributes requesting ObjectParts
+	attrResp, err := s3Client.GetObjectAttributes(ctx, &s3.GetObjectAttributesInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		ObjectAttributes: []types.ObjectAttributes{
+			types.ObjectAttributesObjectParts,
+		},
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes Failed", err).Fatal()
+		return
+	}
+
+	// Verify ObjectParts is returned
+	if attrResp.ObjectParts == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing ObjectParts", errors.New("missing object parts")).Fatal()
+		return
+	}
+
+	if attrResp.ObjectParts.Parts == nil || len(attrResp.ObjectParts.Parts) != 3 {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 Parts array mismatch: expected 3 parts, got %d", len(attrResp.ObjectParts.Parts)), errors.New("parts array mismatch")).Fatal()
+		return
+	}
+
+	// Verify each part has PartNumber and Size
+	for i, part := range attrResp.ObjectParts.Parts {
+		if part.PartNumber == nil {
+			failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 Part %d missing PartNumber", i), errors.New("missing part number")).Fatal()
+			return
+		}
+		if part.Size == nil {
+			failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 Part %d missing Size", i), errors.New("missing part size")).Fatal()
+			return
+		}
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testGetObjectAttributesNonExistent(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "GetObjectAttributesNonExistent"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "nonexistent-object"
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Try to get attributes for non-existent object
+	_, err = s3Client.GetObjectAttributes(ctx, &s3.GetObjectAttributesInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		ObjectAttributes: []types.ObjectAttributes{
+			types.ObjectAttributesEtag,
+		},
+	})
+
+	// Should fail with 404 NotFound
+	if err == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes for non-existent object should have failed", errors.New("expected not found error")).Fatal()
+		return
+	}
+
+	// Verify error is NotFound
+	if !strings.Contains(err.Error(), "NotFound") && !strings.Contains(err.Error(), "404") && !strings.Contains(err.Error(), "NoSuchKey") {
+		failureLog(function, args, startTime, "", fmt.Sprintf("AWS SDK Go V2 expected NotFound error but got: %v", err), err).Fatal()
+		return
+	}
+
+	successLogger(function, args, startTime).Info()
+}
+
+func testGetObjectAttributesCombined(ctx context.Context, s3Client *s3.Client) {
+	startTime := time.Now()
+	function := "GetObjectAttributesCombined"
+	bucket := randString(60, rand.NewSource(time.Now().UnixNano()), "aws-sdk-go-test-")
+	object := "testGetObjectAttributesCombined"
+	content := []byte("test content for combined attributes")
+	args := map[string]interface{}{
+		"bucketName": bucket,
+		"objectName": object,
+	}
+
+	// Create bucket
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(bucket),
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 CreateBucket Failed", err).Fatal()
+		return
+	}
+	defer cleanupBucket(ctx, s3Client, bucket, function, args, startTime)
+
+	// Put object with SHA256 checksum
+	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+		Bucket:            aws.String(bucket),
+		Key:               aws.String(object),
+		Body:              bytes.NewReader(content),
+		ChecksumAlgorithm: types.ChecksumAlgorithmSha256,
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 PutObject Failed", err).Fatal()
+		return
+	}
+
+	// GetObjectAttributes requesting ALL attributes
+	attrResp, err := s3Client.GetObjectAttributes(ctx, &s3.GetObjectAttributesInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(object),
+		ObjectAttributes: []types.ObjectAttributes{
+			types.ObjectAttributesEtag,
+			types.ObjectAttributesChecksum,
+			types.ObjectAttributesObjectSize,
+			types.ObjectAttributesStorageClass,
+		},
+	})
+	if err != nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes Failed", err).Fatal()
+		return
+	}
+
+	// Verify all attributes are present
+	if attrResp.ETag == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing ETag", errors.New("missing etag")).Fatal()
+		return
+	}
+
+	if attrResp.ObjectSize == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing ObjectSize", errors.New("missing size")).Fatal()
+		return
+	}
+
+	if attrResp.StorageClass == "" {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing StorageClass", errors.New("missing storage class")).Fatal()
+		return
+	}
+
+	if attrResp.Checksum == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing Checksum", errors.New("missing checksum")).Fatal()
+		return
+	}
+
+	if attrResp.Checksum.ChecksumSHA256 == nil {
+		failureLog(function, args, startTime, "", "AWS SDK Go V2 GetObjectAttributes missing ChecksumSHA256", errors.New("missing sha256")).Fatal()
 		return
 	}
 
@@ -1372,6 +2341,20 @@ func main() {
 	testGetObjectRange(ctx, s3Client)
 	testObjectMetadata(ctx, s3Client)
 	testPresignedPutInvalidHash(ctx, s3Client, presignClient)
+	testConditionalDeleteWithCorrectETag(ctx, s3Client)
+	testConditionalDeleteWithIncorrectETag(ctx, s3Client)
+	testConditionalDeleteWithWildcardExists(ctx, s3Client)
+	testConditionalDeleteWithWildcardMissing(ctx, s3Client)
+	testChecksumCRC32(ctx, s3Client)
+	testChecksumCRC32C(ctx, s3Client)
+	testChecksumSHA1(ctx, s3Client)
+	testChecksumSHA256(ctx, s3Client)
+	testChecksumInvalidValue(ctx, s3Client)
+	testGetObjectAttributesBasic(ctx, s3Client)
+	testGetObjectAttributesWithChecksum(ctx, s3Client)
+	testGetObjectAttributesMultipart(ctx, s3Client)
+	testGetObjectAttributesNonExistent(ctx, s3Client)
+	testGetObjectAttributesCombined(ctx, s3Client)
 	testListObjects(ctx, s3Client)
 	testSelectObject(ctx, s3Client)
 	testCreateBucketError(ctx, s3Client, "us-east-1")
