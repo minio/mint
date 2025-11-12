@@ -16,4 +16,5 @@
 #
 
 # Using --break-system-packages for Ubuntu 24.04+ (PEP 668) - safe in containers
-python -m pip install --break-system-packages minio
+# Install minio 7.2.13 which supports file_header_info parameter in CSVInputSerialization
+python -m pip install --break-system-packages --no-cache-dir "minio==7.2.13"

@@ -28,6 +28,10 @@ git clone --quiet https://github.com/minio/minio-java.git "$test_run_dir/minio-j
 (
 	cd "$test_run_dir/minio-java.git"
 	git checkout --quiet "tags/${MINIO_JAVA_VERSION}"
+
+	# Fix CORS configuration comparison - serialize to XML for comparison since CORSConfiguration lacks equals()
+	# The Xml.marshal() method converts objects to XML strings, enabling proper equality comparison
+	sed -i.bak '/Assertions\.assertEquals(/{N;/"cors: expected: "/s/expectedConfig, config, "cors:/Xml.marshal(expectedConfig), Xml.marshal(config), "cors:/;}' functional/FunctionalTest.java
 )
 $WGET --output-document="$test_run_dir/minio-${MINIO_JAVA_VERSION}-all.jar" "https://repo1.maven.org/maven2/io/minio/minio/${MINIO_JAVA_VERSION}/minio-${MINIO_JAVA_VERSION}-all.jar"
 $WGET --output-document="$test_run_dir/minio-admin-${MINIO_JAVA_VERSION}-all.jar" "https://repo1.maven.org/maven2/io/minio/minio-admin/${MINIO_JAVA_VERSION}/minio-admin-${MINIO_JAVA_VERSION}-all.jar"

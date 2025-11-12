@@ -357,7 +357,7 @@ function initSetup(S3Client $s3Client, $objects) {
 	    if (!file_exists($MINT_DATA_DIR . '/' . FILE_1_KB))
 		throw new Exception('File not found ' . $MINT_DATA_DIR . '/' . FILE_1_KB);
 
-	    $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_1_KB, 'r'));
+	    $stream = Psr7\Utils::streamFor(fopen($MINT_DATA_DIR . '/' . FILE_1_KB, 'r'));
 	    $result = $s3Client->putObject([
 		'Bucket' => $bucket,
 		'Key' => $object,
@@ -399,7 +399,7 @@ function testGetPutObject($s3Client, $params) {
     // Upload a 10KB file
     $MINT_DATA_DIR = $GLOBALS['MINT_DATA_DIR'];
     try {
-	$stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_1_KB, 'r'));
+	$stream = Psr7\Utils::streamFor(fopen($MINT_DATA_DIR . '/' . FILE_1_KB, 'r'));
 	$result = $s3Client->putObject([
 	    'Bucket' => $bucket,
 	    'Key' => $object,
@@ -461,7 +461,7 @@ function testMultipartUploadFailure($s3Client, $params) {
     $parts = [];
     try {
 	for ($i = 0; $i < 2; $i++) {
-	    $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_5_MB, 'r'));
+	    $stream = Psr7\Utils::streamFor(fopen($MINT_DATA_DIR . '/' . FILE_5_MB, 'r'));
 	    $limitedStream = new Psr7\LimitStream($stream, 4 * 1024 * 1024, 0);
 	    $result = $s3Client->uploadPart([
 		'Bucket' => $bucket,
@@ -546,7 +546,7 @@ function testMultipartUpload($s3Client, $params) {
     $parts = [];
     try {
 	for ($i = 0; $i < 2; $i++) {
-	    $stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_5_MB, 'r'));
+	    $stream = Psr7\Utils::streamFor(fopen($MINT_DATA_DIR . '/' . FILE_5_MB, 'r'));
 	    $result = $s3Client->uploadPart([
 		'Bucket' => $bucket,
 		'Key' => $object,
@@ -838,7 +838,7 @@ function testBucketPolicy($s3Client, $params) {
 	if (!file_exists($MINT_DATA_DIR . '/' . FILE_1_KB))
 	    throw new Exception('File not found ' . $MINT_DATA_DIR . '/' . FILE_1_KB);
 
-	$stream = Psr7\stream_for(fopen($MINT_DATA_DIR . '/' . FILE_1_KB, 'r'));
+	$stream = Psr7\Utils::streamFor(fopen($MINT_DATA_DIR . '/' . FILE_1_KB, 'r'));
 	$result = $s3Client->putObject([
 		'Bucket' => $bucket,
 		'Key' => $object,

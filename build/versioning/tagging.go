@@ -24,7 +24,6 @@ import (
 
 	"fmt"
 	"math/rand"
-	"reflect"
 	"strings"
 	"time"
 
@@ -157,9 +156,19 @@ func testTagging() {
 			continue
 		}
 
-		if !reflect.DeepEqual(result.TagSet, uploads[i].tagging) {
-			failureLog(function, args, startTime, "", "GET Object tagging returned unexpected result", nil).Fatal()
+		// Compare tags by value, not pointer (reflect.DeepEqual compares pointers which will fail)
+		if len(result.TagSet) != len(uploads[i].tagging) {
+			failureLog(function, args, startTime, "", fmt.Sprintf("GET Object tagging returned unexpected count: expected %d, got %d", len(uploads[i].tagging), len(result.TagSet)), nil).Fatal()
 			return
+		}
+		for j := range result.TagSet {
+			if aws.ToString(result.TagSet[j].Key) != aws.ToString(uploads[i].tagging[j].Key) ||
+				aws.ToString(result.TagSet[j].Value) != aws.ToString(uploads[i].tagging[j].Value) {
+				failureLog(function, args, startTime, "", fmt.Sprintf("GET Object tagging tag mismatch: expected {%s: %s}, got {%s: %s}",
+					aws.ToString(uploads[i].tagging[j].Key), aws.ToString(uploads[i].tagging[j].Value),
+					aws.ToString(result.TagSet[j].Key), aws.ToString(result.TagSet[j].Value)), nil).Fatal()
+				return
+			}
 		}
 	}
 
@@ -197,9 +206,9 @@ func testTagging() {
 			failureLog(function, args, startTime, "", fmt.Sprintf("GET Object tagging expected to succeed but got %v", err), err).Fatal()
 			return
 		}
-		var nilTagSet []types.Tag
-		if !reflect.DeepEqual(result.TagSet, nilTagSet) {
-			failureLog(function, args, startTime, "", "GET Object tagging after DELETE returned unexpected result", nil).Fatal()
+		// After delete, TagSet should be empty (either nil or empty slice)
+		if len(result.TagSet) != 0 {
+			failureLog(function, args, startTime, "", fmt.Sprintf("GET Object tagging after DELETE returned unexpected result: expected empty, got %d tags", len(result.TagSet)), nil).Fatal()
 			return
 		}
 	}

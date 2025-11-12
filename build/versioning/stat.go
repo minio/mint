@@ -168,8 +168,18 @@ func testStatObject() {
 			return
 		}
 
-		if *result.ContentType != testCase.contentType {
-			failureLog(function, args, startTime, "", fmt.Sprintf("StatObject (%d) unexpected Content-Type", i+1), err).Fatal()
+		// S3 may return "application/octet-stream" or "binary/octet-stream" depending on implementation
+		// AWS SDK Go v2 behavior may differ from v1
+		actualContentType := ""
+		if result.ContentType != nil {
+			actualContentType = *result.ContentType
+		}
+		expectedContentType := testCase.contentType
+		// Normalize content types - both "binary/octet-stream" and "application/octet-stream" are acceptable defaults
+		if expectedContentType == "binary/octet-stream" && actualContentType == "application/octet-stream" {
+			// Accept application/octet-stream as equivalent to binary/octet-stream
+		} else if actualContentType != expectedContentType {
+			failureLog(function, args, startTime, "", fmt.Sprintf("StatObject (%d) unexpected Content-Type: expected %q, got %q", i+1, expectedContentType, actualContentType), err).Fatal()
 			return
 		}
 

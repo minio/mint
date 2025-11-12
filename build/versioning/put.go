@@ -285,13 +285,15 @@ func testPutObjectWithTaggingAndMetadata() {
 			}
 
 			for expectedKey, expectedVal := range uploads[i].metadata {
-				gotValue, ok := result.Metadata[expectedKey]
+				// S3 returns metadata keys in lowercase, so normalize for comparison
+				normalizedKey := strings.ToLower(expectedKey)
+				gotValue, ok := result.Metadata[normalizedKey]
 				if !ok {
-					failureLog(function, args, startTime, "", "HEAD Object returned unexpected metadata key result", nil).Fatal()
+					failureLog(function, args, startTime, "", fmt.Sprintf("HEAD Object returned unexpected metadata key result: expected key %q (normalized: %q) not found in %v", expectedKey, normalizedKey, result.Metadata), nil).Fatal()
 					return
 				}
 				if expectedVal != gotValue {
-					failureLog(function, args, startTime, "", "HEAD Object returned unexpected metadata value result", nil).Fatal()
+					failureLog(function, args, startTime, "", fmt.Sprintf("HEAD Object returned unexpected metadata value result: expected %q, got %q for key %q", expectedVal, gotValue, normalizedKey), nil).Fatal()
 					return
 				}
 			}
