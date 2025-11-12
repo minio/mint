@@ -19,6 +19,7 @@
 # Install minio 7.2.18 which includes fix for ExcludedPrefixes XML element name bug (broken in 7.2.13, fixed in 7.2.14+)
 python -m pip install --break-system-packages --no-cache-dir "minio==7.2.18"
 
+# Temporary patch until minio-py is fixed upstream
 SELECT_PY=$(python -c "import minio.select; import os; print(os.path.dirname(minio.select.__file__))")/select.py
 sed -i 's/^    allow_quoted_record_delimiter = None$/    allow_quoted_record_delimiter: Optional[str] = None/' "$SELECT_PY"
 sed -i 's/^    comments = None$/    comments: Optional[str] = None/' "$SELECT_PY"
