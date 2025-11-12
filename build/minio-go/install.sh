@@ -26,7 +26,7 @@ curl -sL -o "${test_run_dir}/main.go" "https://raw.githubusercontent.com/minio/m
 
 # Extract only the function from versioning_test.go (skip package, imports, comments)
 # Start from line 34 where the function definition begins
-tail -n +34 "${test_run_dir}/versioning_test.go" >> "${test_run_dir}/main.go"
+tail -n +34 "${test_run_dir}/versioning_test.go" >>"${test_run_dir}/main.go"
 
 # Patch functional_tests.go to call our versioning test
 # Add testBucketVersioningExcludedPrefixes() call after testStatObjectWithVersioning()
