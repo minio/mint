@@ -21,7 +21,7 @@ die() {
 }
 
 # shellcheck disable=SC2086
-ROOTDIR="$(dirname "$(realpath $0)")"
+# ROOTDIR="$(dirname "$(realpath $0)")"
 TMPDIR="$(mktemp -d)"
 
 cd "$TMPDIR"
