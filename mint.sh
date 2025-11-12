@@ -86,7 +86,7 @@ function run_test() {
 
 	# Append test results to global log file
 	if [ -f "$test_log_file" ]; then
-		cat "$test_log_file" >> "$BASE_LOG_DIR/$LOG_FILE"
+		cat "$test_log_file" >>"$BASE_LOG_DIR/$LOG_FILE"
 	fi
 
 	end=$(date +%s)
