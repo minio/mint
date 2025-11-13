@@ -16,17 +16,7 @@
 #
 
 # Using --break-system-packages for Ubuntu 24.04+ (PEP 668) - safe in containers
-# Install minio 7.2.18 which includes fix for ExcludedPrefixes XML element name bug (broken in 7.2.13, fixed in 7.2.14+)
-python -m pip install --break-system-packages --no-cache-dir "minio==7.2.18"
-
-# Temporary patch until minio-py is fixed upstream
-SELECT_PY=$(python -c "import minio.select; import os; print(os.path.dirname(minio.select.__file__))")/select.py
-sed -i 's/^    allow_quoted_record_delimiter = None$/    allow_quoted_record_delimiter: Optional[str] = None/' "$SELECT_PY"
-sed -i 's/^    comments = None$/    comments: Optional[str] = None/' "$SELECT_PY"
-sed -i 's/^    field_delimiter = None$/    field_delimiter: Optional[str] = None/' "$SELECT_PY"
-sed -i 's/^    file_header_info = None$/    file_header_info: Optional[str] = None/' "$SELECT_PY"
-sed -i 's/^    quote_character = None$/    quote_character: Optional[str] = None/' "$SELECT_PY"
-sed -i 's/^    quote_escape_character = None$/    quote_escape_character: Optional[str] = None/' "$SELECT_PY"
-sed -i 's/^    record_delimiter = None$/    record_delimiter: Optional[str] = None/' "$SELECT_PY"
-sed -i 's/^    json_type = None$/    json_type: Optional[str] = None/' "$SELECT_PY"
-sed -i 's/^    quote_fields = None$/    quote_fields: Optional[str] = None/' "$SELECT_PY"
+# Install minio-py from master with type annotation fixes (commit cbac53b) until 7.2.19 is released
+# TO BE FIXED
+MINIO_PY_VERSION="master"
+python -m pip install --break-system-packages --no-cache-dir git+https://github.com/minio/minio-py.git@$MINIO_PY_VERSION

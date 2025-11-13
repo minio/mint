@@ -34,9 +34,17 @@ def test_sql_api(test_name, client, bucket_name, input_data, sql_opts, expected_
     got_output = b''
     try:
         bytes_content = io.BytesIO(input_data)
-        client.put_object(bucket_name, object_name,
-                          io.BytesIO(input_data), len(input_data))
-        data = client.select_object_content(bucket_name, object_name, sql_opts)
+        client.put_object(
+            bucket_name=bucket_name,
+            object_name=object_name,
+            data=io.BytesIO(input_data),
+            length=len(input_data)
+        )
+        data = client.select_object_content(
+            bucket_name=bucket_name,
+            object_name=object_name,
+            request=sql_opts
+        )
         # Get the records
         records = io.BytesIO()
         for d in data.stream(10*1024):
@@ -54,7 +62,7 @@ def test_sql_api(test_name, client, bucket_name, input_data, sql_opts, expected_
             raise ValueError('Test {}: data mismatch. Expected : {}, Received {}'.format(
                 test_name, expected_output, got_output))
     finally:
-        client.remove_object(bucket_name, object_name)
+        client.remove_object(bucket_name=bucket_name, object_name=object_name)
 
 
 def test_csv_input_custom_quote_char(client, log_output):
@@ -92,7 +100,7 @@ def test_csv_input_custom_quote_char(client, log_output):
         ('"', '\\', b'"A\\"","\\"B"\n', b'{"_1":"A\\"","_2":"\\"B"}\n'),
     ]
 
-    client.make_bucket(bucket_name)
+    client.make_bucket(bucket_name=bucket_name)
 
     try:
         for idx, (quote_char, escape_char, data, expected_output) in enumerate(tests):
@@ -117,7 +125,7 @@ def test_csv_input_custom_quote_char(client, log_output):
             test_sql_api(f'test_{idx}', client, bucket_name,
                          data, sql_opts, expected_output)
     finally:
-        client.remove_bucket(bucket_name)
+        client.remove_bucket(bucket_name=bucket_name)
 
     # Test passes
     print(log_output.json_report())
@@ -145,7 +153,7 @@ def test_csv_output_custom_quote_char(client, log_output):
         ("'", "\\", b'"a"""""\n', b"'a\"\"'\n"),
     ]
 
-    client.make_bucket(bucket_name)
+    client.make_bucket(bucket_name=bucket_name)
 
     try:
         for idx, (quote_char, escape_char, input_data, expected_output) in enumerate(tests):
@@ -174,7 +182,7 @@ def test_csv_output_custom_quote_char(client, log_output):
             test_sql_api(f'test_{idx}', client, bucket_name,
                          input_data, sql_opts, expected_output)
     finally:
-        client.remove_bucket(bucket_name)
+        client.remove_bucket(bucket_name=bucket_name)
 
     # Test passes
     print(log_output.json_report())

@@ -46,7 +46,12 @@ def main():
             secret_key = 'zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG'
             secure = True
 
-        client = Minio(server_endpoint, access_key, secret_key, secure=secure)
+        client = Minio(
+            endpoint=server_endpoint,
+            access_key=access_key,
+            secret_key=secret_key,
+            secure=secure
+        )
 
         log_output = LogOutput(client.select_object_content,
                                'test_csv_input_quote_char')

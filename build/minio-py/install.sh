@@ -15,14 +15,11 @@
 #  limitations under the License.
 #
 
-MINIO_PY_VERSION=$(curl --retry 10 -Ls -o /dev/null -w "%{url_effective}" https://github.com/minio/minio-py/releases/latest | sed "s/https:\/\/github.com\/minio\/minio-py\/releases\/tag\///")
-if [ -z "$MINIO_PY_VERSION" ]; then
-	echo "unable to get minio-py version from github"
-	exit 1
-fi
-
+# Using master branch temporarily until 7.2.19 is released (contains type annotation fixes and new API)
+# TO BE FIXED
+MINIO_PY_VERSION="master"
 test_run_dir="$MINT_RUN_CORE_DIR/minio-py"
 # Using --break-system-packages for Ubuntu 24.04+ (PEP 668) - safe in containers
 pip3 install --break-system-packages --user faker
-pip3 install --break-system-packages minio=="${MINIO_PY_VERSION}"
+pip3 install --break-system-packages git+https://github.com/minio/minio-py.git@master
 $WGET --output-document="$test_run_dir/tests.py" "https://raw.githubusercontent.com/minio/minio-py/${MINIO_PY_VERSION}/tests/functional/tests.py"

@@ -34,10 +34,15 @@ def test_sql_expressions_custom_input_output(client, input_bytes, sql_input,
     log_output.args['total_tests'] = 0
     log_output.args['total_success'] = 0
 
-    client.make_bucket(bucket_name)
+    client.make_bucket(bucket_name=bucket_name)
     try:
         content = io.BytesIO(bytes(input_bytes, 'utf-8'))
-        client.put_object(bucket_name, object_name, content, len(input_bytes))
+        client.put_object(
+            bucket_name=bucket_name,
+            object_name=object_name,
+            data=content,
+            length=len(input_bytes)
+        )
 
         for idx, (test_name, select_expression, expected_output) in enumerate(tests):
             if select_expression == '':
@@ -52,7 +57,10 @@ def test_sql_expressions_custom_input_output(client, input_bytes, sql_input,
                 )
 
                 data = client.select_object_content(
-                    bucket_name, object_name, sreq)
+                    bucket_name=bucket_name,
+                    object_name=object_name,
+                    request=sreq
+                )
 
                 # Get the records
                 records = io.BytesIO()
@@ -74,8 +82,8 @@ def test_sql_expressions_custom_input_output(client, input_bytes, sql_input,
                 continue  # TODO, raise instead
                 # raise Exception(err)
     finally:
-        client.remove_object(bucket_name, object_name)
-        client.remove_bucket(bucket_name)
+        client.remove_object(bucket_name=bucket_name, object_name=object_name)
+        client.remove_bucket(bucket_name=bucket_name)
 
 
 def test_sql_expressions(client, input_json_bytes, tests, log_output):
