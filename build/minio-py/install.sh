@@ -17,7 +17,7 @@
 
 # Using master branch temporarily until 7.2.19 is released (contains type annotation fixes and new API)
 # TO BE FIXED
-MINIO_PY_VERSION="e49e93b93b59e476c233099cfbc2946a208c72a1"
+MINIO_PY_VERSION="968031f57675c9de81fda3397f6761c7fda05dea"
 test_run_dir="$MINT_RUN_CORE_DIR/minio-py"
 # Using --break-system-packages for Ubuntu 24.04+ (PEP 668) - safe in containers
 pip3 install --break-system-packages --user faker

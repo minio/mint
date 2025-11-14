@@ -18,5 +18,5 @@
 # Using --break-system-packages for Ubuntu 24.04+ (PEP 668) - safe in containers
 # Install minio-py from master with type annotation fixes (commit cbac53b) until 7.2.19 is released
 # TO BE FIXED
-MINIO_PY_VERSION="e49e93b93b59e476c233099cfbc2946a208c72a1"
+MINIO_PY_VERSION="968031f57675c9de81fda3397f6761c7fda05dea"
 python -m pip install --break-system-packages --no-cache-dir git+https://github.com/rraulinio/minio-py.git@$MINIO_PY_VERSION
