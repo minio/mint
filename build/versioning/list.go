@@ -29,16 +29,16 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-
 )
 
 // Test regular listing result with simple use cases:
-//   Upload an object ten times, delete it once (delete marker)
-//   and check listing result
+//
+//	Upload an object ten times, delete it once (delete marker)
+//	and check listing result
 func testListObjectVersionsSimple() {
 	startTime := time.Now()
 	function := "testListObjectVersionsSimple"
@@ -191,7 +191,7 @@ func testListObjectVersionsSimple() {
 		Bucket:          aws.String(bucket),
 		VersionIdMarker: aws.String("test"),
 	}
-	result, err = s3Client.ListObjectVersions(ctx, lovInput)
+	_, err = s3Client.ListObjectVersions(ctx, lovInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to fail but got %v", err), err).Fatal()
 		return
@@ -199,7 +199,7 @@ func testListObjectVersionsSimple() {
 
 	// bucket-listobjects-handlers.go > ListObjectVersionsHandler > validateListObjectsArgs
 	lovInput.EncodingType = types.EncodingType("test")
-	result, err = s3Client.ListObjectVersions(ctx, lovInput)
+	_, err = s3Client.ListObjectVersions(ctx, lovInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to fail but got %v", err), err).Fatal()
 		return
@@ -215,7 +215,7 @@ func testListObjectVersionsSimple() {
 	s3ClientTest := s3.NewFromConfig(cfg2)
 
 	// Check with a second client: bucket-listobjects-handlers.go > ListObjectVersionsHandler > checkRequestAuthType
-	result, err = s3ClientTest.ListObjectVersions(ctx, lovInput)
+	_, err = s3ClientTest.ListObjectVersions(ctx, lovInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to fail but got %v", err), err).Fatal()
 		return

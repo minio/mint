@@ -105,7 +105,7 @@ func testDeleteObject() {
 		VersionId: aws.String(*delOutput.VersionId),
 	}
 
-	result, err := s3Client.GetObject(ctx, getInput)
+	_, err = s3Client.GetObject(ctx, getInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", "GetObject expected to fail but succeeded", nil).Fatal()
 		return
@@ -130,6 +130,7 @@ func testDeleteObject() {
 		VersionId: aws.String(*putOutput.VersionId),
 	}
 
+	var result *s3.GetObjectOutput
 	result, err = s3Client.GetObject(ctx, getInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("GetObject expected to succeed but failed with %v", err), err).Fatal()
