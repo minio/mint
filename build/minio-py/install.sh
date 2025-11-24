@@ -15,8 +15,7 @@
 #  limitations under the License.
 #
 
-# TO BE UPGRADED to >7.2.18 once released
-MINIO_PY_VERSION="7.2.16"
+MINIO_PY_VERSION="7.2.19"
 test_run_dir="$MINT_RUN_CORE_DIR/minio-py"
 
 pip3 install --break-system-packages --user faker

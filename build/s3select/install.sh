@@ -15,6 +15,5 @@
 #  limitations under the License.
 #
 
-# TO BE UPGRADED to >7.2.18 once released
-MINIO_PY_VERSION="7.2.16"
+MINIO_PY_VERSION="7.2.19"
 pip3 install --break-system-packages --no-cache-dir minio=="${MINIO_PY_VERSION}"
