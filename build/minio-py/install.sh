@@ -15,7 +15,7 @@
 #  limitations under the License.
 #
 
-MINIO_PY_VERSION="7.2.19"
+MINIO_PY_VERSION="7.2.20"
 test_run_dir="$MINT_RUN_CORE_DIR/minio-py"
 
 pip3 install --break-system-packages --user faker
