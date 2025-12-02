@@ -20,14 +20,17 @@
 package main
 
 import (
+	"context"
+
 	"fmt"
 	"math/rand"
-	"reflect"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+
 )
 
 // Test PUT/GET/DELETE tagging for separate versions
@@ -42,8 +45,9 @@ func testTagging() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -54,12 +58,12 @@ func testTagging() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -71,15 +75,15 @@ func testTagging() {
 
 	type uploadedObject struct {
 		content      string
-		tagging      []*s3.Tag
+		tagging      []types.Tag
 		versionId    string
 		deleteMarker bool
 	}
 
 	uploads := []uploadedObject{
-		{content: "my content 1", tagging: []*s3.Tag{{Key: aws.String("type"), Value: aws.String("text")}}},
+		{content: "my content 1", tagging: []types.Tag{{Key: aws.String("type"), Value: aws.String("text")}}},
 		{content: "content file 2"},
-		{content: "\"%32&é", tagging: []*s3.Tag{{Key: aws.String("type"), Value: aws.String("garbage")}}},
+		{content: "\"%32&é", tagging: []types.Tag{{Key: aws.String("type"), Value: aws.String("garbage")}}},
 		{deleteMarker: true},
 	}
 
@@ -91,7 +95,7 @@ func testTagging() {
 				Bucket: aws.String(bucket),
 				Key:    aws.String(object),
 			}
-			deleteOutput, err := s3Client.DeleteObject(deleteInput)
+			deleteOutput, err := s3Client.DeleteObject(ctx, deleteInput)
 			if err != nil {
 				failureLog(function, args, startTime, "", fmt.Sprintf("DELETE object expected to succeed but got %v", err), err).Fatal()
 				return
@@ -101,11 +105,11 @@ func testTagging() {
 		}
 
 		putInput := &s3.PutObjectInput{
-			Body:   aws.ReadSeekCloser(strings.NewReader(uploads[i].content)),
+			Body:   strings.NewReader(uploads[i].content),
 			Bucket: aws.String(bucket),
 			Key:    aws.String(object),
 		}
-		output, err := s3Client.PutObject(putInput)
+		output, err := s3Client.PutObject(ctx, putInput)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 			return
@@ -121,10 +125,10 @@ func testTagging() {
 		putTaggingInput := &s3.PutObjectTaggingInput{
 			Bucket:    aws.String(bucket),
 			Key:       aws.String(object),
-			Tagging:   &s3.Tagging{TagSet: uploads[i].tagging},
+			Tagging:   &types.Tagging{TagSet: uploads[i].tagging},
 			VersionId: aws.String(uploads[i].versionId),
 		}
-		_, err = s3Client.PutObjectTagging(putTaggingInput)
+		_, err = s3Client.PutObjectTagging(ctx, putTaggingInput)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("PUT Object tagging expected to succeed but got %v", err), err).Fatal()
 			return
@@ -138,7 +142,7 @@ func testTagging() {
 			Key:       aws.String(object),
 			VersionId: aws.String(uploads[i].versionId),
 		}
-		result, err := s3Client.GetObjectTagging(input)
+		result, err := s3Client.GetObjectTagging(ctx, input)
 		if err == nil && uploads[i].deleteMarker {
 			failureLog(function, args, startTime, "", "GET Object tagging expected to fail with delete marker but succeded", err).Fatal()
 			return
@@ -152,9 +156,19 @@ func testTagging() {
 			continue
 		}
 
-		if !reflect.DeepEqual(result.TagSet, uploads[i].tagging) {
-			failureLog(function, args, startTime, "", "GET Object tagging returned unexpected result", nil).Fatal()
+		// Compare tags by value, not pointer (reflect.DeepEqual compares pointers which will fail)
+		if len(result.TagSet) != len(uploads[i].tagging) {
+			failureLog(function, args, startTime, "", fmt.Sprintf("GET Object tagging returned unexpected count: expected %d, got %d", len(uploads[i].tagging), len(result.TagSet)), nil).Fatal()
 			return
+		}
+		for j := range result.TagSet {
+			if aws.ToString(result.TagSet[j].Key) != aws.ToString(uploads[i].tagging[j].Key) ||
+				aws.ToString(result.TagSet[j].Value) != aws.ToString(uploads[i].tagging[j].Value) {
+				failureLog(function, args, startTime, "", fmt.Sprintf("GET Object tagging tag mismatch: expected {%s: %s}, got {%s: %s}",
+					aws.ToString(uploads[i].tagging[j].Key), aws.ToString(uploads[i].tagging[j].Value),
+					aws.ToString(result.TagSet[j].Key), aws.ToString(result.TagSet[j].Value)), nil).Fatal()
+				return
+			}
 		}
 	}
 
@@ -165,7 +179,7 @@ func testTagging() {
 			Key:       aws.String(object),
 			VersionId: aws.String(uploads[i].versionId),
 		}
-		_, err := s3Client.DeleteObjectTagging(input)
+		_, err := s3Client.DeleteObjectTagging(ctx, input)
 		if err == nil && uploads[i].deleteMarker {
 			failureLog(function, args, startTime, "", "DELETE Object tagging expected to fail with delete marker but succeded", err).Fatal()
 			return
@@ -187,14 +201,14 @@ func testTagging() {
 			Key:       aws.String(object),
 			VersionId: aws.String(uploads[i].versionId),
 		}
-		result, err := s3Client.GetObjectTagging(input)
+		result, err := s3Client.GetObjectTagging(ctx, input)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("GET Object tagging expected to succeed but got %v", err), err).Fatal()
 			return
 		}
-		var nilTagSet []*s3.Tag
-		if !reflect.DeepEqual(result.TagSet, nilTagSet) {
-			failureLog(function, args, startTime, "", "GET Object tagging after DELETE returned unexpected result", nil).Fatal()
+		// After delete, TagSet should be empty (either nil or empty slice)
+		if len(result.TagSet) != 0 {
+			failureLog(function, args, startTime, "", fmt.Sprintf("GET Object tagging after DELETE returned unexpected result: expected empty, got %d tags", len(result.TagSet)), nil).Fatal()
 			return
 		}
 	}

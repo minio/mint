@@ -20,15 +20,19 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+
+	"github.com/aws/smithy-go"
 )
 
 // testGetObject tests all get object features - picking a particular
@@ -44,8 +48,9 @@ func testGetObject() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -56,12 +61,12 @@ func testGetObject() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -72,21 +77,21 @@ func testGetObject() {
 	}
 
 	putInput1 := &s3.PutObjectInput{
-		Body:   aws.ReadSeekCloser(strings.NewReader("my content 1")),
+		Body:   strings.NewReader("my content 1"),
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
-	_, err = s3Client.PutObject(putInput1)
+	_, err = s3Client.PutObject(ctx, putInput1)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 		return
 	}
 	putInput2 := &s3.PutObjectInput{
-		Body:   aws.ReadSeekCloser(strings.NewReader("content file 2")),
+		Body:   strings.NewReader("content file 2"),
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
-	_, err = s3Client.PutObject(putInput2)
+	_, err = s3Client.PutObject(ctx, putInput2)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 		return
@@ -97,7 +102,7 @@ func testGetObject() {
 		Key:    aws.String(object),
 	}
 
-	_, err = s3Client.DeleteObject(deleteInput)
+	_, err = s3Client.DeleteObject(ctx, deleteInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("Delete expected to succeed but got %v", err), err).Fatal()
 		return
@@ -107,7 +112,7 @@ func testGetObject() {
 		Bucket: aws.String(bucket),
 	}
 
-	result, err := s3Client.ListObjectVersions(input)
+	result, err := s3Client.ListObjectVersions(ctx, input)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -118,9 +123,9 @@ func testGetObject() {
 		versionId    string
 		deleteMarker bool
 	}{
-		{"", *(*result.DeleteMarkers[0]).VersionId, true},
-		{"content file 2", *(*result.Versions[0]).VersionId, false},
-		{"my content 1", *(*result.Versions[1]).VersionId, false},
+		{"", *result.DeleteMarkers[0].VersionId, true},
+		{"content file 2", *result.Versions[0].VersionId, false},
+		{"my content 1", *result.Versions[1].VersionId, false},
 	}
 
 	for i, testCase := range testCases {
@@ -130,7 +135,7 @@ func testGetObject() {
 			VersionId: aws.String(testCase.versionId),
 		}
 
-		result, err := s3Client.GetObject(getInput)
+		result, err := s3Client.GetObject(ctx, getInput)
 		if testCase.deleteMarker && err == nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("GetObject(%d) expected to fail but succeeded", i+1), nil).Fatal()
 			return
@@ -142,19 +147,20 @@ func testGetObject() {
 		}
 
 		if testCase.deleteMarker {
-			aerr, ok := err.(awserr.Error)
-			if !ok {
-				failureLog(function, args, startTime, "", fmt.Sprintf("GetObject(%d) unexpected error with delete marker", i+1), err).Fatal()
-				return
-			}
-			if aerr.Code() != "MethodNotAllowed" {
+			var apiErr smithy.APIError
+			if errors.As(err, &apiErr) {
+				if apiErr.ErrorCode() != "MethodNotAllowed" {
+					failureLog(function, args, startTime, "", fmt.Sprintf("GetObject(%d) unexpected error with delete marker", i+1), err).Fatal()
+					return
+				}
+			} else {
 				failureLog(function, args, startTime, "", fmt.Sprintf("GetObject(%d) unexpected error with delete marker", i+1), err).Fatal()
 				return
 			}
 			continue
 		}
 
-		body, err := ioutil.ReadAll(result.Body)
+		body, err := io.ReadAll(result.Body)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("GetObject(%d) expected to return data but failed", i+1), err).Fatal()
 			return

@@ -1,6 +1,6 @@
-#!/bin/bash -e
+#!/bin/bash
 #
-#  Mint (C) 2017 Minio, Inc.
+#  Mint (C) 2017-2025 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,15 +15,14 @@
 #  limitations under the License.
 #
 
-test_run_dir="$MINT_RUN_CORE_DIR/aws-sdk-java"
+# handle command line arguments
+if [ $# -ne 2 ]; then
+	echo "usage: run.sh <OUTPUT-LOG-FILE> <ERROR-LOG-FILE>"
+	exit 1
+fi
 
-cd "$(dirname "$(realpath "$0")")"
+output_log_file="$1"
+error_log_file="$2"
 
-ant init-ivy &&
-	ant resolve &&
-	ant compile &&
-	ant jar
-
-cp build/jar/FunctionalTests.jar "$test_run_dir/"
-
-rm -rf lib/ build/
+# run tests
+/mint/run/core/aws-sdk-go-v2/aws-sdk-go-v2 1>>"$output_log_file" 2>"$error_log_file"

@@ -1,6 +1,6 @@
 #!/bin/bash -e
 #
-#  Mint (C) 2017 Minio, Inc.
+#  Mint (C) 2017-2025 Minio, Inc.
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,5 +15,5 @@
 #  limitations under the License.
 #
 
-test_run_dir="$MINT_RUN_CORE_DIR/aws-sdk-go"
+test_run_dir="$MINT_RUN_CORE_DIR/aws-sdk-go-v2"
 (cd "$test_run_dir" && CGO_ENABLED=0 go build --ldflags "-s -w")

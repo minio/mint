@@ -20,18 +20,21 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+
 )
 
 // Tests bucket versioned bucket and get its versioning configuration to check
 func testMakeBucket() {
-	s3Client.Config.Region = aws.String("us-east-1")
+	ctx := context.Background()
 
 	// initialize logging params
 	startTime := time.Now()
@@ -40,7 +43,7 @@ func testMakeBucket() {
 	args := map[string]interface{}{
 		"bucketName": bucketName,
 	}
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucketName),
 	})
 	if err != nil {
@@ -51,13 +54,13 @@ func testMakeBucket() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucketName),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			MFADelete: aws.String("Disabled"),
-			Status:    aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			MFADelete: types.MFADeleteDisabled,
+			Status:    types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -71,13 +74,13 @@ func testMakeBucket() {
 		Bucket: aws.String(bucketName),
 	}
 
-	result, err := s3Client.GetBucketVersioning(getVersioningInput)
+	result, err := s3Client.GetBucketVersioning(ctx, getVersioningInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", "Get Versioning failed", err).Fatal()
 		return
 	}
 
-	if *result.Status != "Enabled" {
+	if result.Status != types.BucketVersioningStatusEnabled {
 		failureLog(function, args, startTime, "", "Get Versioning status failed", errors.New("unexpected versioning status")).Fatal()
 	}
 

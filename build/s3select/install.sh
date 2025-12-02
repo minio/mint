@@ -15,4 +15,5 @@
 #  limitations under the License.
 #
 
-python -m pip install minio
+MINIO_PY_VERSION="7.2.20"
+pip3 install --break-system-packages --no-cache-dir minio=="${MINIO_PY_VERSION}"

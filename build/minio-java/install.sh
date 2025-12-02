@@ -16,7 +16,7 @@
 #
 
 SPOTBUGS_VERSION="4.2.2" ## needed since 8.0.2 release
-JUNIT_VERSION="4.12"     ## JUNIT version
+JUNIT_VERSION="5.11.4"   ## JUnit Jupiter (JUnit 5) version
 MINIO_JAVA_VERSION=$(curl --retry 10 -s "https://repo1.maven.org/maven2/io/minio/minio/maven-metadata.xml" | sed -n "/<latest>/{s/<.[^>]*>//g;p;q}" | sed "s/  *//g")
 if [ -z "$MINIO_JAVA_VERSION" ]; then
 	echo "unable to get latest minio-java version from maven"
@@ -28,11 +28,17 @@ git clone --quiet https://github.com/minio/minio-java.git "$test_run_dir/minio-j
 (
 	cd "$test_run_dir/minio-java.git"
 	git checkout --quiet "tags/${MINIO_JAVA_VERSION}"
+
+	# Fix CORS configuration comparison - serialize to XML for comparison since CORSConfiguration lacks equals()
+	# The Xml.marshal() method converts objects to XML strings, enabling proper equality comparison
+	sed -i.bak '/Assertions\.assertEquals(/{N;/"cors: expected: "/s/expectedConfig, config, "cors:/Xml.marshal(expectedConfig), Xml.marshal(config), "cors:/;}' functional/FunctionalTest.java
 )
 $WGET --output-document="$test_run_dir/minio-${MINIO_JAVA_VERSION}-all.jar" "https://repo1.maven.org/maven2/io/minio/minio/${MINIO_JAVA_VERSION}/minio-${MINIO_JAVA_VERSION}-all.jar"
 $WGET --output-document="$test_run_dir/minio-admin-${MINIO_JAVA_VERSION}-all.jar" "https://repo1.maven.org/maven2/io/minio/minio-admin/${MINIO_JAVA_VERSION}/minio-admin-${MINIO_JAVA_VERSION}-all.jar"
 $WGET --output-document="$test_run_dir/spotbugs-annotations-${SPOTBUGS_VERSION}.jar" "https://repo1.maven.org/maven2/com/github/spotbugs/spotbugs-annotations/${SPOTBUGS_VERSION}/spotbugs-annotations-${SPOTBUGS_VERSION}.jar"
-$WGET --output-document="$test_run_dir/junit-${JUNIT_VERSION}.jar" "https://repo1.maven.org/maven2/junit/junit/${JUNIT_VERSION}/junit-${JUNIT_VERSION}.jar"
-javac -cp "$test_run_dir/minio-${MINIO_JAVA_VERSION}-all.jar:$test_run_dir/minio-admin-${MINIO_JAVA_VERSION}-all.jar:$test_run_dir/spotbugs-annotations-${SPOTBUGS_VERSION}.jar:$test_run_dir/junit-${JUNIT_VERSION}.jar" "${test_run_dir}/minio-java.git/functional"/*.java
+$WGET --output-document="$test_run_dir/junit-jupiter-api-${JUNIT_VERSION}.jar" "https://repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-api/${JUNIT_VERSION}/junit-jupiter-api-${JUNIT_VERSION}.jar"
+$WGET --output-document="$test_run_dir/junit-platform-commons-1.11.4.jar" "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-commons/1.11.4/junit-platform-commons-1.11.4.jar"
+$WGET --output-document="$test_run_dir/opentest4j-1.3.0.jar" "https://repo1.maven.org/maven2/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar"
+javac -cp "$test_run_dir/minio-${MINIO_JAVA_VERSION}-all.jar:$test_run_dir/minio-admin-${MINIO_JAVA_VERSION}-all.jar:$test_run_dir/spotbugs-annotations-${SPOTBUGS_VERSION}.jar:$test_run_dir/junit-jupiter-api-${JUNIT_VERSION}.jar:$test_run_dir/junit-platform-commons-1.11.4.jar:$test_run_dir/opentest4j-1.3.0.jar" "${test_run_dir}/minio-java.git/functional"/*.java
 cp -a "${test_run_dir}/minio-java.git/functional"/*.class "$test_run_dir/"
 rm -fr "$test_run_dir/minio-java.git"

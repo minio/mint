@@ -20,13 +20,16 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+
 )
 
 // Test locking retention governance
@@ -41,8 +44,9 @@ func testLockingRetentionGovernance() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket:                     aws.String(bucket),
 		ObjectLockEnabledForBucket: aws.Bool(true),
 	})
@@ -73,16 +77,16 @@ func testLockingRetentionGovernance() {
 	// Upload versions and save their version IDs
 	for i := range uploads {
 		putInput := &s3.PutObjectInput{
-			Body:   aws.ReadSeekCloser(strings.NewReader("content")),
+			Body:   strings.NewReader("content"),
 			Bucket: aws.String(bucket),
 			Key:    aws.String(object),
 		}
 		if uploads[i].retention != "" {
-			putInput.ObjectLockMode = aws.String(uploads[i].retention)
+			putInput.ObjectLockMode = types.ObjectLockMode(uploads[i].retention)
 			putInput.ObjectLockRetainUntilDate = aws.Time(uploads[i].retentionUntil)
 
 		}
-		output, err := s3Client.PutObject(putInput)
+		output, err := s3Client.PutObject(ctx, putInput)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 			return
@@ -96,7 +100,7 @@ func testLockingRetentionGovernance() {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
-	deleteOutput, err := s3Client.DeleteObject(deleteInput)
+	deleteOutput, err := s3Client.DeleteObject(ctx, deleteInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("DELETE expected to succeed but got %v", err), err).Fatal()
 		return
@@ -114,7 +118,7 @@ func testLockingRetentionGovernance() {
 			Key:       aws.String(object),
 			VersionId: aws.String(uploads[i].versionId),
 		}
-		_, err = s3Client.DeleteObject(deleteInput)
+		_, err = s3Client.DeleteObject(ctx, deleteInput)
 		if err == nil && uploads[i].retention != "" {
 			failureLog(function, args, startTime, "", "DELETE expected to fail but succeed instead", nil).Fatal()
 			return
@@ -140,8 +144,9 @@ func testLockingRetentionCompliance() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket:                     aws.String(bucket),
 		ObjectLockEnabledForBucket: aws.Bool(true),
 	})
@@ -173,16 +178,16 @@ func testLockingRetentionCompliance() {
 	// Upload versions and save their version IDs
 	for i := range uploads {
 		putInput := &s3.PutObjectInput{
-			Body:   aws.ReadSeekCloser(strings.NewReader("content")),
+			Body:   strings.NewReader("content"),
 			Bucket: aws.String(bucket),
 			Key:    aws.String(object),
 		}
 		if uploads[i].retention != "" {
-			putInput.ObjectLockMode = aws.String(uploads[i].retention)
+			putInput.ObjectLockMode = types.ObjectLockMode(uploads[i].retention)
 			putInput.ObjectLockRetainUntilDate = aws.Time(uploads[i].retentionUntil)
 
 		}
-		output, err := s3Client.PutObject(putInput)
+		output, err := s3Client.PutObject(ctx, putInput)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 			return
@@ -196,7 +201,7 @@ func testLockingRetentionCompliance() {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
-	deleteOutput, err := s3Client.DeleteObject(deleteInput)
+	deleteOutput, err := s3Client.DeleteObject(ctx, deleteInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("DELETE expected to succeed but got %v", err), err).Fatal()
 		return
@@ -214,7 +219,7 @@ func testLockingRetentionCompliance() {
 			Key:       aws.String(object),
 			VersionId: aws.String(uploads[i].versionId),
 		}
-		_, err = s3Client.DeleteObject(deleteInput)
+		_, err = s3Client.DeleteObject(ctx, deleteInput)
 		if err == nil && uploads[i].retention != "" {
 			failureLog(function, args, startTime, "", "DELETE expected to fail but succeed instead", nil).Fatal()
 			return
@@ -248,8 +253,9 @@ func testPutGetDeleteLockingRetention(function, retentionMode string) {
 		"objectName":    object,
 		"retentionMode": retentionMode,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket:                     aws.String(bucket),
 		ObjectLockEnabledForBucket: aws.Bool(true),
 	})
@@ -269,14 +275,14 @@ func testPutGetDeleteLockingRetention(function, retentionMode string) {
 
 	// Upload version and save the version ID
 	putInput := &s3.PutObjectInput{
-		Body:                      aws.ReadSeekCloser(strings.NewReader("content")),
+		Body:                      strings.NewReader("content"),
 		Bucket:                    aws.String(bucket),
 		Key:                       aws.String(object),
-		ObjectLockMode:            aws.String(retentionMode),
+		ObjectLockMode:            types.ObjectLockMode(retentionMode),
 		ObjectLockRetainUntilDate: aws.Time(oneMinuteRetention),
 	}
 
-	output, err := s3Client.PutObject(putInput)
+	output, err := s3Client.PutObject(ctx, putInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 		return
@@ -288,12 +294,12 @@ func testPutGetDeleteLockingRetention(function, retentionMode string) {
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(object),
 		VersionId: aws.String(versionId),
-		Retention: &s3.ObjectLockRetention{
-			Mode:            aws.String(retentionMode),
+		Retention: &types.ObjectLockRetention{
+			Mode:            types.ObjectLockRetentionMode(retentionMode),
 			RetainUntilDate: aws.Time(twoMinutesRetention),
 		},
 	}
-	_, err = s3Client.PutObjectRetention(putRetentionInput)
+	_, err = s3Client.PutObjectRetention(ctx, putRetentionInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("PutObjectRetention expected to succeed but got %v", err), err).Fatal()
 		return
@@ -305,7 +311,7 @@ func testPutGetDeleteLockingRetention(function, retentionMode string) {
 		VersionId: aws.String(versionId),
 	}
 
-	retentionOutput, err := s3Client.GetObjectRetention(getRetentionInput)
+	retentionOutput, err := s3Client.GetObjectRetention(ctx, getRetentionInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("GetObjectRetention expected to succeed but got %v", err), err).Fatal()
 		return
@@ -322,12 +328,12 @@ func testPutGetDeleteLockingRetention(function, retentionMode string) {
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(object),
 		VersionId: aws.String(versionId),
-		Retention: &s3.ObjectLockRetention{
-			Mode:            aws.String(retentionMode),
+		Retention: &types.ObjectLockRetention{
+			Mode:            types.ObjectLockRetentionMode(retentionMode),
 			RetainUntilDate: aws.Time(oneMinuteRetention),
 		},
 	}
-	_, err = s3Client.PutObjectRetention(putRetentionInput)
+	_, err = s3Client.PutObjectRetention(ctx, putRetentionInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", "PutObjectRetention expected to fail but succeeded", nil).Fatal()
 		return
@@ -338,12 +344,12 @@ func testPutGetDeleteLockingRetention(function, retentionMode string) {
 		Bucket:    aws.String(bucket),
 		Key:       aws.String(object),
 		VersionId: aws.String(versionId),
-		Retention: &s3.ObjectLockRetention{
-			Mode: aws.String(""),
+		Retention: &types.ObjectLockRetention{
+			Mode: types.ObjectLockRetentionMode(""),
 		},
 	}
 
-	_, err = s3Client.PutObjectRetention(putRetentionInput)
+	_, err = s3Client.PutObjectRetention(ctx, putRetentionInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", "Operation expected to fail but succeeded", nil).Fatal()
 		return
@@ -356,12 +362,12 @@ func testPutGetDeleteLockingRetention(function, retentionMode string) {
 			Key:                       aws.String(object),
 			VersionId:                 aws.String(versionId),
 			BypassGovernanceRetention: aws.Bool(true),
-			Retention: &s3.ObjectLockRetention{
-				Mode: aws.String(""),
+			Retention: &types.ObjectLockRetention{
+				Mode: types.ObjectLockRetentionMode(""),
 			},
 		}
 
-		_, err = s3Client.PutObjectRetention(putRetentionInput)
+		_, err = s3Client.PutObjectRetention(ctx, putRetentionInput)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("Expected to succeed but failed with %v", err), err).Fatal()
 			return

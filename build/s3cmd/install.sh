@@ -16,4 +16,5 @@
 #
 
 # Always install the latest.
-python -m pip install s3cmd
+# Using --break-system-packages for Ubuntu 24.04+ (PEP 668) - safe in containers
+python -m pip install --break-system-packages s3cmd

@@ -21,22 +21,24 @@ die() {
 }
 
 # shellcheck disable=SC2086
-ROOTDIR="$(dirname "$(realpath $0)")"
+# ROOTDIR="$(dirname "$(realpath $0)")"
 TMPDIR="$(mktemp -d)"
 
 cd "$TMPDIR"
 
-# Download botocore and apply @y4m4's expect 100 continue fix
-(git clone --depth 1 -b 1.31.37 https://github.com/boto/botocore &&
+# Download and install botocore
+# Note: botocore 1.40.67+ has built-in support for empty body handling
+# via BOTO_EXPERIMENTAL__NO_EMPTY_CONTINUE environment variable
+# Using --break-system-packages for Ubuntu 24.04+ (PEP 668) - safe in containers
+(git clone --depth 1 -b 1.40.67 https://github.com/boto/botocore &&
 	cd botocore &&
-	patch -p1 <"$ROOTDIR/expect-100.patch" &&
-	python3 -m pip install .) ||
+	python3 -m pip install --break-system-packages .) ||
 	die "Unable to install botocore.."
 
 # Download and install aws cli
-(git clone --depth 1 -b 1.29.37 https://github.com/aws/aws-cli &&
+(git clone --depth 1 -b 1.42.67 https://github.com/aws/aws-cli &&
 	cd aws-cli &&
-	python3 -m pip install .) ||
+	python3 -m pip install --break-system-packages .) ||
 	die "Unable to install aws-cli.."
 
 # Clean-up

@@ -35,7 +35,7 @@ git clone --quiet https://github.com/minio/minio-dotnet.git "${temp_dir}"
 pushd "${temp_dir}" >/dev/null
 git checkout --quiet "tags/${MINIO_DOTNET_SDK_VERSION}"
 
-dotnet publish Minio.Functional.Tests --configuration Mint --framework net6.0 --output ../out
+dotnet publish Minio.Functional.Tests --configuration Mint --framework net8.0 --output ../out
 
 popd >/dev/null
 rm -fr "${temp_dir}"

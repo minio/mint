@@ -20,15 +20,19 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+
+	"github.com/aws/smithy-go"
 )
 
 func testDeleteObject() {
@@ -43,8 +47,9 @@ func testDeleteObject() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -55,12 +60,12 @@ func testDeleteObject() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -71,12 +76,12 @@ func testDeleteObject() {
 	}
 
 	putInput := &s3.PutObjectInput{
-		Body:   aws.ReadSeekCloser(strings.NewReader(objectContent)),
+		Body:   strings.NewReader(objectContent),
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
 
-	putOutput, err := s3Client.PutObject(putInput)
+	putOutput, err := s3Client.PutObject(ctx, putInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 		return
@@ -87,7 +92,7 @@ func testDeleteObject() {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
-	delOutput, err := s3Client.DeleteObject(deleteInput)
+	delOutput, err := s3Client.DeleteObject(ctx, deleteInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("Delete expected to succeed but got %v", err), err).Fatal()
 		return
@@ -100,18 +105,19 @@ func testDeleteObject() {
 		VersionId: aws.String(*delOutput.VersionId),
 	}
 
-	result, err := s3Client.GetObject(getInput)
+	_, err = s3Client.GetObject(ctx, getInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", "GetObject expected to fail but succeeded", nil).Fatal()
 		return
 	}
 	if err != nil {
-		aerr, ok := err.(awserr.Error)
-		if !ok {
-			failureLog(function, args, startTime, "", "GetObject unexpected error with delete marker", err).Fatal()
-			return
-		}
-		if aerr.Code() != "MethodNotAllowed" {
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) {
+			if apiErr.ErrorCode() != "MethodNotAllowed" {
+				failureLog(function, args, startTime, "", "GetObject unexpected error with delete marker", err).Fatal()
+				return
+			}
+		} else {
 			failureLog(function, args, startTime, "", "GetObject unexpected error with delete marker", err).Fatal()
 			return
 		}
@@ -124,13 +130,14 @@ func testDeleteObject() {
 		VersionId: aws.String(*putOutput.VersionId),
 	}
 
-	result, err = s3Client.GetObject(getInput)
+	var result *s3.GetObjectOutput
+	result, err = s3Client.GetObject(ctx, getInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("GetObject expected to succeed but failed with %v", err), err).Fatal()
 		return
 	}
 
-	body, err := ioutil.ReadAll(result.Body)
+	body, err := io.ReadAll(result.Body)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("GetObject expected to return data but failed with %v", err), err).Fatal()
 		return
@@ -148,7 +155,7 @@ func testDeleteObject() {
 			Key:       aws.String(object),
 			VersionId: aws.String(versionID),
 		}
-		_, err := s3Client.DeleteObject(delInput)
+		_, err := s3Client.DeleteObject(ctx, delInput)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("DeleteObject (%d) expected to succeed but failed", i+1), err).Fatal()
 			return
@@ -159,7 +166,7 @@ func testDeleteObject() {
 		Bucket: aws.String(bucket),
 	}
 
-	listOutput, err := s3Client.ListObjectVersions(listInput)
+	listOutput, err := s3Client.ListObjectVersions(ctx, listInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -186,8 +193,9 @@ func testDeleteObjects() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -198,12 +206,12 @@ func testDeleteObjects() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -214,20 +222,20 @@ func testDeleteObjects() {
 	}
 
 	putInput := &s3.PutObjectInput{
-		Body:   aws.ReadSeekCloser(strings.NewReader(objectContent)),
+		Body:   strings.NewReader(objectContent),
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
 
-	_, err = s3Client.PutObject(putInput)
+	_, err = s3Client.PutObject(ctx, putInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 		return
 	}
 
 	// First delete without version ID
-	del := &s3.Delete{
-		Objects: []*s3.ObjectIdentifier{
+	del := &types.Delete{
+		Objects: []types.ObjectIdentifier{
 			{
 				Key: aws.String(object),
 			},
@@ -238,7 +246,7 @@ func testDeleteObjects() {
 		Delete: del,
 	}
 
-	_, err = s3Client.DeleteObjects(deleteInput)
+	_, err = s3Client.DeleteObjects(ctx, deleteInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("Delete expected to succeed but got %v", err), err).Fatal()
 		return
@@ -248,7 +256,7 @@ func testDeleteObjects() {
 	listInput := &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucket),
 	}
-	listOutput, err := s3Client.ListObjectVersions(listInput)
+	listOutput, err := s3Client.ListObjectVersions(ctx, listInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -259,8 +267,8 @@ func testDeleteObjects() {
 	}
 
 	// Delete all versions for the object
-	del = &s3.Delete{
-		Objects: []*s3.ObjectIdentifier{
+	del = &types.Delete{
+		Objects: []types.ObjectIdentifier{
 			{
 				Key:       listOutput.DeleteMarkers[0].Key,
 				VersionId: listOutput.DeleteMarkers[0].VersionId,
@@ -275,7 +283,7 @@ func testDeleteObjects() {
 		Bucket: aws.String(bucket),
 		Delete: del,
 	}
-	_, err = s3Client.DeleteObjects(deleteInput)
+	_, err = s3Client.DeleteObjects(ctx, deleteInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("Delete expected to succeed but got %v", err), err).Fatal()
 		return
@@ -285,7 +293,7 @@ func testDeleteObjects() {
 	listInput = &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucket),
 	}
-	listOutput, err = s3Client.ListObjectVersions(listInput)
+	listOutput, err = s3Client.ListObjectVersions(ctx, listInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return

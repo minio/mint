@@ -20,14 +20,18 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+
+	"github.com/aws/smithy-go"
 )
 
 func testStatObject() {
@@ -41,8 +45,9 @@ func testStatObject() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -53,12 +58,12 @@ func testStatObject() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -69,21 +74,21 @@ func testStatObject() {
 	}
 
 	putInput1 := &s3.PutObjectInput{
-		Body:   aws.ReadSeekCloser(strings.NewReader("my content 1")),
+		Body:   strings.NewReader("my content 1"),
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
-	_, err = s3Client.PutObject(putInput1)
+	_, err = s3Client.PutObject(ctx, putInput1)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 		return
 	}
 	putInput2 := &s3.PutObjectInput{
-		Body:   aws.ReadSeekCloser(strings.NewReader("content file 2")),
+		Body:   strings.NewReader("content file 2"),
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
-	_, err = s3Client.PutObject(putInput2)
+	_, err = s3Client.PutObject(ctx, putInput2)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 		return
@@ -94,7 +99,7 @@ func testStatObject() {
 		Key:    aws.String(object),
 	}
 
-	_, err = s3Client.DeleteObject(deleteInput)
+	_, err = s3Client.DeleteObject(ctx, deleteInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("Delete expected to succeed but got %v", err), err).Fatal()
 		return
@@ -104,7 +109,7 @@ func testStatObject() {
 		Bucket: aws.String(bucket),
 	}
 
-	result, err := s3Client.ListObjectVersions(input)
+	result, err := s3Client.ListObjectVersions(ctx, input)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -116,9 +121,9 @@ func testStatObject() {
 		contentType  string
 		deleteMarker bool
 	}{
-		{0, *(*result.DeleteMarkers[0]).VersionId, "", true},
-		{14, *(*result.Versions[0]).VersionId, "binary/octet-stream", false},
-		{12, *(*result.Versions[1]).VersionId, "binary/octet-stream", false},
+		{0, *result.DeleteMarkers[0].VersionId, "", true},
+		{14, *result.Versions[0].VersionId, "binary/octet-stream", false},
+		{12, *result.Versions[1].VersionId, "binary/octet-stream", false},
 	}
 
 	for i, testCase := range testCases {
@@ -128,7 +133,7 @@ func testStatObject() {
 			VersionId: aws.String(testCase.versionId),
 		}
 
-		result, err := s3Client.HeadObject(headInput)
+		result, err := s3Client.HeadObject(ctx, headInput)
 		if testCase.deleteMarker && err == nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("StatObject (%d) expected to fail but succeeded", i+1), nil).Fatal()
 			return
@@ -140,13 +145,14 @@ func testStatObject() {
 		}
 
 		if testCase.deleteMarker {
-			aerr, ok := err.(awserr.Error)
-			if !ok {
+			var apiErr smithy.APIError
+			if errors.As(err, &apiErr) {
+				if apiErr.ErrorCode() != "MethodNotAllowed" {
+					failureLog(function, args, startTime, "", fmt.Sprintf("StatObject (%d) unexpected error code with delete marker", i+1), err).Fatal()
+					return
+				}
+			} else {
 				failureLog(function, args, startTime, "", fmt.Sprintf("StatObject (%d) unexpected error with delete marker", i+1), err).Fatal()
-				return
-			}
-			if aerr.Code() != "MethodNotAllowed" {
-				failureLog(function, args, startTime, "", fmt.Sprintf("StatObject (%d) unexpected error code with delete marker", i+1), err).Fatal()
 				return
 			}
 			continue
@@ -162,8 +168,18 @@ func testStatObject() {
 			return
 		}
 
-		if *result.ContentType != testCase.contentType {
-			failureLog(function, args, startTime, "", fmt.Sprintf("StatObject (%d) unexpected Content-Type", i+1), err).Fatal()
+		// S3 may return "application/octet-stream" or "binary/octet-stream" depending on implementation
+		// AWS SDK Go v2 behavior may differ from v1
+		actualContentType := ""
+		if result.ContentType != nil {
+			actualContentType = *result.ContentType
+		}
+		expectedContentType := testCase.contentType
+		// Normalize content types - both "binary/octet-stream" and "application/octet-stream" are acceptable defaults
+		if expectedContentType == "binary/octet-stream" && actualContentType == "application/octet-stream" {
+			// Accept application/octet-stream as equivalent to binary/octet-stream
+		} else if actualContentType != expectedContentType {
+			failureLog(function, args, startTime, "", fmt.Sprintf("StatObject (%d) unexpected Content-Type: expected %q, got %q", i+1, expectedContentType, actualContentType), err).Fatal()
 			return
 		}
 

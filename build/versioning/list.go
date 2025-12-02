@@ -20,6 +20,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -27,15 +28,17 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 // Test regular listing result with simple use cases:
-//   Upload an object ten times, delete it once (delete marker)
-//   and check listing result
+//
+//	Upload an object ten times, delete it once (delete marker)
+//	and check listing result
 func testListObjectVersionsSimple() {
 	startTime := time.Now()
 	function := "testListObjectVersionsSimple"
@@ -47,8 +50,9 @@ func testListObjectVersionsSimple() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -59,12 +63,12 @@ func testListObjectVersionsSimple() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -76,11 +80,11 @@ func testListObjectVersionsSimple() {
 
 	for i := 0; i < 10; i++ {
 		putInput1 := &s3.PutObjectInput{
-			Body:   aws.ReadSeekCloser(strings.NewReader("my content 1")),
+			Body:   strings.NewReader("my content 1"),
 			Bucket: aws.String(bucket),
 			Key:    aws.String(object),
 		}
-		_, err = s3Client.PutObject(putInput1)
+		_, err = s3Client.PutObject(ctx, putInput1)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 			return
@@ -95,7 +99,7 @@ func testListObjectVersionsSimple() {
 		Bucket: aws.String(bucket),
 		Key:    aws.String(object),
 	}
-	_, err = s3Client.DeleteObject(deleteInput)
+	_, err = s3Client.DeleteObject(ctx, deleteInput)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("Delete expected to succeed but got %v", err), err).Fatal()
 		return
@@ -104,7 +108,7 @@ func testListObjectVersionsSimple() {
 	// Accumulate all versions IDs
 	versionIDs := make(map[string]struct{})
 
-	result, err := s3Client.ListObjectVersions(input)
+	result, err := s3Client.ListObjectVersions(ctx, input)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -115,7 +119,7 @@ func testListObjectVersionsSimple() {
 		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected result", nil).Fatal()
 		return
 	}
-	dm := *result.DeleteMarkers[0]
+	dm := result.DeleteMarkers[0]
 	if !*dm.IsLatest {
 		failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected result", nil).Fatal()
 		return
@@ -141,7 +145,7 @@ func testListObjectVersionsSimple() {
 	}
 
 	for _, version := range result.Versions {
-		v := *version
+		v := version
 		if *v.IsLatest {
 			failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected IsLatest field", nil).Fatal()
 			return
@@ -166,7 +170,7 @@ func testListObjectVersionsSimple() {
 			failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected Size field", nil).Fatal()
 			return
 		}
-		if *v.StorageClass != "STANDARD" {
+		if v.StorageClass != types.ObjectVersionStorageClassStandard {
 			failureLog(function, args, startTime, "", "ListObjectVersions returned unexpected StorageClass field", nil).Fatal()
 			return
 		}
@@ -187,33 +191,31 @@ func testListObjectVersionsSimple() {
 		Bucket:          aws.String(bucket),
 		VersionIdMarker: aws.String("test"),
 	}
-	result, err = s3Client.ListObjectVersions(lovInput)
+	_, err = s3Client.ListObjectVersions(ctx, lovInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to fail but got %v", err), err).Fatal()
 		return
 	}
 
 	// bucket-listobjects-handlers.go > ListObjectVersionsHandler > validateListObjectsArgs
-	lovInput.EncodingType = aws.String("test")
-	result, err = s3Client.ListObjectVersions(lovInput)
+	lovInput.EncodingType = types.EncodingType("test")
+	_, err = s3Client.ListObjectVersions(ctx, lovInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to fail but got %v", err), err).Fatal()
 		return
 	}
 
-	// Second client
-	creds := credentials.NewStaticCredentials("test", "test", "")
-	newSession, err := session.NewSession()
+	// Second client with test credentials
+	creds := credentials.NewStaticCredentialsProvider("test", "test", "")
+	cfg2, err := config.LoadDefaultConfig(context.Background(), config.WithCredentialsProvider(creds))
 	if err != nil {
-		failureLog(function, args, startTime, "", fmt.Sprintf("NewSession expected to succeed but got %v", err), err).Fatal()
+		failureLog(function, args, startTime, "", fmt.Sprintf("LoadDefaultConfig expected to succeed but got %v", err), err).Fatal()
 		return
 	}
-	s3Config := s3Client.Config
-	s3Config.Credentials = creds
-	s3ClientTest := s3.New(newSession, &s3Config)
+	s3ClientTest := s3.NewFromConfig(cfg2)
 
 	// Check with a second client: bucket-listobjects-handlers.go > ListObjectVersionsHandler > checkRequestAuthType
-	result, err = s3ClientTest.ListObjectVersions(lovInput)
+	_, err = s3ClientTest.ListObjectVersions(ctx, lovInput)
 	if err == nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to fail but got %v", err), err).Fatal()
 		return
@@ -233,8 +235,9 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -245,12 +248,12 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -262,11 +265,11 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 
 	for _, objectName := range []string{"dir/object", "dir/dir/object", "object"} {
 		putInput := &s3.PutObjectInput{
-			Body:   aws.ReadSeekCloser(strings.NewReader("my content 1")),
+			Body:   strings.NewReader("my content 1"),
 			Bucket: aws.String(bucket),
 			Key:    aws.String(objectName),
 		}
-		_, err = s3Client.PutObject(putInput)
+		_, err = s3Client.PutObject(ctx, putInput)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 			return
@@ -296,7 +299,7 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 	input := &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucket),
 	}
-	result, err := s3Client.ListObjectVersions(input)
+	result, err := s3Client.ListObjectVersions(ctx, input)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -319,7 +322,7 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),
 	}
-	result, err = s3Client.ListObjectVersions(input)
+	result, err = s3Client.ListObjectVersions(ctx, input)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -342,7 +345,7 @@ func testListObjectVersionsWithPrefixAndDelimiter() {
 		Delimiter: aws.String("/"),
 		Prefix:    aws.String("dir/"),
 	}
-	result, err = s3Client.ListObjectVersions(input)
+	result, err = s3Client.ListObjectVersions(ctx, input)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -374,8 +377,9 @@ func testListObjectVersionsKeysContinuation() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -386,12 +390,12 @@ func testListObjectVersionsKeysContinuation() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -403,11 +407,11 @@ func testListObjectVersionsKeysContinuation() {
 
 	for i := 0; i < 10; i++ {
 		putInput1 := &s3.PutObjectInput{
-			Body:   aws.ReadSeekCloser(strings.NewReader("my content 1")),
+			Body:   strings.NewReader("my content 1"),
 			Bucket: aws.String(bucket),
 			Key:    aws.String(fmt.Sprintf("testobject-%d", i)),
 		}
-		_, err = s3Client.PutObject(putInput1)
+		_, err = s3Client.PutObject(ctx, putInput1)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 			return
@@ -416,7 +420,7 @@ func testListObjectVersionsKeysContinuation() {
 
 	input := &s3.ListObjectVersionsInput{
 		Bucket:  aws.String(bucket),
-		MaxKeys: aws.Int64(5),
+		MaxKeys: aws.Int32(5),
 	}
 
 	type resultPage struct {
@@ -428,22 +432,26 @@ func testListObjectVersionsKeysContinuation() {
 	var gotResult []resultPage
 	var numPages int
 
-	err = s3Client.ListObjectVersionsPages(input,
-		func(page *s3.ListObjectVersionsOutput, lastPage bool) bool {
-			numPages++
-			resultPage := resultPage{lastPage: lastPage}
-			if page.NextKeyMarker != nil {
-				resultPage.nextKeyMarker = *page.NextKeyMarker
-			}
-			for _, v := range page.Versions {
-				resultPage.versions = append(resultPage.versions, *v.Key)
-			}
-			if resultPage.nextKeyMarker != "" {
-				resultPage.nextKeyMarker = "set"
-			}
-			gotResult = append(gotResult, resultPage)
-			return true
-		})
+	paginator := s3.NewListObjectVersionsPaginator(s3Client, input)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			break
+		}
+		numPages++
+		lastPage := !paginator.HasMorePages()
+		rp := resultPage{lastPage: lastPage}
+		if page.NextKeyMarker != nil {
+			rp.nextKeyMarker = *page.NextKeyMarker
+		}
+		for _, v := range page.Versions {
+			rp.versions = append(rp.versions, *v.Key)
+		}
+		if rp.nextKeyMarker != "" {
+			rp.nextKeyMarker = "set"
+		}
+		gotResult = append(gotResult, rp)
+	}
 
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
@@ -480,8 +488,9 @@ func testListObjectVersionsVersionIDContinuation() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -492,12 +501,12 @@ func testListObjectVersionsVersionIDContinuation() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -509,11 +518,11 @@ func testListObjectVersionsVersionIDContinuation() {
 
 	for i := 0; i < 10; i++ {
 		putInput1 := &s3.PutObjectInput{
-			Body:   aws.ReadSeekCloser(strings.NewReader("my content 1")),
+			Body:   strings.NewReader("my content 1"),
 			Bucket: aws.String(bucket),
 			Key:    aws.String("testobject"),
 		}
-		_, err = s3Client.PutObject(putInput1)
+		_, err = s3Client.PutObject(ctx, putInput1)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 			return
@@ -522,7 +531,7 @@ func testListObjectVersionsVersionIDContinuation() {
 
 	input := &s3.ListObjectVersionsInput{
 		Bucket:  aws.String(bucket),
-		MaxKeys: aws.Int64(5),
+		MaxKeys: aws.Int32(5),
 	}
 
 	type resultPage struct {
@@ -535,24 +544,28 @@ func testListObjectVersionsVersionIDContinuation() {
 	var gotNextVersionIDMarker string
 	var numPages int
 
-	err = s3Client.ListObjectVersionsPages(input,
-		func(page *s3.ListObjectVersionsOutput, lastPage bool) bool {
-			numPages++
-			resultPage := resultPage{lastPage: lastPage}
-			if page.NextVersionIdMarker != nil {
-				resultPage.nextVersionIDMarker = *page.NextVersionIdMarker
-			}
-			for _, v := range page.Versions {
-				resultPage.versions = append(resultPage.versions, *v.Key)
-			}
-			if !lastPage {
-				// There is only two pages, so here we are saving the version id
-				// of the last element in the first page of listing
-				gotNextVersionIDMarker = *(*page.Versions[len(page.Versions)-1]).VersionId
-			}
-			gotResult = append(gotResult, resultPage)
-			return true
-		})
+	paginator := s3.NewListObjectVersionsPaginator(s3Client, input)
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			break
+		}
+		numPages++
+		lastPage := !paginator.HasMorePages()
+		rp := resultPage{lastPage: lastPage}
+		if page.NextVersionIdMarker != nil {
+			rp.nextVersionIDMarker = *page.NextVersionIdMarker
+		}
+		for _, v := range page.Versions {
+			rp.versions = append(rp.versions, *v.Key)
+		}
+		if !lastPage {
+			// There is only two pages, so here we are saving the version id
+			// of the last element in the first page of listing
+			gotNextVersionIDMarker = *page.Versions[len(page.Versions)-1].VersionId
+		}
+		gotResult = append(gotResult, rp)
+	}
 
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
@@ -589,8 +602,9 @@ func testListObjectsVersionsWithEmptyDirObject() {
 		"objectName": object,
 		"expiry":     expiry,
 	}
+	ctx := context.Background()
 
-	_, err := s3Client.CreateBucket(&s3.CreateBucketInput{
+	_, err := s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 	})
 	if err != nil {
@@ -601,12 +615,12 @@ func testListObjectsVersionsWithEmptyDirObject() {
 
 	putVersioningInput := &s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
-		VersioningConfiguration: &s3.VersioningConfiguration{
-			Status: aws.String("Enabled"),
+		VersioningConfiguration: &types.VersioningConfiguration{
+			Status: types.BucketVersioningStatusEnabled,
 		},
 	}
 
-	_, err = s3Client.PutBucketVersioning(putVersioningInput)
+	_, err = s3Client.PutBucketVersioning(ctx, putVersioningInput)
 	if err != nil {
 		if strings.Contains(err.Error(), "NotImplemented: A header you provided implies functionality that is not implemented") {
 			ignoreLog(function, args, startTime, "Versioning is not implemented").Info()
@@ -618,11 +632,11 @@ func testListObjectsVersionsWithEmptyDirObject() {
 
 	for _, objectName := range []string{"dir/object", "dir/"} {
 		putInput := &s3.PutObjectInput{
-			Body:   aws.ReadSeekCloser(strings.NewReader("")),
+			Body:   strings.NewReader(""),
 			Bucket: aws.String(bucket),
 			Key:    aws.String(objectName),
 		}
-		_, err = s3Client.PutObject(putInput)
+		_, err = s3Client.PutObject(ctx, putInput)
 		if err != nil {
 			failureLog(function, args, startTime, "", fmt.Sprintf("PUT expected to succeed but got %v", err), err).Fatal()
 			return
@@ -658,7 +672,7 @@ func testListObjectsVersionsWithEmptyDirObject() {
 	input := &s3.ListObjectVersionsInput{
 		Bucket: aws.String(bucket),
 	}
-	result, err := s3Client.ListObjectVersions(input)
+	result, err := s3Client.ListObjectVersions(ctx, input)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -684,7 +698,7 @@ func testListObjectsVersionsWithEmptyDirObject() {
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String("/"),
 	}
-	result, err = s3Client.ListObjectVersions(input)
+	result, err = s3Client.ListObjectVersions(ctx, input)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
@@ -707,7 +721,7 @@ func testListObjectsVersionsWithEmptyDirObject() {
 		Delimiter: aws.String("/"),
 		Prefix:    aws.String("dir/"),
 	}
-	result, err = s3Client.ListObjectVersions(input)
+	result, err = s3Client.ListObjectVersions(ctx, input)
 	if err != nil {
 		failureLog(function, args, startTime, "", fmt.Sprintf("ListObjectVersions expected to succeed but got %v", err), err).Fatal()
 		return
