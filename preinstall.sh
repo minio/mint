@@ -32,7 +32,7 @@ $APT update
 $APT install gnupg ca-certificates unzip busybox
 
 # download and install golang
-download_url="https://storage.googleapis.com/golang/go${GO_VERSION}.linux-amd64.tar.gz"
+download_url="https://dl.google.com/go/go${GO_VERSION}.linux-amd64.tar.gz"
 if ! $WGET --output-document=- "$download_url" | tar -C "${GO_INSTALL_PATH}" -zxf -; then
 	echo "unable to install go$GO_VERSION"
 	exit 1
