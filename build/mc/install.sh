@@ -15,6 +15,11 @@
 #  limitations under the License.
 #
 
+if [ "${MINT_MC_VARIANT:-mc}" = "ec" ]; then
+	echo "MINT_MC_VARIANT=ec: skipping upstream mc install (expecting ec-provided repo/binary/tests)"
+	exit 0
+fi
+
 MC_VERSION=$(curl --retry 10 -Ls -o /dev/null -w "%{url_effective}" https://github.com/minio/mc/releases/latest | sed "s/https:\/\/github.com\/minio\/mc\/releases\/tag\///")
 if [ -z "$MC_VERSION" ]; then
 	echo "unable to get mc version from github"
