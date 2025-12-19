@@ -29,12 +29,11 @@ mc_variant="${MINT_MC_VARIANT:-mc}"
 case "$mc_variant" in
 ec)
 	ec_repo_dir="${MINT_MC_EC_REPO_DIR:-./ec}"
-	ec_runner_default="${ec_repo_dir}/mint/run.sh"
-	ec_runner="${MINT_MC_EC_RUNNER:-$ec_runner_default}"
+	ec_runner="${MINT_MC_EC_RUNNER:-${ec_repo_dir}/mint/run.sh}"
 
 	if [ ! -f "$ec_runner" ]; then
 		echo "MINT_MC_VARIANT=ec but missing runner: $ec_runner" >&2
-		echo "mount the ec repo at /mint/run/core/mc/ec (so $ec_runner_default exists) or set MINT_MC_EC_RUNNER" >&2
+		echo "mount the ec repo at ./ec (so ${ec_repo_dir}/mint/run.sh exists) or set MINT_MC_EC_RUNNER" >&2
 		exit 1
 	fi
 

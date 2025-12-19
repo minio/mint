@@ -29,5 +29,3 @@ It then runs an `ec`-provided runner script at `./ec/mint/run.sh` (relative to t
 Override locations/behavior with:
 - `MINT_MC_EC_REPO_DIR` (path to the checked out `ec` repo; default `./ec`)
 - `MINT_MC_EC_RUNNER` (path to an executable runner script; default `./ec/mint/run.sh`)
-
-Tip: `run-ec.sh` in this directory is a template you can copy into the `ec` repo as `mint/run.sh`.
