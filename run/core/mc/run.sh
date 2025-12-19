@@ -27,26 +27,26 @@ error_log_file="$2"
 mc_variant="${MINT_MC_VARIANT:-mc}"
 
 case "$mc_variant" in
-	ec)
-		ec_repo_dir="${MINT_MC_EC_REPO_DIR:-./ec}"
-		ec_runner_default="${ec_repo_dir}/mint/run.sh"
-		ec_runner="${MINT_MC_EC_RUNNER:-$ec_runner_default}"
+ec)
+	ec_repo_dir="${MINT_MC_EC_REPO_DIR:-./ec}"
+	ec_runner_default="${ec_repo_dir}/mint/run.sh"
+	ec_runner="${MINT_MC_EC_RUNNER:-$ec_runner_default}"
 
-		if [ ! -f "$ec_runner" ]; then
-			echo "MINT_MC_VARIANT=ec but missing runner: $ec_runner" >&2
-			echo "mount the ec repo at /mint/run/core/mc/ec (so $ec_runner_default exists) or set MINT_MC_EC_RUNNER" >&2
-			exit 1
-		fi
-
-		# Use exec for the ec tests
-		exec bash "$ec_runner" "$output_log_file" "$error_log_file"
-		;;
-	mc)
-		# Run upstream mc tests
-		./functional-tests.sh 1>>"$output_log_file" 2>"$error_log_file"
-		;;
-	*)
-		echo "unknown MINT_MC_VARIANT: $mc_variant (supported: mc, ec)" >&2
+	if [ ! -f "$ec_runner" ]; then
+		echo "MINT_MC_VARIANT=ec but missing runner: $ec_runner" >&2
+		echo "mount the ec repo at /mint/run/core/mc/ec (so $ec_runner_default exists) or set MINT_MC_EC_RUNNER" >&2
 		exit 1
-		;;
+	fi
+
+	# Use exec for the ec tests
+	exec bash "$ec_runner" "$output_log_file" "$error_log_file"
+	;;
+mc)
+	# Run upstream mc tests
+	./functional-tests.sh 1>>"$output_log_file" 2>"$error_log_file"
+	;;
+*)
+	echo "unknown MINT_MC_VARIANT: $mc_variant (supported: mc, ec)" >&2
+	exit 1
+	;;
 esac
